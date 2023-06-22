@@ -1,0 +1,50 @@
+library BUF_USBCamera_SDK
+
+EXPORTS
+      BUFCCDUSB_InitDevice
+      BUFCCDUSB_UnInitDevice
+      BUFCCDUSB_GetModuleNoSerialNo
+      BUFCCDUSB_SetPowerSavingMode
+      BUFCCDUSB_GetPowerSavingMode
+      BUFCCDUSB_GetUserSerialNo
+      BUFCCDUSB_SetUserSerialNo
+      BUFCCDUSB_AddDeviceToWorkingSet
+      BUFCCDUSB_RemoveDeviceFromWorkingSet
+      BUFCCDUSB_ActiveDeviceInWorkingSet
+      BUFCCDUSB_StartCameraEngine
+      BUFCCDUSB_StartCameraEngine2
+      BUFCCDUSB_StopCameraEngine
+      BUFCCDUSB_GetCameraFirmwareVersion
+      BUFCCDUSB_ShowFactoryControlPanel
+      BUFCCDUSB_HideFactoryControlPanel
+      BUFCCDUSB_StartFrameGrab
+      BUFCCDUSB_StopFrameGrab
+      BUFCCDUSB_GetFrameSetting
+      BUFCCDUSB_SetFrameSetting
+      BUFCCDUSB_SetCameraWorkMode
+      BUFCCDUSB_SetBayerFilterType
+      BUFCCDUSB_SetCustomizedResolution
+      BUFCCDUSB_SetExposureTime
+      BUFCCDUSB_SetFrameTime
+      BUFCCDUSB_SetXYStart
+      BUFCCDUSB_SetGains
+      BUFCCDUSB_SetGainRatios
+      BUFCCDUSB_SetGamma
+      BUFCCDUSB_SetBWMode
+      BUFCCDUSB_InstallFrameHooker
+      BUFCCDUSB_InstallUSBDeviceHooker
+      BUFCCDUSB_GetCurrentFrame
+      BUFCCDUSB_GetCurrentFrame_16Bit
+      BUFCCDUSB_GetDevicesErrorState
+      BUFCCDUSB_SetMinimumFrameDelay
+      BUFCCDUSB_SetSoftTrigger
+      BUFCCDUSB_SetCCDFrequency
+      BUFCCDUSB_SetUserMark
+      BUFCCDUSB_ResetCameraTimer
+      BUFCCDUSB_SuspendCamera
+      BUFCCDUSB_SetGPIOConfig
+      BUFCCDUSB_SetGPIOInOut
+      BUFCCDUSB_ApplicationActivate
+
+
+

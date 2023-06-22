@@ -1,0 +1,252 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 中文(简体，中国) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
+#pragma code_page(936)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "#define _AFX_NO_SPLITTER_RESOURCES\r\n"
+    "#define _AFX_NO_OLE_RESOURCES\r\n"
+    "#define _AFX_NO_TRACKER_RESOURCES\r\n"
+    "#define _AFX_NO_PROPERTY_RESOURCES\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)\r\n"
+    "#ifdef _WIN32\r\n"
+    "LANGUAGE 4, 2\r\n"
+    "#pragma code_page(936)\r\n"
+    "#endif //_WIN32\r\n"
+    "#include ""res\\MightexApp.rc2""  // non-Microsoft Visual C++ edited resources\r\n"
+    "#include ""l.chs\\afxres.rc""          // Standard components\r\n"
+    "#endif\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME           ICON                    "res\\MightexApp.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_MIGHTEXAPP_DIALOG DIALOGEX 0, 0, 161, 463
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_APPWINDOW
+CAPTION "BUFCCDCAM DS DEMO(V1.0.0)"
+FONT 9, "宋体", 0, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,28,413,50,14,NOT WS_VISIBLE
+    PUSHBUTTON      "Cancel",IDCANCEL,82,413,50,14,NOT WS_VISIBLE
+    PUSHBUTTON      "Capture",IDC_ConnectBtn,82,377,49,14
+    PUSHBUTTON      "Snapshot",IDC_SnapshotBtn,102,323,40,14
+    PUSHBUTTON      "Preview",IDC_ConnectBtn2,27,377,51,14
+    EDITTEXT        IDC_FileName_Edit,70,298,72,12,ES_AUTOHSCROLL
+    GROUPBOX        "",IDC_STATIC,13,20,135,390
+    LTEXT           "File Name:",IDC_STATIC,21,299,41,8
+    EDITTEXT        IDC_SnapshotNum_Edit,70,312,24,12,ES_AUTOHSCROLL
+    LTEXT           "Grab Frames:",IDC_STATIC,21,312,49,8
+    GROUPBOX        "Resolution",IDC_STATIC,13,48,135,87
+    EDITTEXT        IDC_Width_Edit,45,59,42,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_Height_Edit,93,59,47,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "Apply",IDC_SetResolutionBtn,93,74,47,13
+    GROUPBOX        "Exposure Control",IDC_STATIC,13,136,135,59
+    COMBOBOX        IDC_Exposure_COMBO,111,145,32,59,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Maximum  Exposure Time:",IDC_STATIC,17,147,92,10
+    LTEXT           "Exposure Time: ( 33ms )",IDC_ExposureTime_STATIC,17,159,126,8
+    CONTROL         "Slider1",IDC_Exposure_SLIDER,"msctls_trackbar32",TBS_AUTOTICKS | TBS_BOTH | WS_TABSTOP,21,170,121,23
+    GROUPBOX        "Start(X,Y) ",IDC_STATIC,13,196,57,75
+    CONTROL         "Slider2",IDC_XStart_SLIDER,"msctls_trackbar32",TBS_AUTOTICKS | TBS_VERT | TBS_BOTH | WS_DISABLED | WS_TABSTOP,15,204,24,54
+    CONTROL         "Slider2",IDC_YStart_SLIDER,"msctls_trackbar32",TBS_AUTOTICKS | TBS_VERT | TBS_BOTH | WS_DISABLED | WS_TABSTOP,39,204,24,54
+    LTEXT           "  X     Y",IDC_STATIC,19,259,44,8
+    GROUPBOX        "Gains",IDC_STATIC,69,196,79,75
+    CONTROL         "Slider2",IDC_Red_SLIDER,"msctls_trackbar32",TBS_AUTOTICKS | TBS_VERT | TBS_BOTH | NOT WS_VISIBLE | WS_TABSTOP,71,204,24,54
+    CONTROL         "Slider2",IDC_Green_SLIDER,"msctls_trackbar32",TBS_AUTOTICKS | TBS_VERT | TBS_BOTH | WS_TABSTOP,94,204,24,54
+    CONTROL         "Slider2",IDC_Blue_SLIDER,"msctls_trackbar32",TBS_AUTOTICKS | TBS_VERT | TBS_BOTH | NOT WS_VISIBLE | WS_TABSTOP,117,204,24,54
+    LTEXT           "Red",IDC_Red_STATIC,79,259,13,8
+    LTEXT           "Blue",IDC_Blue_STATIC,123,259,17,8
+    LTEXT           "Green",IDC_Green_STATIC,98,259,24,8
+    GROUPBOX        "File Control",IDC_STATIC,13,272,135,122
+    CONTROL         "Save As JPG File",IDC_JPEGFile_CHK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,20,325,80,10
+    CONTROL         "Append Date_Time",IDC_Append_DateTime_CHK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,20,335,80,10
+    PUSHBUTTON      "Save Setting",IDC_ConnectBtn3,82,412,57,13,NOT WS_VISIBLE
+    PUSHBUTTON      "Load Setting",IDC_ConnectBtn4,21,412,57,13,NOT WS_VISIBLE
+    COMBOBOX        IDC_Device_COMBO,72,9,76,76,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         133,IDC_STATIC,"Static",SS_BITMAP,12,8,58,15
+    EDITTEXT        IDC_FilePath_Edit,70,284,58,12,ES_AUTOHSCROLL
+    LTEXT           "File Path:",IDC_STATIC,21,286,41,8
+    COMBOBOX        IDC_Compressor_COMBO,69,345,73,84,CBS_DROPDOWNLIST | WS_DISABLED | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Compress:",IDC_Compressor_CHK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,20,345,48,10
+    LTEXT           "752x480",IDC_Resolution_STATIC,7,446,43,10,0,WS_EX_STATICEDGE
+    LTEXT           "",IDC_State_STATIC,51,446,47,10,0,WS_EX_STATICEDGE
+    LTEXT           "",IDC_Snapshot_STATIC,99,446,55,10,0,WS_EX_STATICEDGE
+    EDITTEXT        IDC_FrameRate_Edit,70,360,24,12,ES_AUTOHSCROLL
+    LTEXT           "frame rate:",IDC_STATIC,21,362,45,8
+    PUSHBUTTON      "Apply",IDC_SetFrameRateBtn,111,360,31,14
+    LTEXT           "fps",IDC_STATIC,94,362,11,8
+    GROUPBOX        "Camera Mode",IDC_STATIC,13,25,135,24
+    CONTROL         "CONTINUOUS",IDC_WorkMode_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,25,36,56,10
+    CONTROL         "TRIGGER",IDC_WorkMode_RADIO2,"Button",BS_AUTORADIOBUTTON,91,36,44,10
+    PUSHBUTTON      "Advance Setting",IDC_PropertyPageBtn,44,395,71,13
+    PUSHBUTTON      "..",IDC_SelectFilePathBtn,130,284,12,12
+    LTEXT           "",IDC_DeviceName_STATIC,7,433,147,9,0,WS_EX_STATICEDGE
+    CONTROL         "1392 x 1040",IDC_Resolution_RADIO3,"Button",BS_AUTORADIOBUTTON,25,77,60,9
+    CONTROL         "696 x 520(1:2)Bin",IDC_Resolution_RADIO4,"Button",BS_AUTORADIOBUTTON,25,89,81,9
+    CONTROL         "464 x 344(1:3)Bin",IDC_Resolution_RADIO5,"Button",BS_AUTORADIOBUTTON,25,101,81,9
+    CONTROL         "348 x 256(1:4)Bin",IDC_Resolution_RADIO6,"Button",BS_AUTORADIOBUTTON,25,113,81,9
+    CONTROL         "",IDC_Resolution_RADIO2,"Button",BS_AUTORADIOBUTTON,26,62,12,9
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,9
+ PRODUCTVERSION 1,0,0,9
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "000004b0"
+        BEGIN
+            VALUE "Comments", "Mightex Buffer USB CCD Camera Application"
+            VALUE "CompanyName", "Mightex Corporation"
+            VALUE "FileDescription", "Mightex Buffer USB CCD Camera Application"
+            VALUE "FileVersion", "1.0.0.9"
+            VALUE "InternalName", "BUFCCDCameraApp"
+            VALUE "LegalCopyright", "Copyright Mightex 2009-2019"
+            VALUE "OriginalFilename", "BUFCCDCameraApp.exe"
+            VALUE "ProductName", "BUFCCDCameraApp"
+            VALUE "ProductVersion", "1.0.0.9"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_MIGHTEXAPP_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 154
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 456
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog Info
+//
+
+IDD_MIGHTEXAPP_DIALOG DLGINIT
+BEGIN
+    IDC_Exposure_COMBO, 0x403, 4, 0
+0x6d35, 0x0073, 
+    IDC_Exposure_COMBO, 0x403, 5, 0
+0x3031, 0x736d, "\000" 
+    IDC_Exposure_COMBO, 0x403, 6, 0
+0x3031, 0x6d30, 0x0073, 
+    IDC_Exposure_COMBO, 0x403, 6, 0
+0x3537, 0x6d30, 0x0073, 
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_BITMAP              BITMAP                  "res\\mightex.bmp"
+#endif    // 中文(简体，中国) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#define _AFX_NO_SPLITTER_RESOURCES
+#define _AFX_NO_OLE_RESOURCES
+#define _AFX_NO_TRACKER_RESOURCES
+#define _AFX_NO_PROPERTY_RESOURCES
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
+#ifdef _WIN32
+LANGUAGE 4, 2
+#pragma code_page(936)
+#endif //_WIN32
+#include "res\MightexApp.rc2"  // non-Microsoft Visual C++ edited resources
+#include "l.chs\afxres.rc"          // Standard components
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

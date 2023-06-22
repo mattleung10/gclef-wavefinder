@@ -1,0 +1,125 @@
+; Installation INF for the Mightex Buffer CCD USB Driver for Windows Vista
+; Processor support for OS unknown platforms.
+;
+; (c) Copyright 2009 Mightex system.
+;
+
+[Version]
+Signature="$WINDOWS NT$"
+Class=USB
+ClassGUID={36FC9E60-C465-11CF-8056-444553540000}
+provider=%MtBufCCDUsb_xp64_Provider%
+;CatalogFile=MtBufCCDUsb_xp64.cat
+DriverVer=04/09/2009,3.4.0.110
+
+[SourceDisksNames]
+1=%MtBufCCDUsb_xp64_Install%,,,
+
+[SourceDisksFiles]
+MtBufCCDUsb_xp64.sys = 1
+
+[DestinationDirs]
+MtBufCCDUsb_xp64.Files.Ext = 10,System32\Drivers
+
+[ControlFlags]
+ExcludeFromSelect = *
+
+[Manufacturer]
+%MtBufCCDUsb_xp64_Provider%=Device,NT,NTx86,NTamd64
+
+;for all platforms
+[Device]
+%VID_04B4&PID_0528.DeviceDesc%=MtBufCCDUsb_xp64, USB\VID_04B4&PID_0528
+
+
+;for windows 2000 non intel platforms
+[Device.NT]
+%VID_04B4&PID_0528.DeviceDesc%=MtBufCCDUsb_xp64, USB\VID_04B4&PID_0528
+
+
+;for x86 platforms
+[Device.NTx86]
+%VID_04B4&PID_0528.DeviceDesc%=MtBufCCDUsb_xp64, USB\VID_04B4&PID_0528
+
+
+;for x64 platforms
+[Device.NTamd64]
+%VID_04B4&PID_0528.DeviceDesc%=MtBufCCDUsb_xp64, USB\VID_04B4&PID_0528
+
+
+[MtBufCCDUsb_xp64]
+CopyFiles=MtBufCCDUsb_xp64.Files.Ext
+AddReg=MtBufCCDUsb_xp64.AddReg
+
+[MtBufCCDUsb_xp64.HW]
+AddReg=MtBufCCDUsb_xp64.AddReg.Guid
+
+[MtBufCCDUsb_xp64.Services]
+Addservice = MtBufCCDUsb_xp64,2,MtBufCCDUsb_xp64.AddService
+
+[MtBufCCDUsb_xp64.NT]
+CopyFiles=MtBufCCDUsb_xp64.Files.Ext
+AddReg=MtBufCCDUsb_xp64.AddReg
+
+[MtBufCCDUsb_xp64.NT.HW]
+AddReg=MtBufCCDUsb_xp64.AddReg.Guid
+
+[MtBufCCDUsb_xp64.NT.Services]
+Addservice = MtBufCCDUsb_xp64,2,MtBufCCDUsb_xp64.AddService
+
+
+[MtBufCCDUsb_xp64.NTx86]
+CopyFiles=MtBufCCDUsb_xp64.Files.Ext
+AddReg=MtBufCCDUsb_xp64.AddReg
+
+[MtBufCCDUsb_xp64.NTx86.HW]
+AddReg=MtBufCCDUsb_xp64.AddReg.Guid
+
+[MtBufCCDUsb_xp64.NTx86.Services]
+Addservice = MtBufCCDUsb_xp64,2,MtBufCCDUsb_xp64.AddService
+
+[MtBufCCDUsb_xp64.NTamd64]
+CopyFiles=MtBufCCDUsb_xp64.Files.Ext
+AddReg=MtBufCCDUsb_xp64.AddReg
+
+[MtBufCCDUsb_xp64.NTamd64.HW]
+AddReg=MtBufCCDUsb_xp64.AddReg.Guid
+
+[MtBufCCDUsb_xp64.NTamd64.Services]
+Addservice = MtBufCCDUsb_xp64,2,MtBufCCDUsb_xp64.AddService
+
+
+[MtBufCCDUsb_xp64.AddReg]
+; Deprecating - do not use in new apps to identify a MtBufCCDUsb_xp64 driver
+HKR,,DevLoader,,*ntkern
+HKR,,NTMPDriver,,MtBufCCDUsb_xp64.sys
+; You may optionally include a check for DriverBase in your application to check for a MtBufCCDUsb_xp64 driver
+HKR,,DriverBase,,MtBufCCDUsb_xp64.sys
+HKR,"Parameters","MaximumTransferSize",0x10001,4096
+HKR,"Parameters","DebugLevel",0x10001,2
+HKR,,FriendlyName,,%MtBufCCDUsb_xp64_Description%
+
+[MtBufCCDUsb_xp64.AddService]
+DisplayName    = %MtBufCCDUsb_xp64_Description%
+ServiceType    = 1                  ; SERVICE_KERNEL_DRIVER
+StartType      = 3                  ; SERVICE_DEMAND_START
+ErrorControl   = 1                  ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %10%\System32\Drivers\MtBufCCDUsb_xp64.sys
+AddReg         = MtBufCCDUsb_xp64.AddReg
+LoadOrderGroup = Base
+
+[MtBufCCDUsb_xp64.Files.Ext]
+MtBufCCDUsb_xp64.sys
+
+[MtBufCCDUsb_xp64.AddReg.Guid]
+HKR,,DriverGUID,,%MtBufCCDUsb_xp64.GUID%
+
+[Strings]
+MtBufCCDUsb_xp64_Provider    = "Mightex"
+MtBufCCDUsb_xp64_Company     = "Mightex Systems"
+MtBufCCDUsb_xp64_Description = "Mightex Buffer CCD USB(64) Driver"
+MtBufCCDUsb_xp64_DisplayName = "Mightex Buffer CCD USB(64) Generic"
+MtBufCCDUsb_xp64_Install     = "Mightex MtBufCCDUsb_xp64 Driver Installation Disk"
+VID_04B4&PID_0528.DeviceDesc="Mightex Buffer CCD USB Driver(64,3.4.0.110)"
+MtBufCCDUsb_xp64.GUID="{AE18AA60-7F6A-11d4-97DD-00010229B959}"
+MtBufCCDUsb_xp64_Unused      = "."

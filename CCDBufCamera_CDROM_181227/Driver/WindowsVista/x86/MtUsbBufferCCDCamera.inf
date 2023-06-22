@@ -1,0 +1,91 @@
+; Installation INF for the Mightex Generic USB Driver for Windows 98ME/2000/XP
+;
+
+[Version]
+Signature="$CHICAGO$"
+Class=USB
+ClassGUID={36FC9E60-C465-11CF-8056-444553540000}
+provider=%PROVIDER%
+CatalogFile=MtbufCCDUsb.cat
+DriverVer=04/21/2009,3.4.0.110
+
+[SourceDisksNames]
+1=%MtBufCCDUsb_INSTALL%,,,
+
+[SourceDisksFiles]
+MtBufCCDUsbME.sys = 1
+MtBufCCDUsb.sys = 1
+MtBufCCDUsb.spd = 1
+
+[Manufacturer]
+%MFGNAME%=Mightex
+
+[Mightex]
+; Mightex FX2LP default ID
+;%VID_04B4&PID_8613.DeviceDesc%=MtBufCCDUsb, USB\VID_04B4&PID_8613
+
+; Mightex FX1 default ID
+;%VID_04B4&PID_6473.DeviceDesc%=MtBufCCDUsb, USB\VID_04B4&PID_6473
+
+; Mightex FX2LP Example Device.  DVK firmware examples use this VID/PID
+%VID_04B4&PID_0528.DeviceDesc%=MtBufCCDUsb, USB\VID_04B4&PID_0528
+
+[DestinationDirs]
+MtBufCCDUsbME.Files.Ext = 10,System32\Drivers
+MtBufCCDUsb.Files.Ext = 10,System32\Drivers
+
+[MtBufCCDUsb]
+CopyFiles=MtBufCCDUsbME.Files.Ext
+AddReg=MtBufCCDUsbME.AddReg
+
+[MtBufCCDUsb.HW]
+AddReg=MtBufCCDUsb.AddReg.Guid
+
+[MtBufCCDUsb.NT]
+CopyFiles=MtBufCCDUsb.Files.Ext
+AddReg=MtBufCCDUsb.AddReg
+
+[MtBufCCDUsb.NT.HW]
+AddReg=MtBufCCDUsb.AddReg.Guid
+
+[MtBufCCDUsb.NT.Services]
+Addservice = MtBufCCDUsb, 0x00000002, MtBufCCDUsb.AddService
+
+[MtBufCCDUsb.AddService]
+DisplayName    = %MtBufCCDUsb.SvcDesc%
+ServiceType    = 1                  ; SERVICE_KERNEL_DRIVER
+StartType      = 3                  ; SERVICE_DEMAND_START
+ErrorControl   = 1                  ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %10%\System32\Drivers\MtBufCCDUsb.sys
+LoadOrderGroup = Base
+
+[MtBufCCDUsbME.AddReg]
+HKR,,DevLoader,,*ntkern
+HKR,,NTMPDriver,,MtBufCCDUsbME.sys
+
+[MtBufCCDUsb.AddReg]
+HKR,,DevLoader,,*ntkern
+HKR,,NTMPDriver,,MtBufCCDUsb.sys
+
+[MtBufCCDUsbME.Files.Ext]
+MtBufCCDUsbME.sys
+
+[MtBufCCDUsb.Files.Ext]
+MtBufCCDUsb.sys
+
+[MtBufCCDUsb.AddReg.Guid]
+;HKR,,DriverGUID,,%MtBufCCDUsb.GUID%
+
+;---------------------------------------------------------------;
+
+[Strings]
+PROVIDER="Mightex"
+MFGNAME="Mightex"
+MtBufCCDUsb_INSTALL="Mightex CCD Camera USB Driver Installation Disk"
+;VID_04B4&PID_8613.DeviceDesc="Mightex EZ-USB FX2LP - EEPROM blanking"
+;VID_04B4&PID_6473.DeviceDesc="Mightex EZ-USB FX1 - EEPROM missing"
+VID_04B4&PID_0528.DeviceDesc="Mightex Buffer CCD USB Device"
+MtBufCCDUsb.SvcDesc="Mightex Buffer CCD USB Driver"
+
+;MtBufCCDUsb.GUID="{9D70D096-27D5-4cd9-B0E6-969A61B48E5C}"
+
