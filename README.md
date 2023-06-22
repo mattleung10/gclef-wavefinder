@@ -16,7 +16,7 @@ Control Software for Zaber XYZ Focus Stage with Mightex Camera
     ```
 1. Install dependencies:
     ```
-    $ pip install pyusb
+    $ pip install pyusb numpy
     ```
 1. Add user to `plugdev` group:
     ```
@@ -63,5 +63,7 @@ Control Software for Zaber XYZ Focus Stage with Mightex Camera
     [ 8163.171905] usb 1-1: Manufacturer: Mightex
     ```
 
+## Mightex SDK and Documentation
+See folder *CCDBufCamera_CDROM_181227* for Mightex SDK and documentation.
 
 
