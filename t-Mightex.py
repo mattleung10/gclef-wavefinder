@@ -7,6 +7,35 @@ import usb.core
 from PIL import Image, ImageTk
 
 
+class Frame:
+    """Image frame object."""
+
+    def __init__(self, frame : array.array) -> None:
+        # store properties (little endian format)
+        frame_prop = frame[-512:] # last 512 bytes
+        self.rows       = frame_prop[0]  + (frame_prop[1]  << 0x8) # number of rows
+        self.cols       = frame_prop[2]  + (frame_prop[3]  << 0x8) # number of columns
+        self.bin        = frame_prop[4]  + (frame_prop[5]  << 0x8) # bin mode
+        self.xStart     = frame_prop[6]  + (frame_prop[7]  << 0x8) # always 0
+        self.yStart     = frame_prop[8]  + (frame_prop[9]  << 0x8) # ROI column start
+        self.rGain      = frame_prop[10] + (frame_prop[11] << 0x8) # red gain
+        self.gGain      = frame_prop[12] + (frame_prop[13] << 0x8) # green/monochrome gain
+        self.bGain      = frame_prop[14] + (frame_prop[15] << 0x8) # blue gain
+        self.timestamp  = frame_prop[16] + (frame_prop[17] << 0x8) # timestamp in ms
+        self.triggered  = frame_prop[18] + (frame_prop[19] << 0x8) # true if triggered
+        self.nTriggers  = frame_prop[20] + (frame_prop[21] << 0x8) # number of trigger events since trigger mode is set
+        # reserved property "UserMark" in this space
+        self.frameTime  = frame_prop[24] + (frame_prop[25] << 0x8) # frame time relates to frames per second
+        self.freq       = frame_prop[26] + (frame_prop[27] << 0x8) # CCD frequency mode
+        self.expTime    = 0.05 * ((frame_prop[28] << 0x00) +       # exposure time in ms
+                                  (frame_prop[29] << 0x08) +
+                                  (frame_prop[30] << 0x16) +
+                                  (frame_prop[31] << 0x24))
+        # last 480 bytes are reserved, not used
+
+        # store image
+        self.img = np.reshape(frame[0:self.rows*self.cols], (self.cols,self.rows))
+
 class Camera:
     """Interface for Mightex Buffer USB Camera.
 
@@ -98,22 +127,13 @@ class Camera:
         
         returns a dict with keys "ConfigRev", "ModuleNo", "SerialNo", "MftrDate"
         """
-
-        # #define STRING_LENGTH 14
-        # typedef struct
-        # {
-        #   BYTE ConfigRevision;
-        #   BYTE ModuleNo[STRING_LENGTH];
-        #   BYTE SerialNo[STRING_LENGTH];
-        #   BYTE ManuafactureDate[STRING_LENGTH];
-        # } tDeviceInfo;
         self.dev.write(0x01, [0x21, 1, 0x00])
         reply = self.read_reply()
         info : dict[str,str|int] = {}
-        info["ConfigRv"] = int(reply[0])
-        info["ModuleNo"] = reply[1:15].tobytes().decode()
-        info["SerialNo"] = reply[15:29].tobytes().decode()
-        info["MftrDate"] = reply[29:43].tobytes().decode()
+        info["ConfigRv"] = int(reply[0])                    # configuration version
+        info["ModuleNo"] = reply[1:15].tobytes().decode()   # camera model
+        info["SerialNo"] = reply[15:29].tobytes().decode()  # serial number
+        info["MftrDate"] = reply[29:43].tobytes().decode()  # manufacture date (not set)
         return info
 
     def print_introduction(self) -> None:
@@ -295,85 +315,23 @@ class Camera:
         self.set_fps(self.fps, write_now=True)
         self.set_gain(self.gain, write_now=True)
 
-class Frame:
-    """Image frame object."""
-
-    # Typedef struct
-    # {
-    #   tUINT16 Row;
-    #   tUINT16 Column;
-    #   tUINT16 Bin;
-    #   tUINT16 XStart;
-    #   tUINT16 YStart;
-    #   tUINT16 RedGain;
-    #   tUINT16 GreenGain;
-    #   tUINT16 BlueGain;
-    #   tUINT16 TimeStamp;
-    #   tUINT16 TriggerEventOccurred;
-    #   tUINT16 TriggerEventCount;
-    #   tUINT16 UserMark;
-    #   tUINT16 FrameTime;
-    #   tUINT16 CCDFrequency;
-    #   tUINT32 ExposureTime;
-    #   tUINT16 Reserved[240];
-    # } tFrameProperty; // Note: Sizeof (tFrameProperty) is 512 byte.
-    #
-    # Typedef struct
-    # {
-    #   // For 8bit mode, e.g. PixelData[1040][1392] for CCX-B013-U module, PixelData[960][1280] for CGX
-    #   // modules.
-    #   tUINT8 PixelData[RowNumber][ColumnNumber];
-    #   /*
-    #   * For 12bit mode, we have the following:
-    #   * tUINT8 PixelData[RowNumber][ColumnNumber][2]; // 12 bit camera
-    #   * and PixelData[][][0] contains the 8bit MSB of 12bit pixel data, while the 4 LSB of PixelData[][][1] has
-    #   * the 4bit LSB of the 12bit pixel data.
-    #   */
-    #   tUINT8 Paddings[]; // Depends on different resolution.
-    #   tFramePropery ImageProperty; // Note: Sizeof (tFrameProperty) is 512 byte.
-    # } tImageFrame;
-
-    def __init__(self, frame : array.array) -> None:
-        # store properties (little endian format)
-        frame_prop = frame[-512:] # last 512 bytes
-        self.properties : dict[str, int] = {}
-        self.properties["rows"]     = frame_prop[0]  + (frame_prop[1]  << 0x8) # number of rows
-        self.properties["cols"]     = frame_prop[2]  + (frame_prop[3]  << 0x8) # number of columns
-        self.properties["bin"]      = frame_prop[4]  + (frame_prop[5]  << 0x8) # bin mode
-        self.properties["xStart"]   = frame_prop[6]  + (frame_prop[7]  << 0x8) # always 0
-        self.properties["yStart"]   = frame_prop[8]  + (frame_prop[9]  << 0x8) # ROI column start
-        self.properties["rGain"]    = frame_prop[10] + (frame_prop[11] << 0x8) # red gain
-        self.properties["gGain"]    = frame_prop[12] + (frame_prop[13] << 0x8) # green/monochrome gain
-        self.properties["bGain"]    = frame_prop[14] + (frame_prop[15] << 0x8) # blue gain
-        self.properties["time"]     = frame_prop[16] + (frame_prop[17] << 0x8) # in ms
-        self.properties["triggered"]= frame_prop[18] + (frame_prop[19] << 0x8) # true if triggered
-        self.properties["nTriggers"]= frame_prop[20] + (frame_prop[21] << 0x8) # number of trigger events since trigger mode is set
-        # reserved property "UserMark" in this space
-        self.properties["frameTime"]= frame_prop[24] + (frame_prop[25] << 0x8) # frame time relates to frames per second
-        self.properties["freq"]     = frame_prop[26] + (frame_prop[27] << 0x8) # CCD frequency mode
-        self.properties["expTime"]  = 0.05 * ((frame_prop[28] << 0x00) + # exposure time in ms
-                                              (frame_prop[29] << 0x08) +
-                                              (frame_prop[30] << 0x16) +
-                                              (frame_prop[31] << 0x24))
-        # store image
-        rows = self.properties["rows"]
-        cols = self.properties["cols"]
-        self.img = np.reshape(frame[0:rows*cols], (rows,cols))
-
-    def get_properties(self) -> dict[str, int]:
-        """Get frame properties."""
-        return self.properties
+    def has_frames(self) -> bool:
+        """Check if the app buffer has frames.
+        
+        Returns True if there are frames.
+        """
+        return not self.app_buffer.empty()
     
-    def get_img(self) -> np.ndarray:
-        """Get frame 2D image."""
-        return self.img
-
+    def get_frame(self) -> Frame:
+        """Get one frame."""
+        return self.app_buffer.get()
 
 # function for video streaming
 def video_stream(camera : Camera, lmain : ttk.Label):
     camera.acquire_frames()
-    if not camera.app_buffer.empty():
-        img = Image.fromarray(camera.app_buffer.get().img)
+    if camera.has_frames():
+        frame = camera.get_frame()
+        img = Image.fromarray(frame.img)
         imgtk = ImageTk.PhotoImage(image=img)
         lmain.imgtk = imgtk
         lmain.configure(image=imgtk)
