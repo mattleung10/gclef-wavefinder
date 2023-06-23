@@ -1,6 +1,10 @@
 # zaber-focus
 Control Software for Zaber XYZ Focus Stage with Mightex Camera
 
+## Prequisites
+* Python11 (Python10 is probably enough)
+* `python3-tk` package
+
 ## Install & Setup (on WSL)
 1. Clone repository:
     ```
@@ -18,7 +22,7 @@ Control Software for Zaber XYZ Focus Stage with Mightex Camera
     ```
 1. Install dependencies:
     ```
-    $ pip install pyusb numpy
+    $ pip install pyusb numpy Pillow
     ```
 1. Add user to `plugdev` group:
     ```

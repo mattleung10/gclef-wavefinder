@@ -1,9 +1,10 @@
-import time
 import array
 from queue import Queue
+from tkinter import Label, PhotoImage, Tk, ttk
 
 import numpy as np
 import usb.core
+from PIL import Image, ImageTk
 
 
 class Camera:
@@ -30,7 +31,7 @@ class Camera:
                  freq_mode : int = 0,
                  resolution : tuple[int, int] =(1280,960),
                  bin_mode : int = NO_BIN,
-                 nbuffer : int = 24,
+                 nBuffer : int = 24,
                  exposure_time : float = 50,
                  fps : float = 10,
                  gain : int = 15) -> None:
@@ -41,21 +42,21 @@ class Camera:
         self.freq_mode = freq_mode
         self.resolution = resolution
         self.bin_mode = bin_mode
-        self.nbuffer = nbuffer
+        self.nBuffer = nBuffer
         self.exposure_time = exposure_time
         self.fps = fps
         self.gain = gain
 
         # data structures
-        self.frame_buffer : Queue[Frame] = Queue(100) # max 100 frames
+        self.app_buffer : Queue[Frame] = Queue(100) # max 100 frames
 
         print("Connecting to camera... ", end='')
 
         # find USB camera and set USB configuration
-        self.dev : usb.core.Device = usb.core.find(idVendor=0x04b4, idProduct=0x0528)
+        self.dev : usb.core.Device = usb.core.find(idVendor=0x04b4, idProduct=0x0528) # type: ignore
         if self.dev is None:
             raise ValueError("Mightex camera not found")
-        self.dev.set_configuration()
+        self.dev.set_configuration() # type: ignore
         
         # get firmware version until connection works
         while True:
@@ -92,7 +93,7 @@ class Camera:
         self.dev.write(0x01, [0x01, 1, 0x01])
         return list(self.read_reply())
 
-    def get_camera_info(self) -> dict[str, str | int]:
+    def get_camera_info(self) -> dict[str,str|int]:
         """Get camera information.
         
         returns a dict with keys "ConfigRev", "ModuleNo", "SerialNo", "MftrDate"
@@ -108,7 +109,7 @@ class Camera:
         # } tDeviceInfo;
         self.dev.write(0x01, [0x21, 1, 0x00])
         reply = self.read_reply()
-        info : dict[str, str | int] = dict()
+        info : dict[str,str|int] = {}
         info["ConfigRv"] = int(reply[0])
         info["ModuleNo"] = reply[1:15].tobytes().decode()
         info["SerialNo"] = reply[15:29].tobytes().decode()
@@ -119,7 +120,7 @@ class Camera:
         """Print camera information."""
         for item in self.get_camera_info().items():
             print(item[0] + ": " + str(item[1]))
-        print("Firmware: " + '.'.join(map(str, camera.get_firmware_version())))
+        print("Firmware: " + '.'.join(map(str, self.get_firmware_version())))
 
     def set_mode(self, run_mode : int = NORMAL, bits : int = 8, write_now : bool = False) -> None:
         """Set camera work mode and bitrate.
@@ -145,13 +146,14 @@ class Camera:
         if write_now:
             self.dev.write(0x01, [0x32, 1, self.freq_mode])
 
-    def set_resolution(self, resolution : tuple[int, int] = (1280, 960),
-                       bin_mode : int = NO_BIN, nbuffer : int = 24, write_now : bool = False):
+    def set_resolution(self, resolution : tuple[int,int] = (1280, 960),
+                       bin_mode : int = NO_BIN, nBuffer : int = 24,
+                       write_now : bool = False) -> None:
         """Set camera resolution, bin mode, and buffer size.
         
         resolution: tuple of (rows, columns)
         bin_mode:   binning mode; see below.
-        nbuffer:    size of camera buffer, defaults to maximum of 24
+        nBuffer:    size of camera buffer, defaults to maximum of 24
         write_now:  write to camera immediately
 
         NO_BIN = 0      # full resolution (1280 x 480)
@@ -162,15 +164,16 @@ class Camera:
         """
         self.resolution = tuple(np.clip(resolution, 1, 1280))
         self.bin_mode   = bin_mode if bin_mode in Camera.BIN_MODES else Camera.NO_BIN
-        self.nbuffer    = np.clip(nbuffer, 1, 24)
+        self.nBuffer    = np.clip(nBuffer, 1, 24)
         if write_now:
             # last parameter "buffer option" should always be zero
             self.dev.write(0x01, [0x60, 7,
                                   self.resolution[0] >> 8, self.resolution[0] & 0xff,
                                   self.resolution[1] >> 8, self.resolution[1] & 0xff,
-                                  self.bin_mode, self.nbuffer, 0])
+                                  self.bin_mode, self.nBuffer, 0])
 
-    def set_exposure_time(self, exposure_time : float = 50, write_now : bool = False):
+    def set_exposure_time(self, exposure_time : float = 50,
+                          write_now : bool = False) -> None:
         """Set exposure time.
 
         exposure_time:  time in milliseconds, in increments of 0.05ms
@@ -187,7 +190,7 @@ class Camera:
                                   (set_val >>  8) & 0xff,
                                   (set_val >>  0) & 0xff])
 
-    def set_fps(self, fps : float = 10, write_now : bool = False):
+    def set_fps(self, fps : float = 10, write_now : bool = False) -> None:
         """Set frames per second.
 
         fps:        frames per second
@@ -203,7 +206,7 @@ class Camera:
             set_val = int(frame_time * 10000)
             self.dev.write(0x01, [0x64, 2, set_val >> 8, set_val & 0xff])
 
-    def set_gain(self, gain : int = 15, write_now : bool = False):
+    def set_gain(self, gain : int = 15, write_now : bool = False) -> None:
         """Set camera gain.
         
         gain:       6 to 41 db, inclusive
@@ -220,42 +223,74 @@ class Camera:
         if write_now:
             self.dev.write(0x01, [0x62, 3, self.gain, self.gain, self.gain])
 
-    def trigger(self):
+    def trigger(self) -> None:
         """Simulate a trigger.
         
         Only works in TRIGGER mode.
         """
         self.dev.write(0x01, [0x36, 1, 0x00])
 
-    def query_buffer(self):
+    def query_buffer(self) -> dict[str,int|tuple[int,int]]:
         """Query camera's buffer for number of available frames and configuration.
         
-        returns dict with keys "nframes", "resolution", "bin_mode"
+        returns dict with keys "nFrames", "resolution", "bin_mode"
         """
         self.dev.write(0x01, [0x33, 1, 0x00])
         reply = self.read_reply()
-        buffer_info = dict()
-        buffer_info["nframes"] = reply[0]
+        buffer_info : dict[str, int|tuple[int,int]] = {}
+        buffer_info["nFrames"] = reply[0]
         buffer_info["resolution"] = ((reply[1] << 8) + reply[2],
                                      (reply[3] << 8) + reply[4])
         buffer_info["bin_mode"] = reply[5]
         return buffer_info
 
     def clear_buffer(self) -> None:
-        """Clear camera buffer."""
-        self.dev.write(0x01, [0x33, 1, 0x00])
-        frame_count = self.read_reply()[0]
-        self.dev.write(0x01, [0x35, 1, frame_count])
+        """Clear camera and application buffer."""
+        nFrames = self.query_buffer()["nFrames"]
+        self.dev.write(0x01, [0x35, 1, nFrames])
+        while not self.app_buffer.empty():
+            self.app_buffer.get()
 
-    def get_images(self):
-        """Get camera image frames (data) from buffer."""
-        pass
+    def acquire_frames(self) -> None:
+        """Aquire camera image frames.
+        
+        Downloads all available frames from the camera buffer and puts them in the 
+        application buffer.
+        """
 
-    def write_configuration(self):
+        # get frame buffer information and tell camera to send the data
+        buffer_info = self.query_buffer()
+        nFrames : int = buffer_info["nFrames"] # type: ignore
+        resolution : tuple[int,int] = buffer_info["resolution"] # type: ignore
+        self.dev.write(0x01, [0x34, 1, nFrames])
+
+        # diagnostics
+        if nFrames == self.nBuffer: print("camera buffer full!")
+
+        # determine frame data size
+        nPixels = resolution[0] * resolution[1]
+        if self.bits == 8:
+            padding = nPixels % 512 # padding to 512 byte alignment
+            frame_size = 512 + padding + nPixels
+        else: # self.bits == 12
+            padding = (2 * nPixels) % 512 # padding to 512 byte alignment
+            frame_size = 512 + padding + 2 * nPixels
+
+        # read the frames and put them in the buffer
+        # sometimes it times out
+        for _ in range(nFrames):
+            try:
+                data = self.dev.read(0x82, frame_size)
+            except usb.core.USBTimeoutError:
+                break
+            self.app_buffer.put(Frame(data))
+            if self.app_buffer.full(): print("application buffer full!")
+
+    def write_configuration(self) -> None:
         """Write all configuration settings to camera."""
         self.set_mode(self.run_mode, self.bits, write_now=True)
         self.set_frequency(self.freq_mode, write_now=True)
-        self.set_resolution(self.resolution, self.bin_mode, self.nbuffer, write_now=True)
+        self.set_resolution(self.resolution, self.bin_mode, self.nBuffer, write_now=True)
         self.set_exposure_time(self.exposure_time, write_now=True)
         self.set_fps(self.fps, write_now=True)
         self.set_gain(self.gain, write_now=True)
@@ -263,16 +298,103 @@ class Camera:
 class Frame:
     """Image frame object."""
 
-    def __init__(self) -> None:
-        pass
+    # Typedef struct
+    # {
+    #   tUINT16 Row;
+    #   tUINT16 Column;
+    #   tUINT16 Bin;
+    #   tUINT16 XStart;
+    #   tUINT16 YStart;
+    #   tUINT16 RedGain;
+    #   tUINT16 GreenGain;
+    #   tUINT16 BlueGain;
+    #   tUINT16 TimeStamp;
+    #   tUINT16 TriggerEventOccurred;
+    #   tUINT16 TriggerEventCount;
+    #   tUINT16 UserMark;
+    #   tUINT16 FrameTime;
+    #   tUINT16 CCDFrequency;
+    #   tUINT32 ExposureTime;
+    #   tUINT16 Reserved[240];
+    # } tFrameProperty; // Note: Sizeof (tFrameProperty) is 512 byte.
+    #
+    # Typedef struct
+    # {
+    #   // For 8bit mode, e.g. PixelData[1040][1392] for CCX-B013-U module, PixelData[960][1280] for CGX
+    #   // modules.
+    #   tUINT8 PixelData[RowNumber][ColumnNumber];
+    #   /*
+    #   * For 12bit mode, we have the following:
+    #   * tUINT8 PixelData[RowNumber][ColumnNumber][2]; // 12 bit camera
+    #   * and PixelData[][][0] contains the 8bit MSB of 12bit pixel data, while the 4 LSB of PixelData[][][1] has
+    #   * the 4bit LSB of the 12bit pixel data.
+    #   */
+    #   tUINT8 Paddings[]; // Depends on different resolution.
+    #   tFramePropery ImageProperty; // Note: Sizeof (tFrameProperty) is 512 byte.
+    # } tImageFrame;
 
+    def __init__(self, frame : array.array) -> None:
+        # store properties (little endian format)
+        frame_prop = frame[-512:] # last 512 bytes
+        self.properties : dict[str, int] = {}
+        self.properties["rows"]     = frame_prop[0]  + (frame_prop[1]  << 0x8) # number of rows
+        self.properties["cols"]     = frame_prop[2]  + (frame_prop[3]  << 0x8) # number of columns
+        self.properties["bin"]      = frame_prop[4]  + (frame_prop[5]  << 0x8) # bin mode
+        self.properties["xStart"]   = frame_prop[6]  + (frame_prop[7]  << 0x8) # always 0
+        self.properties["yStart"]   = frame_prop[8]  + (frame_prop[9]  << 0x8) # ROI column start
+        self.properties["rGain"]    = frame_prop[10] + (frame_prop[11] << 0x8) # red gain
+        self.properties["gGain"]    = frame_prop[12] + (frame_prop[13] << 0x8) # green/monochrome gain
+        self.properties["bGain"]    = frame_prop[14] + (frame_prop[15] << 0x8) # blue gain
+        self.properties["time"]     = frame_prop[16] + (frame_prop[17] << 0x8) # in ms
+        self.properties["triggered"]= frame_prop[18] + (frame_prop[19] << 0x8) # true if triggered
+        self.properties["nTriggers"]= frame_prop[20] + (frame_prop[21] << 0x8) # number of trigger events since trigger mode is set
+        # reserved property "UserMark" in this space
+        self.properties["frameTime"]= frame_prop[24] + (frame_prop[25] << 0x8) # frame time relates to frames per second
+        self.properties["freq"]     = frame_prop[26] + (frame_prop[27] << 0x8) # CCD frequency mode
+        self.properties["expTime"]  = 0.05 * ((frame_prop[28] << 0x00) + # exposure time in ms
+                                              (frame_prop[29] << 0x08) +
+                                              (frame_prop[30] << 0x16) +
+                                              (frame_prop[31] << 0x24))
+        # store image
+        rows = self.properties["rows"]
+        cols = self.properties["cols"]
+        self.img = np.reshape(frame[0:rows*cols], (rows,cols))
+
+    def get_properties(self) -> dict[str, int]:
+        """Get frame properties."""
+        return self.properties
+    
+    def get_img(self) -> np.ndarray:
+        """Get frame 2D image."""
+        return self.img
+
+
+# function for video streaming
+def video_stream(camera : Camera, lmain : ttk.Label):
+    camera.acquire_frames()
+    if not camera.app_buffer.empty():
+        img = Image.fromarray(camera.app_buffer.get().img)
+        imgtk = ImageTk.PhotoImage(image=img)
+        lmain.imgtk = imgtk
+        lmain.configure(image=imgtk)
+    lmain.after(1, video_stream, camera, lmain)
 
 
 if __name__ == "__main__":
+
+    # make Tkinter frame
+    root = Tk()
+    frm = ttk.Frame(root, padding=20)
+    frm.grid()
+    ttk.Label(frm, text="Hello World!").grid(column=0, row=0)
+    ttk.Button(frm, text="Quit", command=root.destroy).grid(column=1, row=0)
+    lmain = ttk.Label(frm)
+    lmain.grid(column=1,row=1)
+
+    # set up camera
     camera = Camera()
     camera.print_introduction()
-    while True:
-        time.sleep(0.1)
-        print(camera.query_buffer())
-    # img = camera.get_frame()
-    # img.save("out.png","PNG")
+
+    # start streaming
+    video_stream(camera, lmain)
+    root.mainloop()
