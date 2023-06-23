@@ -1,11 +1,18 @@
-import usb.core
-import numpy as np
 import time
+import array
+from queue import Queue
 
-# Interface for Mightex Buffer USB Camera
-# implemented from "Mightex Buffer USB Camera USB Protocol", v1.0.6.
-# defaults are for camera model CGN-B013-U
+import numpy as np
+import usb.core
+
+
 class Camera:
+    """Interface for Mightex Buffer USB Camera.
+
+    Implemented from "Mightex Buffer USB Camera USB Protocol", v1.0.6;
+    Defaults are for camera model CGN-B013-U
+    """
+
     # run modes; see function set_mode for description
     NORMAL  = 0
     TRIGGER = 1
@@ -18,15 +25,15 @@ class Camera:
     BIN_MODES = [NO_BIN, BIN1X2, BIN1X3, BIN1X4, SKIP]
 
     def __init__(self,
-                 run_mode=NORMAL,
-                 bits=8,
-                 freq_mode=0,
-                 resolution=(1280,960),
-                 bin_mode=NO_BIN,
-                 nbuffer=24,
-                 exposure_time=50,
-                 fps=10,
-                 gain=15):
+                 run_mode : int = NORMAL,
+                 bits : int = 8,
+                 freq_mode : int = 0,
+                 resolution : tuple[int, int] =(1280,960),
+                 bin_mode : int = NO_BIN,
+                 nbuffer : int = 24,
+                 exposure_time : float = 50,
+                 fps : float = 10,
+                 gain : int = 15) -> None:
         
         # set configuration
         self.run_mode = run_mode
@@ -39,10 +46,13 @@ class Camera:
         self.fps = fps
         self.gain = gain
 
+        # data structures
+        self.frame_buffer : Queue[Frame] = Queue(100) # max 100 frames
+
         print("Connecting to camera... ", end='')
 
         # find USB camera and set USB configuration
-        self.dev = usb.core.find(idVendor=0x04b4, idProduct=0x0528)
+        self.dev : usb.core.Device = usb.core.find(idVendor=0x04b4, idProduct=0x0528)
         if self.dev is None:
             raise ValueError("Mightex camera not found")
         self.dev.set_configuration()
@@ -61,28 +71,28 @@ class Camera:
         self.write_configuration()
         print("success!")
 
-    def reset(self):
+    def reset(self) -> None:
         """Reset the camera; not recommended for normal use."""
         self.dev.write(0x01, [0x50, 1, 0x01])
 
-    def read_reply(self):
+    def read_reply(self) -> array.array:
         """Read reply from camera,
-        check that it's good, and return data as a byte array.
+        check that it's good, and return data as an array.
         """
         reply = self.dev.read(0x81, 0xff)
         if not (reply[0] > 0x00 and len(reply[2:]) == reply[1]):
             raise RuntimeError("Bad Reply from Camera:\n" + str(reply))
-         # Strip out first two bytes (status & len)
+        # Strip out first two bytes (status & len)
         return reply[2:]
 
-    def get_firmware_version(self):
+    def get_firmware_version(self) -> list[int]:
         """Get camera firmware version as
         [Major, Minor, Revision].
         """
         self.dev.write(0x01, [0x01, 1, 0x01])
         return list(self.read_reply())
 
-    def get_camera_info(self):
+    def get_camera_info(self) -> dict[str, str | int]:
         """Get camera information.
         
         returns a dict with keys "ConfigRev", "ModuleNo", "SerialNo", "MftrDate"
@@ -98,20 +108,20 @@ class Camera:
         # } tDeviceInfo;
         self.dev.write(0x01, [0x21, 1, 0x00])
         reply = self.read_reply()
-        info = dict()
+        info : dict[str, str | int] = dict()
         info["ConfigRv"] = int(reply[0])
         info["ModuleNo"] = reply[1:15].tobytes().decode()
         info["SerialNo"] = reply[15:29].tobytes().decode()
         info["MftrDate"] = reply[29:43].tobytes().decode()
         return info
 
-    def print_introduction(self):
+    def print_introduction(self) -> None:
         """Print camera information."""
         for item in self.get_camera_info().items():
             print(item[0] + ": " + str(item[1]))
         print("Firmware: " + '.'.join(map(str, camera.get_firmware_version())))
 
-    def set_mode(self, run_mode=NORMAL, bits=8, write_now=False):
+    def set_mode(self, run_mode : int = NORMAL, bits : int = 8, write_now : bool = False) -> None:
         """Set camera work mode and bitrate.
 
         run_mode:   NORMAL (default) or TRIGGER
@@ -123,7 +133,7 @@ class Camera:
         if write_now:
             self.dev.write(0x01, [0x30, 2, self.run_mode, self.bits])
 
-    def set_frequency(self, freq_mode=0, write_now=False):
+    def set_frequency(self, freq_mode : int = 0, write_now : bool = False) -> None:
         """Set CCD frequency divider.
 
         freq_mode: frequency divider; freq = full / (2^freq_mode)
@@ -135,8 +145,8 @@ class Camera:
         if write_now:
             self.dev.write(0x01, [0x32, 1, self.freq_mode])
 
-    def set_resolution(self, resolution=(1280, 960),
-                       bin_mode=NO_BIN, nbuffer=24, write_now=False):
+    def set_resolution(self, resolution : tuple[int, int] = (1280, 960),
+                       bin_mode : int = NO_BIN, nbuffer : int = 24, write_now : bool = False):
         """Set camera resolution, bin mode, and buffer size.
         
         resolution: tuple of (rows, columns)
@@ -150,7 +160,7 @@ class Camera:
         BIN1X4 = 0x83   # 1:4 Bin mode, it's pre-defined as: 1280 x 240
         SKIP   = 0x03   # 1:4 Bin mode2, it's pre-defined as: 1280 x 240
         """
-        self.resolution = np.clip(resolution, 1, 1280)
+        self.resolution = tuple(np.clip(resolution, 1, 1280))
         self.bin_mode   = bin_mode if bin_mode in Camera.BIN_MODES else Camera.NO_BIN
         self.nbuffer    = np.clip(nbuffer, 1, 24)
         if write_now:
@@ -160,7 +170,7 @@ class Camera:
                                   self.resolution[1] >> 8, self.resolution[1] & 0xff,
                                   self.bin_mode, self.nbuffer, 0])
 
-    def set_exposure_time(self, exposure_time=50, write_now=False):
+    def set_exposure_time(self, exposure_time : float = 50, write_now : bool = False):
         """Set exposure time.
 
         exposure_time:  time in milliseconds, in increments of 0.05ms
@@ -177,7 +187,7 @@ class Camera:
                                   (set_val >>  8) & 0xff,
                                   (set_val >>  0) & 0xff])
 
-    def set_fps(self, fps=10, write_now=False):
+    def set_fps(self, fps : float = 10, write_now : bool = False):
         """Set frames per second.
 
         fps:        frames per second
@@ -193,7 +203,7 @@ class Camera:
             set_val = int(frame_time * 10000)
             self.dev.write(0x01, [0x64, 2, set_val >> 8, set_val & 0xff])
 
-    def set_gain(self, gain=15, write_now=False):
+    def set_gain(self, gain : int = 15, write_now : bool = False):
         """Set camera gain.
         
         gain:       6 to 41 db, inclusive
@@ -223,17 +233,18 @@ class Camera:
         returns dict with keys "nframes", "resolution", "bin_mode"
         """
         self.dev.write(0x01, [0x33, 1, 0x00])
-        res = self.read_reply()
+        reply = self.read_reply()
         buffer_info = dict()
-        buffer_info["nframes"] = res[0]
-        buffer_info["resolution"] = ((res[1] << 8) + res[2],
-                                     (res[3] << 8) + res[4])
-        buffer_info["bin_mode"] = res[5]
+        buffer_info["nframes"] = reply[0]
+        buffer_info["resolution"] = ((reply[1] << 8) + reply[2],
+                                     (reply[3] << 8) + reply[4])
+        buffer_info["bin_mode"] = reply[5]
         return buffer_info
 
-    def clear_buffer(self, frame_count):
+    def clear_buffer(self) -> None:
         """Clear camera buffer."""
-        frame_count = np.clip(frame_count, 1, self.nbuffer)
+        self.dev.write(0x01, [0x33, 1, 0x00])
+        frame_count = self.read_reply()[0]
         self.dev.write(0x01, [0x35, 1, frame_count])
 
     def get_images(self):
@@ -248,6 +259,13 @@ class Camera:
         self.set_exposure_time(self.exposure_time, write_now=True)
         self.set_fps(self.fps, write_now=True)
         self.set_gain(self.gain, write_now=True)
+
+class Frame:
+    """Image frame object."""
+
+    def __init__(self) -> None:
+        pass
+
 
 
 if __name__ == "__main__":
