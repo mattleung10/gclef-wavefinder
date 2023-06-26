@@ -41,6 +41,8 @@ class Camera:
     Defaults are for camera model CGN-B013-U
 
     Not implemented: ROI, GPIO
+
+    app_buffer is a list of the most recent frames; app_buffer[0] is newest
     """
 
     # run modes; see function set_mode for description
@@ -77,7 +79,8 @@ class Camera:
         self.gain = gain
 
         # data structures
-        self.app_buffer : Queue[Frame] = Queue(100) # max 100 frames
+        self.app_buffer : list[Frame] = []
+        self.buffer_max = 100 # max 100 frames
 
         print("Connecting to camera... ", end='')
 
@@ -277,8 +280,7 @@ class Camera:
         """Clear camera and application buffer."""
         nFrames = self.query_buffer()["nFrames"]
         self.dev.write(0x01, [0x35, 1, nFrames])
-        while not self.app_buffer.empty():
-            self.app_buffer.get()
+        self.app_buffer.clear()
 
     def acquire_frames(self) -> None:
         """Aquire camera image frames.
@@ -286,44 +288,36 @@ class Camera:
         Downloads all available frames from the camera buffer and puts them in the 
         application buffer.
         """
+        while True:
+            # get frame buffer information
+            buffer_info = self.query_buffer()
+            nFrames : int = buffer_info["nFrames"] # type: ignore
+            resolution : tuple[int,int] = buffer_info["resolution"] # type: ignore
 
-        # get frame buffer information and tell camera to send the data
-        buffer_info = self.query_buffer()
-        nFrames : int = buffer_info["nFrames"] # type: ignore
-        resolution : tuple[int,int] = buffer_info["resolution"] # type: ignore
-        self.dev.write(0x01, [0x34, 1, nFrames])
-
-        # diagnostics
-        if nFrames == self.nBuffer: print("camera buffer full!")
-
-        # determine frame data size
-        nPixels = resolution[0] * resolution[1]
-        if self.bits == 8:
-            padding = nPixels % 512 # padding to 512 byte alignment
-            frame_size = 512 + padding + nPixels
-        else: # self.bits == 12
-            padding = (2 * nPixels) % 512 # padding to 512 byte alignment
-            frame_size = 512 + padding + 2 * nPixels
-
-        # read the frames and put them in the buffer
-        # sometimes it times out
-        for _ in range(nFrames):
-            try:
-                data = self.dev.read(0x82, frame_size)
-            except usb.core.USBTimeoutError:
+            # check camera buffer size
+            if nFrames == 0:
                 break
-            self.app_buffer.put(Frame(data))
-            if self.app_buffer.full(): print("application buffer full!")
+            elif nFrames == self.nBuffer:
+                print("camera buffer full!")
 
+            # tell camera to send one frame
+            self.dev.write(0x01, [0x34, 1, 1])
 
+            # determine frame data size, padded to 512 byte alignment
+            nPixels = resolution[0] * resolution[1]
+            bytes_per_px = 1 if self.bits == 8 else 2
+            padding = (bytes_per_px * nPixels) % 512
+            # the last 512 bytes are the frame properties
+            frame_size = nPixels * bytes_per_px + padding + 512
 
-    def has_frames(self) -> bool:
-        """Check if the app buffer has frames.
-        
-        Returns True if there are frames.
-        """
-        return not self.app_buffer.empty()
+            # read one frame and insert into app buffer
+            data = self.dev.read(0x82, frame_size)
+            self.app_buffer.insert(0, Frame(data))
+            # trim buffer
+            while len(self.app_buffer) > self.buffer_max:
+                self.app_buffer.pop()
     
-    def get_frame(self) -> Frame:
-        """Get one frame."""
-        return self.app_buffer.get()
+    def get_frames(self, nFrames : int = 1) -> list[Frame]:
+        """Get most recent nFrames frames."""
+        nFrames = np.clip(nFrames, 0, self.buffer_max)
+        return self.app_buffer[0:nFrames]    
