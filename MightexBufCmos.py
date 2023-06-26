@@ -320,4 +320,8 @@ class Camera:
     def get_frames(self, nFrames : int = 1) -> list[Frame]:
         """Get most recent nFrames frames."""
         nFrames = np.clip(nFrames, 0, self.buffer_max)
-        return self.app_buffer[0:nFrames]    
+        return self.app_buffer[0:nFrames]
+    
+    def get_newest_frame(self) -> Frame:
+        """Get most recent frame."""
+        return self.app_buffer[0]    
