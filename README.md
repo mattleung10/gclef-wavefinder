@@ -2,8 +2,9 @@
 Control Software for Zaber XYZ Focus Stage with Mightex Camera
 
 ## Prequisites
-* Python11 (Python10 is probably enough)
+* Python 11 (Python 10 is probably enough)
 * `python3-tk` package
+* numpy
 
 ## Install & Setup (on WSL)
 1. Clone repository:
