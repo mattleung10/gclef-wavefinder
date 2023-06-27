@@ -37,8 +37,9 @@ class App(tk.Tk):
         viewer = ttk.Frame(self, padding=self.def_padding)
         viewer.grid(column=1, row=0)
         self.preview = ttk.Label(viewer)
-        self.preview.grid(column=0, row=0, columnspan=2, sticky=tk.W)
-        ttk.Label(viewer, textvariable=self.img_props).grid(column=0, row=2, sticky=tk.W)
+        self.preview.grid(column=0, row=0, sticky=tk.W)
+        ttk.Label(viewer, textvariable=self.img_props).grid(column=1,
+                                                            row=0, sticky=tk.W)
 
         # make motion control frame
         motion = ttk.Frame(self, padding=self.def_padding)
@@ -86,7 +87,7 @@ class App(tk.Tk):
                         variable=self.camera_bits,
                         command=self.set_cam_ctrl, # TODO add 12-bit
                         state=tk.DISABLED).grid(column=2, row=3, sticky=tk.W)
-        
+
         # resolution
         ttk.Label(cam_ctrl, text="Resolution").grid(column=0, row=4,
                                                     sticky=tk.E, padx=10)
@@ -119,7 +120,7 @@ class App(tk.Tk):
                         command=self.set_cam_ctrl).grid(column=2, row=7,
                                                         columnspan=2,
                                                         sticky=tk.W)
-        
+
         # exposure time
         ttk.Label(cam_ctrl, text="Exp. Time (ms)").grid(column=0, row=8, sticky=tk.E, padx=10)
         ttk.Entry(cam_ctrl, width=5, textvariable=self.camera_exp_t,
@@ -167,7 +168,6 @@ class App(tk.Tk):
             self.camera_info1.set(info["ModuleNo"].strip('\0')) # type: ignore
             self.camera_info2.set(info["SerialNo"].strip('\0')) # type: ignore
 
-
     def update_preview(self):
         """Update preview image in viewer"""
 
@@ -185,7 +185,9 @@ class App(tk.Tk):
                 # update img_props
                 prop_str = self.img_props.get()
                 prop_str = ""
-                prop_str = prop_str + str(frame.frameTime)
+                for p in ["rows", "cols", "bin", "gGain", "expTime", "frameTime",
+                          "timestamp", "triggered", "nTriggers", "freq"]:
+                    prop_str += str(p) + ': ' + str(getattr(frame, p)) + '\n'
                 self.img_props.set(prop_str)
 
                 # update UI to proper values, matching newest frame
@@ -214,7 +216,7 @@ class App(tk.Tk):
                                 write_now=True)
             self.camera.set_gain(gain=int(self.camera_gain.get()),
                                  write_now=True)
-            
+
             # throw out old frames
             self.camera.clear_buffer()
 
@@ -228,7 +230,7 @@ class App(tk.Tk):
 
     def snap_img(self):
         """Snap and image"""
-        if self.camera and self.camera_run_mode.get() == Camera.TRIGGER:
+        if self.camera:
             self.camera.trigger()
 
     def valid_resolution(self, res_str : str):
@@ -238,7 +240,7 @@ class App(tk.Tk):
             if int.bit_length(res) <= 16:
                 return True
         return False
-    
+
     def valid_float(self, f_str : str):
         """Check if a float value is valid"""
         try:
