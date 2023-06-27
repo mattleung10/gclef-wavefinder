@@ -66,7 +66,7 @@ class Camera:
                  exposure_time : float = 50,
                  fps : float = 10,
                  gain : int = 15) -> None:
-        
+
         # set configuration
         self.run_mode = run_mode
         self.bits = bits
@@ -89,7 +89,7 @@ class Camera:
         if self.dev is None:
             raise ValueError("Mightex camera not found")
         self.dev.set_configuration() # type: ignore
-        
+
         # get firmware version until connection works
         while True:
             try:
@@ -127,7 +127,7 @@ class Camera:
 
     def get_camera_info(self) -> dict[str,str|int]:
         """Get camera information.
-        
+
         returns a dict with keys "ConfigRev", "ModuleNo", "SerialNo", "MftrDate"
         """
         self.dev.write(0x01, [0x21, 1, 0x00])
@@ -173,7 +173,7 @@ class Camera:
                        bin_mode : int = NO_BIN, nBuffer : int = 24,
                        write_now : bool = False) -> None:
         """Set camera resolution, bin mode, and buffer size.
-        
+
         resolution: tuple of (rows, columns)
         bin_mode:   binning mode; see below.
         nBuffer:    size of camera buffer, defaults to maximum of 24
@@ -220,7 +220,7 @@ class Camera:
         write_now:  write to camera immediately
 
         units are 0.1ms per frame
-        maximum fps is 10000 (0.1ms frame time) 
+        maximum fps is 10000 (0.1ms frame time)
         mimumum fps is 10000/65535 ~= 0.153
         """
         self.fps = np.clip(fps, 0.153, 10000)
@@ -231,7 +231,7 @@ class Camera:
 
     def set_gain(self, gain : int = 15, write_now : bool = False) -> None:
         """Set camera gain.
-        
+
         gain:       6 to 41 db, inclusive
         write_now:  write to camera immediately
 
@@ -257,14 +257,14 @@ class Camera:
 
     def trigger(self) -> None:
         """Simulate a trigger.
-        
+
         Only works in TRIGGER mode.
         """
         self.dev.write(0x01, [0x36, 1, 0x00])
 
     def query_buffer(self) -> dict[str,int|tuple[int,int]]:
         """Query camera's buffer for number of available frames and configuration.
-        
+
         returns dict with keys "nFrames", "resolution", "bin_mode"
         """
         self.dev.write(0x01, [0x33, 1, 0x00])
@@ -284,8 +284,8 @@ class Camera:
 
     def acquire_frames(self) -> None:
         """Aquire camera image frames.
-        
-        Downloads all available frames from the camera buffer and puts them in the 
+
+        Downloads all available frames from the camera buffer and puts them in the
         application buffer.
         """
         while True:
@@ -311,17 +311,21 @@ class Camera:
             frame_size = nPixels * bytes_per_px + padding + 512
 
             # read one frame and insert into app buffer
-            data = self.dev.read(0x82, frame_size)
+            try:
+                data = self.dev.read(0x82, frame_size)
+            except usb.core.USBTimeoutError:
+                continue
             self.app_buffer.insert(0, Frame(data))
             # trim buffer
             while len(self.app_buffer) > self.buffer_max:
                 self.app_buffer.pop()
-    
+
     def get_frames(self, nFrames : int = 1) -> list[Frame]:
         """Get most recent nFrames frames."""
-        nFrames = np.clip(nFrames, 0, self.buffer_max)
+        nFrames = np.clip(nFrames, 0, len(self.app_buffer))
         return self.app_buffer[0:nFrames]
-    
-    def get_newest_frame(self) -> Frame:
+
+    def get_newest_frame(self) -> Frame | None:
         """Get most recent frame."""
-        return self.app_buffer[0]    
+
+        return self.app_buffer[0] if len(self.app_buffer) > 0 else None
