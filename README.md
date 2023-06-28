@@ -23,13 +23,14 @@ Control Software for Zaber XYZ Focus Stage with Mightex Camera
     ```
 1. Install dependencies:
     ```
-    $ pip install pyusb numpy Pillow
+    $ pip install pyusb numpy Pillow zaber-motion
     ```
-1. Add user to `plugdev` group:
+1. Add user to `plugdev` and `dialout` groups:
     ```
     $ sudo usermod -a -G plugdev <username>
+    $ sudo usermod -a -G plugdev <username>
     ```
-1. Log out and log back in to set new group membership. Check group membership for `plugdev`:
+1. Log out and log back in to set new group membership.
     ```
     $ groups
     ```
@@ -55,6 +56,8 @@ Control Software for Zaber XYZ Focus Stage with Mightex Camera
     $ dmesg
     $ ls -al /dev/bus/usb/001/
     ```
+1. Add `/dev/ttyUSB0` similarly, using `usbipd`
+
 ### Notes
 * `lsusb` should show something like:
     ```
