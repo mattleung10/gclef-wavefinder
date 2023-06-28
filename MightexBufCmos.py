@@ -185,7 +185,7 @@ class Camera:
         BIN1X4 = 0x83   # 1:4 Bin mode, it's pre-defined as: 1280 x 240
         SKIP   = 0x03   # 1:4 Bin mode2, it's pre-defined as: 1280 x 240
         """
-        self.resolution = tuple(np.clip(resolution, 1, 1280))
+        self.resolution = tuple(np.clip(resolution, 8, 1280))
         self.bin_mode   = bin_mode if bin_mode in Camera.BIN_MODES else Camera.NO_BIN
         self.nBuffer    = np.clip(nBuffer, 1, 24)
         if write_now:

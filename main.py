@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, filedialog
 
 import numpy as np
 from PIL import Image, ImageTk
@@ -34,12 +34,19 @@ class App(tk.Tk):
         self.make_camera_control_frame()
 
         # make image viewer frame
-        viewer = ttk.Frame(self, padding=self.def_padding)
-        viewer.grid(column=1, row=0)
+        viewer = ttk.LabelFrame(self, text="Preview", padding=self.def_padding)
+        viewer.grid(column=1, row=0, sticky=tk.N)
+
+        self.freeze_txt = tk.StringVar(value="Freeze")
         self.preview = ttk.Label(viewer)
-        self.preview.grid(column=0, row=0, sticky=tk.W)
-        ttk.Label(viewer, textvariable=self.img_props).grid(column=1,
-                                                            row=0, sticky=tk.W)
+        self.preview.grid(column=0, row=0, sticky=tk.N)
+        props = ttk.Frame(viewer, padding=self.def_padding)
+        props.grid(column=1, row=0, sticky=tk.N)
+        ttk.Label(props, textvariable=self.img_props).grid(column=0, row=0, sticky=tk.W)
+        ttk.Button(props, textvariable=self.freeze_txt,
+                   command=self.freeze).grid(column=0, row=1, pady=10)
+        ttk.Button(props, text="Save",
+                   command=self.save_img).grid(column=0, row=2, sticky=tk.S)
 
         # make motion control frame
         motion = ttk.Frame(self, padding=self.def_padding)
@@ -63,6 +70,7 @@ class App(tk.Tk):
         self.camera_exp_t = tk.StringVar(value="50.0")
         self.camera_fps = tk.StringVar(value="10.0")
         self.camera_gain = tk.StringVar(value="15")
+        self.camera_freq = tk.StringVar(value="32")
 
         # camera info
         ttk.Label(cam_ctrl, text="Model").grid(column=0, row=0, sticky=tk.E, padx=10)
@@ -92,11 +100,13 @@ class App(tk.Tk):
         ttk.Label(cam_ctrl, text="Resolution").grid(column=0, row=4,
                                                     sticky=tk.E, padx=10)
         ttk.Entry(cam_ctrl, width=5, textvariable=self.camera_resolution1,
-                  validatecommand=(self.register(self.valid_resolution), '%P'),
-                  validate='all').grid(column=1, row=4, sticky=tk.E)
+                  validatecommand=(self.register(self.valid_int), '%P'),
+                  invalidcommand=self.register(self.restore_camera_entries),
+                  validate='focus').grid(column=1, row=4, sticky=tk.E)
         ttk.Entry(cam_ctrl, width=5, textvariable=self.camera_resolution2,
-                  validatecommand=(self.register(self.valid_resolution), '%P'),
-                  validate='all').grid(column=2, row=4, sticky=tk.W)
+                  validatecommand=(self.register(self.valid_int), '%P'),
+                  invalidcommand=self.register(self.restore_camera_entries),
+                  validate='focus').grid(column=2, row=4, sticky=tk.W)
 
         # binning
         ttk.Label(cam_ctrl, text="Binning").grid(column=0, row=5,
@@ -125,29 +135,38 @@ class App(tk.Tk):
         ttk.Label(cam_ctrl, text="Exp. Time (ms)").grid(column=0, row=8, sticky=tk.E, padx=10)
         ttk.Entry(cam_ctrl, width=5, textvariable=self.camera_exp_t,
                   validatecommand=(self.register(self.valid_float), '%P'),
-                  validate='all').grid(column=1, row=8, sticky=tk.W)
+                  invalidcommand=self.register(self.restore_camera_entries),
+                  validate='focus').grid(column=1, row=8, sticky=tk.W)
 
         # FPS
-        ttk.Label(cam_ctrl, text="Frames per Sec").grid(column=0, row=9,
+        ttk.Label(cam_ctrl, text="Frames/Sec").grid(column=0, row=9,
                                                         sticky=tk.E, padx=10)
         ttk.Entry(cam_ctrl, width=5, textvariable=self.camera_fps,
                   validatecommand=(self.register(self.valid_float), '%P'),
-                  validate='all').grid(column=1, row=9, sticky=tk.W)
+                  invalidcommand=self.register(self.restore_camera_entries),
+                  validate='focus').grid(column=1, row=9, sticky=tk.W)
 
         # gain
         ttk.Label(cam_ctrl, text="Gain [6-41]dB").grid(column=0, row=10,
                                                        sticky=tk.E, padx=10)
         ttk.Entry(cam_ctrl, width=5, textvariable=self.camera_gain,
-                  validatecommand=(self.register(self.valid_resolution), '%P'),
-                  validate='all').grid(column=1, row=10, sticky=tk.W)
+                  validatecommand=(self.register(self.valid_int), '%P'),
+                  invalidcommand=self.register(self.restore_camera_entries),
+                  validate='focus').grid(column=1, row=10, sticky=tk.W)
+        
+        # frequency
+        ttk.Label(cam_ctrl, text="Frequency (MHz)").grid(column=0, row=11,
+                                                     sticky=tk.E, padx=10)
+        ttk.Combobox(cam_ctrl, textvariable=self.camera_freq,
+                     values=["32", "16", "8", "4", "2"], state="readonly",
+                     width=4).grid(column=1, row=11, sticky=tk.W)
 
         # buttons
         ttk.Button(cam_ctrl, text="Take Image",
-                   command=self.snap_img).grid(column=0, row=11, pady=(10, 0), padx=10)
+                   command=self.snap_img).grid(column=0, row=12, pady=(10, 0), padx=10)
         ttk.Button(cam_ctrl, text="Write to Camera",
-                   command=self.set_cam_ctrl).grid(column=1, row=11, columnspan=2,
+                   command=self.set_cam_ctrl).grid(column=1, row=12, columnspan=2,
                                                    sticky=tk.E, pady=(10, 0), padx=10)
-
 
     def create_devices(self):
         """Create device handles"""
@@ -173,29 +192,30 @@ class App(tk.Tk):
 
         if self.camera:
             self.camera.acquire_frames()
-            frame = self.camera.get_newest_frame()
-            if frame:
-                frame_img = Image.fromarray(frame.img)
-                # frame_img = Image.fromarray(np.random.randint(255, size=(960, 1280), dtype=np.uint8)) # random noise
-                disp_img = ImageTk.PhotoImage(frame_img.resize((frame_img.width // 4,
-                                                                frame_img.height // 4)))
-                self.preview.img = disp_img # protect from garbage collect
-                self.preview.configure(image=disp_img)
+            if self.freeze_txt.get() == "Freeze":
+                frame = self.camera.get_newest_frame()
+                if frame:
+                    frame_img = Image.fromarray(frame.img)
+                    # frame_img = Image.fromarray(np.random.randint(255, size=(960, 1280), dtype=np.uint8)) # random noise
+                    disp_img = ImageTk.PhotoImage(frame_img.resize((frame_img.width // 4,
+                                                                    frame_img.height // 4)))
+                    self.preview.img = disp_img # protect from garbage collect
+                    self.preview.configure(image=disp_img)
 
-                # update img_props
-                prop_str = self.img_props.get()
-                prop_str = ""
-                for p in ["rows", "cols", "bin", "gGain", "expTime", "frameTime",
-                          "timestamp", "triggered", "nTriggers", "freq"]:
-                    prop_str += str(p) + ': ' + str(getattr(frame, p)) + '\n'
-                self.img_props.set(prop_str)
+                    # update img_props
+                    prop_str = self.img_props.get()
+                    prop_str = ""
+                    for p in ["rows", "cols", "bin", "gGain", "expTime", "frameTime",
+                            "timestamp", "triggered", "nTriggers", "freq"]:
+                        prop_str += str(p) + ': ' + str(getattr(frame, p)) + '\n'
+                    self.img_props.set(prop_str.strip())
 
-                # update UI to proper values, matching newest frame
-                if self.check_resolution:
-                    resolution : tuple[int,int] = self.camera.query_buffer()["resolution"] # type: ignore
-                    self.camera_resolution1.set(str(resolution[0]))
-                    self.camera_resolution2.set(str(resolution[1]))
-                    self.check_resolution = False
+                    # update UI to proper values, matching newest frame
+                    if self.check_resolution:
+                        resolution : tuple[int,int] = self.camera.query_buffer()["resolution"] # type: ignore
+                        self.camera_resolution1.set(str(resolution[0]))
+                        self.camera_resolution2.set(str(resolution[1]))
+                        self.check_resolution = False
 
         self.preview.after(self.view_delay, self.update_preview)
 
@@ -205,8 +225,8 @@ class App(tk.Tk):
             self.camera.set_mode(run_mode=self.camera_run_mode.get(),
                                  # TODO bits=self.camera_bits.get()
                                  write_now=True)
-            resolution = tuple(np.clip((int(self.camera_resolution1.get()),
-                          int(self.camera_resolution2.get())), 8, 65535))
+            resolution = ((int(self.camera_resolution1.get()),
+                           int(self.camera_resolution2.get())))
             self.camera.set_resolution(resolution=resolution,
                                        bin_mode=self.camera_bin_mode.get(),
                                        write_now=True)
@@ -216,38 +236,59 @@ class App(tk.Tk):
                                 write_now=True)
             self.camera.set_gain(gain=int(self.camera_gain.get()),
                                  write_now=True)
-
-            # throw out old frames
-            self.camera.clear_buffer()
-
-            # tell update_preview to also update the resolution
-            self.check_resolution = True
+            freq_div = (int.bit_length(32 // int(self.camera_freq.get())) - 1)
+            self.camera.set_frequency(freq_mode=freq_div, write_now=True)
 
             # read back validated settings from camera
+            self.restore_camera_entries()
+
+    def restore_camera_entries(self):
+        """Restore camera entry boxes from camera"""
+        if self.camera:
+            # throw out old frames
+            self.camera.clear_buffer()
+            # tell update_preview to also update the resolution
+            self.check_resolution = True
+            # put back entries
             self.camera_exp_t.set(str(self.camera.exposure_time))
             self.camera_fps.set(str(self.camera.fps))
             self.camera_gain.set(str(self.camera.gain))
+            self.camera_freq.set(str((32 >> self.camera.freq_mode)))
 
     def snap_img(self):
         """Snap and image"""
         if self.camera:
             self.camera.trigger()
 
-    def valid_resolution(self, res_str : str):
-        """Check if a resolution value is valid"""
-        if str.isdigit(res_str):
-            res = int(res_str)
-            if int.bit_length(res) <= 16:
-                return True
-        return False
+    def save_img(self):
+        """Save image dialog"""
+        # TODO implement
+        f = filedialog.asksaveasfile(defaultextension=".png")
+
+    def freeze(self):
+        """Freeze preview"""
+        if self.freeze_txt.get() == "Freeze":
+            self.freeze_txt.set("Unfreeze")
+        else:
+            self.freeze_txt.set("Freeze")
+
+    def valid_int(self, i_str : str):
+        """Check if a int value is valid"""
+        try:
+            float(i_str)
+        except:
+            return False
+        else:
+            return True
 
     def valid_float(self, f_str : str):
         """Check if a float value is valid"""
         try:
             float(f_str)
-            return True
         except:
             return False
+        else:
+            return True
 
 
 if __name__ == "__main__":
