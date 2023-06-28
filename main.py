@@ -27,14 +27,25 @@ class App(tk.Tk):
         self.camera_info1 = tk.StringVar(self, value="")
         self.camera_info2 = tk.StringVar(self, value="")
         self.img_props = tk.StringVar(self, "")
+        self.frame = None
 
     def make_frames(self):
         """Make view frames"""
 
         self.make_camera_control_frame()
+        self.make_image_viewer_frame()
 
-        # make image viewer frame
-        viewer = ttk.LabelFrame(self, text="Preview", padding=self.def_padding)
+        # make motion control frame
+        motion = ttk.Frame(self, padding=self.def_padding)
+        motion.grid(column=0, row=1)
+        ttk.Label(motion, text="X").grid(column=0, row=0)
+        ttk.Label(motion, text="Y").grid(column=0, row=1)
+        ttk.Label(motion, text="Z").grid(column=0, row=2)
+
+    def make_image_viewer_frame(self):
+        """Make image viewer frame"""
+        viewer = ttk.LabelFrame(self, text="Preview",
+                                labelanchor=tk.N, padding=self.def_padding)
         viewer.grid(column=1, row=0, sticky=tk.N)
 
         self.freeze_txt = tk.StringVar(value="Freeze")
@@ -47,14 +58,7 @@ class App(tk.Tk):
                    command=self.freeze).grid(column=0, row=1, pady=10)
         ttk.Button(props, text="Save",
                    command=self.save_img).grid(column=0, row=2, sticky=tk.S)
-
-        # make motion control frame
-        motion = ttk.Frame(self, padding=self.def_padding)
-        motion.grid(column=0, row=1)
-        ttk.Label(motion, text="X").grid(column=0, row=0)
-        ttk.Label(motion, text="Y").grid(column=0, row=1)
-        ttk.Label(motion, text="Z").grid(column=0, row=2)
-
+    
     def make_camera_control_frame(self):
         """Make camera control frame"""
 
@@ -193,12 +197,12 @@ class App(tk.Tk):
         if self.camera:
             self.camera.acquire_frames()
             if self.freeze_txt.get() == "Freeze":
-                frame = self.camera.get_newest_frame()
-                if frame:
-                    frame_img = Image.fromarray(frame.img)
+                self.frame = self.camera.get_newest_frame()
+                if self.frame:
+                    self.frame_img = Image.fromarray(self.frame.img)
                     # frame_img = Image.fromarray(np.random.randint(255, size=(960, 1280), dtype=np.uint8)) # random noise
-                    disp_img = ImageTk.PhotoImage(frame_img.resize((frame_img.width // 4,
-                                                                    frame_img.height // 4)))
+                    disp_img = ImageTk.PhotoImage(self.frame_img.resize((self.frame_img.width // 4,
+                                                                         self.frame_img.height // 4)))
                     self.preview.img = disp_img # protect from garbage collect
                     self.preview.configure(image=disp_img)
 
@@ -207,7 +211,7 @@ class App(tk.Tk):
                     prop_str = ""
                     for p in ["rows", "cols", "bin", "gGain", "expTime", "frameTime",
                             "timestamp", "triggered", "nTriggers", "freq"]:
-                        prop_str += str(p) + ': ' + str(getattr(frame, p)) + '\n'
+                        prop_str += str(p) + ': ' + str(getattr(self.frame, p)) + '\n'
                     self.img_props.set(prop_str.strip())
 
                     # update UI to proper values, matching newest frame
@@ -262,8 +266,15 @@ class App(tk.Tk):
 
     def save_img(self):
         """Save image dialog"""
-        # TODO implement
-        f = filedialog.asksaveasfile(defaultextension=".png")
+        # TODO: FITS format
+        if self.frame:
+            f = filedialog.asksaveasfilename(initialdir="images/",
+                                             initialfile="img.png",
+                                             filetypes = (("image files",["*.jpg","*.png"]),
+                                                          ("all files","*.*")),
+                                             defaultextension=".png")
+            if f:
+                self.frame_img.save(f)
 
     def freeze(self):
         """Freeze preview"""

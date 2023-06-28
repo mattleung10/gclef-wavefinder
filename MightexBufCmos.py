@@ -1,5 +1,4 @@
 import array
-from queue import Queue
 
 import numpy as np
 import usb.core
@@ -327,5 +326,4 @@ class Camera:
 
     def get_newest_frame(self) -> Frame | None:
         """Get most recent frame."""
-
         return self.app_buffer[0] if len(self.app_buffer) > 0 else None
