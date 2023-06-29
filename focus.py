@@ -1,6 +1,6 @@
 from zaber_motion import Units
 from zaber_motion.ascii import Connection, Axis
-from MightexBufCmos import Camera
+from devices.MightexBufCmos import Camera
 
 def compute_fwhm(img) -> float:
     """Compute full width half max"""

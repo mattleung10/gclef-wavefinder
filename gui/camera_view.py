@@ -1,0 +1,236 @@
+import tkinter as tk
+from tkinter import filedialog, ttk
+
+import numpy as np
+from PIL import Image, ImageTk
+
+from devices.MightexBufCmos import Camera
+
+from .utils import valid_float, valid_int
+
+
+class CameraView(ttk.LabelFrame):
+    """Camera view frame"""
+
+    def __init__(self, parent, camera : Camera | None, view_delay : int):
+        super().__init__(parent, text="Camera", labelanchor=tk.N)
+
+        # UI variables
+        self.view_delay = view_delay
+        camera_info1 = tk.StringVar(value="") # TODO: check this
+        camera_info2 = tk.StringVar(value="")
+        self.camera_run_mode = tk.IntVar(value=Camera.NORMAL)
+        self.camera_bits = tk.IntVar(value=8)
+        self.camera_resolution1 = tk.StringVar(value="1280")
+        self.camera_resolution2 = tk.StringVar(value="960")
+        self.camera_bin_mode = tk.IntVar(value=Camera.NO_BIN)
+        self.camera_exp_t = tk.StringVar(value="50.0")
+        self.camera_fps = tk.StringVar(value="10.0")
+        self.camera_gain = tk.StringVar(value="15")
+        self.camera_freq = tk.StringVar(value="32")
+        self.img_props = tk.StringVar(self, "")
+        self.freeze_txt = tk.StringVar(value="Freeze")
+
+        # camera variables
+        self.camera = camera
+        self.frame_img = None
+        self.camera_settings_changed = False
+
+        # camera info
+        ttk.Label(self, text="Model").grid(column=0, row=0, sticky=tk.E, padx=10)
+        ttk.Label(self, textvariable=camera_info1).grid(column=1, row=0,
+                                                                 columnspan=2, sticky=tk.W)
+        ttk.Label(self, text="S/N").grid(column=0, row=1, sticky=tk.E, padx=10)
+        ttk.Label(self, textvariable=camera_info2).grid(column=1, row=1,
+                                                                 columnspan=2, sticky=tk.W)
+
+        # camera mode
+        ttk.Label(self, text="Mode").grid(column=0, row=2, sticky=tk.E, padx=10)
+        ttk.Radiobutton(self, text="Stream", value=Camera.NORMAL,
+                        variable=self.camera_run_mode).grid(column=1, row=2, sticky=tk.W)
+        ttk.Radiobutton(self, text="Trigger", value=Camera.TRIGGER,
+                        variable=self.camera_run_mode).grid(column=2, row=2, sticky=tk.W)
+        ttk.Radiobutton(self, text="8 bit", value=8,
+                        variable=self.camera_bits).grid(column=1, row=3, sticky=tk.W)
+        ttk.Radiobutton(self, text="12 bit", value=12,
+                        variable=self.camera_bits, # TODO add 12-bit
+                        state=tk.DISABLED).grid(column=2, row=3, sticky=tk.W)
+
+        # resolution
+        ttk.Label(self, text="Resolution").grid(column=0, row=4,
+                                                    sticky=tk.E, padx=10)
+        ttk.Entry(self, width=5, textvariable=self.camera_resolution1,
+                  validatecommand=(self.register(valid_int), '%P'),
+                  invalidcommand=self.register(self.restore_camera_entries),
+                  validate='focus').grid(column=1, row=4, sticky=tk.E)
+        ttk.Entry(self, width=5, textvariable=self.camera_resolution2,
+                  validatecommand=(self.register(valid_int), '%P'),
+                  invalidcommand=self.register(self.restore_camera_entries),
+                  validate='focus').grid(column=2, row=4, sticky=tk.W)
+
+        # binning
+        ttk.Label(self, text="Binning").grid(column=0, row=5,
+                                                 sticky=tk.E, padx=10)
+        ttk.Radiobutton(self, text="No Bin", value=Camera.NO_BIN,
+                        variable=self.camera_bin_mode).grid(column=1, row=5,
+                                                        columnspan=2,
+                                                        sticky=tk.W)
+        ttk.Radiobutton(self, text="1:2", value=Camera.BIN1X2,
+                        variable=self.camera_bin_mode).grid(column=1, row=6, sticky=tk.W)
+        ttk.Radiobutton(self, text="1:3", value=Camera.BIN1X3,
+                        variable=self.camera_bin_mode).grid(column=2, row=6, sticky=tk.W)
+        ttk.Radiobutton(self, text="1:4", value=Camera.BIN1X4,
+                        variable=self.camera_bin_mode).grid(column=1, row=7, sticky=tk.W)
+        ttk.Radiobutton(self, text="1:4 skip", value=Camera.SKIP,
+                        variable=self.camera_bin_mode).grid(column=2, row=7, sticky=tk.W)
+
+        # exposure time
+        ttk.Label(self, text="Exp. Time (ms)").grid(column=0, row=8, sticky=tk.E, padx=10)
+        ttk.Entry(self, width=5, textvariable=self.camera_exp_t,
+                  validatecommand=(self.register(valid_float), '%P'),
+                  invalidcommand=self.register(self.restore_camera_entries),
+                  validate='focus').grid(column=1, row=8, sticky=tk.W)
+
+        # FPS
+        ttk.Label(self, text="Frames/Sec").grid(column=0, row=9,
+                                                        sticky=tk.E, padx=10)
+        ttk.Entry(self, width=5, textvariable=self.camera_fps,
+                  validatecommand=(self.register(valid_float), '%P'),
+                  invalidcommand=self.register(self.restore_camera_entries),
+                  validate='focus').grid(column=1, row=9, sticky=tk.W)
+
+        # gain
+        ttk.Label(self, text="Gain [6-41]dB").grid(column=0, row=10,
+                                                       sticky=tk.E, padx=10)
+        ttk.Entry(self, width=5, textvariable=self.camera_gain,
+                  validatecommand=(self.register(valid_int), '%P'),
+                  invalidcommand=self.register(self.restore_camera_entries),
+                  validate='focus').grid(column=1, row=10, sticky=tk.W)
+        
+        # frequency
+        ttk.Label(self, text="Frequency (MHz)").grid(column=0, row=11,
+                                                     sticky=tk.E, padx=10)
+        ttk.Combobox(self, textvariable=self.camera_freq,
+                     values=["32", "16", "8", "4", "2"], state="readonly",
+                     width=4).grid(column=1, row=11, sticky=tk.W)
+
+        # image preview
+        self.preview = ttk.Label(self)
+        self.preview.grid(column=3, row=0, columnspan=3, rowspan=12,
+                          padx=10, pady=10, sticky=tk.N)
+
+        # buttons
+        ttk.Button(self, text="Write Config",
+                   command=self.set_cam_ctrl).grid(column=0, row=12,
+                                                   columnspan=3, pady=(10, 0), padx=10)
+        ttk.Button(self, text="Trigger",
+                   command=self.snap_img).grid(column=3, row=12,
+                                               pady=(10, 0), padx=10)
+
+        ttk.Button(self, textvariable=self.freeze_txt,
+                   command=self.freeze_preview).grid(column=4, row=12,
+                                                     pady=(10, 0), padx=10)
+        ttk.Button(self, text="Save",
+                   command=self.save_img).grid(column=5, row=12,
+                                               pady=(10, 0), padx=10)
+
+
+    def set_cam_ctrl(self):
+        """Set camera to new settings"""
+        if self.camera:
+            self.camera.set_mode(run_mode=self.camera_run_mode.get(),
+                                 # TODO bits=self.camera_bits.get()
+                                 write_now=True)
+            resolution = ((int(self.camera_resolution1.get()),
+                           int(self.camera_resolution2.get())))
+            self.camera.set_resolution(resolution=resolution,
+                                       bin_mode=self.camera_bin_mode.get(),
+                                       write_now=True)
+            self.camera.set_exposure_time(exposure_time=float(self.camera_exp_t.get()),
+                                          write_now=True)
+            self.camera.set_fps(fps=float(self.camera_fps.get()),
+                                write_now=True)
+            self.camera.set_gain(gain=int(self.camera_gain.get()),
+                                 write_now=True)
+            freq_div = (int.bit_length(32 // int(self.camera_freq.get())) - 1)
+            self.camera.set_frequency(freq_mode=freq_div, write_now=True)
+
+            # throw out old frames
+            self.camera.clear_buffer()
+
+            # flag the update function to get the settings from the camera
+            self.camera_settings_changed = True
+
+    def snap_img(self):
+        """Snap an image"""
+        if self.camera:
+            self.camera.trigger()
+
+    def restore_camera_entries(self):
+        """Restore camera entry boxes from camera
+        
+        except resolution which is set from update because it
+        needs current frame information
+        """
+        if self.camera:
+            self.camera_exp_t.set(str(self.camera.exposure_time))
+            self.camera_fps.set(str(self.camera.fps))
+            self.camera_gain.set(str(self.camera.gain))
+            self.camera_freq.set(str((32 >> self.camera.freq_mode)))
+
+    def freeze_preview(self):
+        """Freeze preview"""
+        if self.freeze_txt.get() == "Freeze":
+            self.freeze_txt.set("Unfreeze")
+        else:
+            self.freeze_txt.set("Freeze")
+
+    def save_img(self):
+        """Save image dialog"""
+        # TODO: FITS format
+        if self.frame_img:
+            f = filedialog.asksaveasfilename(initialdir="images/",
+                                             initialfile="img.png",
+                                             filetypes = (("image files",["*.jpg","*.png"]),
+                                                          ("all files","*.*")),
+                                             defaultextension=".png")
+            if f:
+                self.frame_img.save(f)
+
+    def update(self):
+        """Update preview image in viewer"""
+        if self.camera:
+            self.camera.acquire_frames()
+            if self.freeze_txt.get() == "Freeze":
+                camera_frame = self.camera.get_newest_frame()
+                if camera_frame:
+                    self.frame_img = Image.fromarray(camera_frame.img)
+                    disp_img = ImageTk.PhotoImage(self.frame_img.resize((self.frame_img.width // 4,
+                                                                         self.frame_img.height // 4)))
+                    self.preview.img = disp_img # type: ignore # protect from garbage collect
+                    self.preview.configure(image=disp_img)
+
+                    # update img_props
+                    prop_str = ""
+                    for p in ["rows", "cols", "bin", "gGain", "expTime", "frameTime",
+                            "timestamp", "triggered", "nTriggers", "freq"]:
+                        prop_str += str(p) + ': ' + str(getattr(camera_frame, p)) + '\n'
+                    self.img_props.set(prop_str.strip())
+
+            # update UI to proper values, matching newest frame and camera settings 
+            if self.camera_settings_changed:
+                resolution : tuple[int,int] = self.camera.query_buffer()["resolution"] # type: ignore
+                self.camera_resolution1.set(str(resolution[0]))
+                self.camera_resolution2.set(str(resolution[1]))
+                self.restore_camera_entries()
+                self.camera_settings_changed = False
+
+        else: # no camera, testing purposes
+            if self.freeze_txt.get() == "Freeze":
+                self.frame_img = Image.fromarray(np.random.randint(255, size=(960, 1280), dtype=np.uint8)) # random noise
+                disp_img = ImageTk.PhotoImage(self.frame_img.resize((self.frame_img.width // 4,
+                                                                    self.frame_img.height // 4)))
+                self.preview.img = disp_img # type: ignore # protect from garbage collect
+                self.preview.configure(image=disp_img)
+
+        self.preview.after(self.view_delay, self.update)
