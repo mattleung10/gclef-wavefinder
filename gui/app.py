@@ -7,6 +7,7 @@ from zaber_motion.exceptions import ConnectionFailedException
 from devices.MightexBufCmos import Camera
 
 from .camera_panel import CameraPanel
+from .detector_motion_panel import DetectorMotionPanel
 
 
 class App(tk.Tk):
@@ -57,44 +58,18 @@ class App(tk.Tk):
     def make_frames(self):
         """Make view frames"""
 
-        self.camera_view = CameraPanel(self, self.camera, self.view_delay)
-        self.camera_view.grid(column=0, row=0)
+        self.camera_panel = CameraPanel(self, self.camera, self.view_delay)
+        self.camera_panel.grid(column=0, row=0)
+
+        self.detector_motion_panel = DetectorMotionPanel(self, self.det_ax, self.det_ay, self.det_az)
+        self.detector_motion_panel.grid(column=0, row=1)
 
         # pad them all
         for f in self.winfo_children():
             f.configure(padding=self.default_padding) # type: ignore
 
-        # self.make_camera_control_frame()
-        # self.make_image_viewer_frame()
-
-        # # make motion control frame
-        # motion = ttk.Frame(self, padding=self.def_padding)
-        # motion.grid(column=0, row=1)
-        
-        # self.pos_x = tk.StringVar(value="0")
-        # self.pos_y = tk.StringVar(value="0")
-        # self.pos_z = tk.StringVar(value="0")
-
-        # ttk.Label(motion, text="X").grid(column=0, row=0)
-        # ttk.Entry(motion, width=5, textvariable=self.pos_x,
-        #     validatecommand=(self.register(valid_float), '%P'),
-        #     # invalidcommand=self.register(self.restore_camera_entries), # TODO
-        #     validate='focus').grid(column=1, row=0, sticky=tk.E)
-        # ttk.Label(motion, text="Y").grid(column=0, row=1)
-        # ttk.Entry(motion, width=5, textvariable=self.pos_y,
-        #     validatecommand=(self.register(valid_float), '%P'),
-        #     # invalidcommand=self.register(self.restore_camera_entries), # TODO
-        #     validate='focus').grid(column=1, row=1, sticky=tk.E)
-        # ttk.Label(motion, text="Z").grid(column=0, row=2)
-        # ttk.Entry(motion, width=5, textvariable=self.pos_z,
-        #     validatecommand=(self.register(valid_float), '%P'),
-        #     # invalidcommand=self.register(self.restore_camera_entries), # TODO
-        #     validate='focus').grid(column=1, row=2, sticky=tk.E)
-        # ttk.Button(motion, text="Go",
-        #            command=self.move_stages).grid(column=0, row=3)
-
 
     def start_update_loops(self):
         """Start cyclic update loops"""
-        self.camera_view.after(self.view_delay, self.camera_view.update)
+        self.camera_panel.after(self.view_delay, self.camera_panel.update)
 

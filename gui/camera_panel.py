@@ -10,7 +10,7 @@ from .utils import valid_float, valid_int
 
 
 class CameraPanel(ttk.LabelFrame):
-    """Camera view frame"""
+    """Camera UI Panel"""
 
     def __init__(self, parent, camera : Camera | None, view_delay : int):
         super().__init__(parent, text="Camera", labelanchor=tk.N)
