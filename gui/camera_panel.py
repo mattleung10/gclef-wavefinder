@@ -34,7 +34,7 @@ class CameraPanel(ttk.LabelFrame):
         # camera variables
         self.camera = camera
         self.frame_img = None
-        self.camera_settings_changed = True
+        self.update_resolution = False
 
         # camera info
         ttk.Label(self, text="Model").grid(column=0, row=0, sticky=tk.E, padx=10)
@@ -118,6 +118,10 @@ class CameraPanel(ttk.LabelFrame):
         self.preview = ttk.Label(self)
         self.preview.grid(column=3, row=0, columnspan=3, rowspan=12,
                           padx=10, pady=10, sticky=tk.N)
+        
+        # image properties
+        ttk.Label(self, textvariable=self.img_props).grid(column=6, row=0,
+                                                          rowspan=12, sticky=tk.W)
 
         # buttons
         ttk.Button(self, text="Write Config",
@@ -133,7 +137,9 @@ class CameraPanel(ttk.LabelFrame):
         ttk.Button(self, text="Save",
                    command=self.save_img).grid(column=5, row=12,
                                                pady=(10, 0), padx=10)
-
+        
+        # update UI to match camera
+        self.restore_camera_entries()
 
     def set_cam_ctrl(self):
         """Set camera to new settings"""
@@ -158,8 +164,8 @@ class CameraPanel(ttk.LabelFrame):
             # throw out old frames
             self.camera.clear_buffer()
 
-            # flag the update function to get the settings from the camera
-            self.camera_settings_changed = True
+            # update UI to match camera
+            self.restore_camera_entries()
 
     def snap_img(self):
         """Snap an image"""
@@ -180,6 +186,9 @@ class CameraPanel(ttk.LabelFrame):
             self.camera_fps.set(str(self.camera.fps))
             self.camera_gain.set(str(self.camera.gain))
             self.camera_freq.set(str((32 >> self.camera.freq_mode)))
+
+            # update resolution
+            self.update_resolution = True
 
     def freeze_preview(self):
         """Freeze preview"""
@@ -220,13 +229,12 @@ class CameraPanel(ttk.LabelFrame):
                         prop_str += str(p) + ': ' + str(getattr(camera_frame, p)) + '\n'
                     self.img_props.set(prop_str.strip())
 
-            # update UI to proper values, matching newest frame and camera settings 
-            if self.camera_settings_changed:
-                resolution : tuple[int,int] = self.camera.query_buffer()["resolution"] # type: ignore
-                self.camera_resolution1.set(str(resolution[0]))
-                self.camera_resolution2.set(str(resolution[1]))
-                self.restore_camera_entries()
-                self.camera_settings_changed = False
+                    # update resolution, matching newest frame 
+                    if self.update_resolution:
+                        resolution : tuple[int,int] = self.camera.query_buffer()["resolution"] # type: ignore
+                        self.camera_resolution1.set(str(resolution[0]))
+                        self.camera_resolution2.set(str(resolution[1]))
+                        self.update_resolution = False
 
         else: # no camera, testing purposes
             if self.freeze_txt.get() == "Freeze":

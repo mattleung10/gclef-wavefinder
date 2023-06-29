@@ -33,13 +33,17 @@ class App(tk.Tk):
             self.camera = None
 
         try:
+            SN_X = 33938
+            SN_Y = 33937
+            SN_Z = 33939
+
             zaber_con = Connection.open_serial_port("/dev/ttyUSB0")
             zaber_con.enable_alerts()
 
             device_list = zaber_con.detect_devices()
-            det_stage_x = next(filter(lambda d: d.serial_number == self.SN_X, device_list))
-            det_stage_y = next(filter(lambda d: d.serial_number == self.SN_Y, device_list))
-            det_stage_z = next(filter(lambda d: d.serial_number == self.SN_Z, device_list))
+            det_stage_x = next(filter(lambda d: d.serial_number == SN_X, device_list))
+            det_stage_y = next(filter(lambda d: d.serial_number == SN_Y, device_list))
+            det_stage_z = next(filter(lambda d: d.serial_number == SN_Z, device_list))
 
             self.det_ax = det_stage_x.get_axis(1)
             self.det_ay = det_stage_y.get_axis(1)
