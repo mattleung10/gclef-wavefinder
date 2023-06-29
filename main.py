@@ -5,6 +5,10 @@ import numpy as np
 from PIL import Image, ImageTk
 from MightexBufCmos import Camera
 
+from zaber_motion.exceptions import ConnectionFailedException
+from zaber_motion import Units
+from zaber_motion.ascii import Connection
+
 class App(tk.Tk):
     """Main graphical application"""
 
@@ -29,6 +33,11 @@ class App(tk.Tk):
         self.img_props = tk.StringVar(self, "")
         self.frame = None
 
+        self.SN_X = 33938
+        self.SN_Y = 33937
+        self.SN_Z = 33939
+
+
     def make_frames(self):
         """Make view frames"""
 
@@ -38,9 +47,28 @@ class App(tk.Tk):
         # make motion control frame
         motion = ttk.Frame(self, padding=self.def_padding)
         motion.grid(column=0, row=1)
+        
+        self.pos_x = tk.StringVar(value="0")
+        self.pos_y = tk.StringVar(value="0")
+        self.pos_z = tk.StringVar(value="0")
+
         ttk.Label(motion, text="X").grid(column=0, row=0)
+        ttk.Entry(motion, width=5, textvariable=self.pos_x,
+            validatecommand=(self.register(self.valid_float), '%P'),
+            # invalidcommand=self.register(self.restore_camera_entries), # TODO
+            validate='focus').grid(column=1, row=0, sticky=tk.E)
         ttk.Label(motion, text="Y").grid(column=0, row=1)
+        ttk.Entry(motion, width=5, textvariable=self.pos_y,
+            validatecommand=(self.register(self.valid_float), '%P'),
+            # invalidcommand=self.register(self.restore_camera_entries), # TODO
+            validate='focus').grid(column=1, row=1, sticky=tk.E)
         ttk.Label(motion, text="Z").grid(column=0, row=2)
+        ttk.Entry(motion, width=5, textvariable=self.pos_z,
+            validatecommand=(self.register(self.valid_float), '%P'),
+            # invalidcommand=self.register(self.restore_camera_entries), # TODO
+            validate='focus').grid(column=1, row=2, sticky=tk.E)
+        ttk.Button(motion, text="Go",
+                   command=self.move_stages).grid(column=0, row=3)
 
     def make_image_viewer_frame(self):
         """Make image viewer frame"""
@@ -179,6 +207,23 @@ class App(tk.Tk):
         except ValueError as e:
             print(e)
             self.camera = None
+        try:
+            zaber_con = Connection.open_serial_port("/dev/ttyUSB0")
+            zaber_con.enable_alerts()
+
+            device_list = zaber_con.detect_devices()
+            det_stage_x = next(filter(lambda d: d.serial_number == self.SN_X, device_list))
+            det_stage_y = next(filter(lambda d: d.serial_number == self.SN_Y, device_list))
+            det_stage_z = next(filter(lambda d: d.serial_number == self.SN_Z, device_list))
+
+            self.det_ax = det_stage_x.get_axis(1)
+            self.det_ay = det_stage_y.get_axis(1)
+            self.det_az = det_stage_z.get_axis(1)
+        except ConnectionFailedException as e:
+            print(e)
+            self.det_ax = None
+            self.det_ay = None
+            self.det_az = None
 
     def start_tasks(self):
         """Start cyclic tasks."""
@@ -203,7 +248,7 @@ class App(tk.Tk):
                     # frame_img = Image.fromarray(np.random.randint(255, size=(960, 1280), dtype=np.uint8)) # random noise
                     disp_img = ImageTk.PhotoImage(self.frame_img.resize((self.frame_img.width // 4,
                                                                          self.frame_img.height // 4)))
-                    self.preview.img = disp_img # protect from garbage collect
+                    self.preview.img = disp_img # type: ignore # protect from garbage collect
                     self.preview.configure(image=disp_img)
 
                     # update img_props
@@ -282,6 +327,15 @@ class App(tk.Tk):
             self.freeze_txt.set("Unfreeze")
         else:
             self.freeze_txt.set("Freeze")
+
+    def move_stages(self):
+        """Move Zaber stages"""
+        if self.det_ax:
+            self.det_ax.move_absolute(float(self.pos_x.get()), Units.LENGTH_MILLIMETRES)
+        if self.det_ay:
+            self.det_ay.move_absolute(float(self.pos_y.get()), Units.LENGTH_MILLIMETRES)
+        if self.det_az:
+            self.det_az.move_absolute(float(self.pos_z.get()), Units.LENGTH_MILLIMETRES)
 
     def valid_int(self, i_str : str):
         """Check if a int value is valid"""
