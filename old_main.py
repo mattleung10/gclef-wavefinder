@@ -3,7 +3,7 @@ from tkinter import ttk, filedialog
 
 import numpy as np
 from PIL import Image, ImageTk
-from MightexBufCmos import Camera
+from devices.MightexBufCmos import Camera
 
 from zaber_motion.exceptions import ConnectionFailedException
 from zaber_motion import Units

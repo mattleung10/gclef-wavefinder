@@ -1,5 +1,8 @@
-from gui.app import App
+import sys
 
+sys.path.append(".") # TODO: unhack
+
+from gui.app import App
 
 if __name__ == "__main__":
     app = App()
