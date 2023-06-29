@@ -28,7 +28,7 @@ class CameraPanel(ttk.LabelFrame):
         self.camera_fps = tk.StringVar(value="10.0")
         self.camera_gain = tk.StringVar(value="15")
         self.camera_freq = tk.StringVar(value="32")
-        self.img_props = tk.StringVar("")
+        self.img_props = tk.StringVar(value="")
         self.freeze_txt = tk.StringVar(value="Freeze")
 
         # camera variables
@@ -38,11 +38,11 @@ class CameraPanel(ttk.LabelFrame):
 
         # camera info
         ttk.Label(self, text="Model").grid(column=0, row=0, sticky=tk.E, padx=10)
-        ttk.Label(self, textvariable=camera_info1).grid(column=1, row=0,
-                                                                 columnspan=2, sticky=tk.W)
+        ttk.Label(self, textvariable=self.camera_info1).grid(column=1, row=0,
+                                                             columnspan=2, sticky=tk.W)
         ttk.Label(self, text="S/N").grid(column=0, row=1, sticky=tk.E, padx=10)
-        ttk.Label(self, textvariable=camera_info2).grid(column=1, row=1,
-                                                                 columnspan=2, sticky=tk.W)
+        ttk.Label(self, textvariable=self.camera_info2).grid(column=1, row=1,
+                                                             columnspan=2, sticky=tk.W)
 
         # camera mode
         ttk.Label(self, text="Mode").grid(column=0, row=2, sticky=tk.E, padx=10)
