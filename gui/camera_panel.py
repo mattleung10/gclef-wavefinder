@@ -9,7 +9,7 @@ from devices.MightexBufCmos import Camera
 from .utils import valid_float, valid_int
 
 
-class CameraView(ttk.LabelFrame):
+class CameraPanel(ttk.LabelFrame):
     """Camera view frame"""
 
     def __init__(self, parent, camera : Camera | None, view_delay : int):
@@ -17,8 +17,8 @@ class CameraView(ttk.LabelFrame):
 
         # UI variables
         self.view_delay = view_delay
-        camera_info1 = tk.StringVar(value="") # TODO: check this
-        camera_info2 = tk.StringVar(value="")
+        self.camera_info1 = tk.StringVar(value="")
+        self.camera_info2 = tk.StringVar(value="")
         self.camera_run_mode = tk.IntVar(value=Camera.NORMAL)
         self.camera_bits = tk.IntVar(value=8)
         self.camera_resolution1 = tk.StringVar(value="1280")
@@ -28,13 +28,13 @@ class CameraView(ttk.LabelFrame):
         self.camera_fps = tk.StringVar(value="10.0")
         self.camera_gain = tk.StringVar(value="15")
         self.camera_freq = tk.StringVar(value="32")
-        self.img_props = tk.StringVar(self, "")
+        self.img_props = tk.StringVar("")
         self.freeze_txt = tk.StringVar(value="Freeze")
 
         # camera variables
         self.camera = camera
         self.frame_img = None
-        self.camera_settings_changed = False
+        self.camera_settings_changed = True
 
         # camera info
         ttk.Label(self, text="Model").grid(column=0, row=0, sticky=tk.E, padx=10)
@@ -173,6 +173,9 @@ class CameraView(ttk.LabelFrame):
         needs current frame information
         """
         if self.camera:
+            info = self.camera.get_camera_info()
+            self.camera_info1.set(info["ModuleNo"].strip('\0')) # type: ignore
+            self.camera_info2.set(info["SerialNo"].strip('\0')) # type: ignore
             self.camera_exp_t.set(str(self.camera.exposure_time))
             self.camera_fps.set(str(self.camera.fps))
             self.camera_gain.set(str(self.camera.gain))

@@ -6,7 +6,7 @@ from zaber_motion.exceptions import ConnectionFailedException
 
 from devices.MightexBufCmos import Camera
 
-from .camera_view import CameraView
+from .camera_panel import CameraPanel
 
 
 class App(tk.Tk):
@@ -53,7 +53,7 @@ class App(tk.Tk):
     def make_frames(self):
         """Make view frames"""
 
-        self.camera_view = CameraView(self, self.camera, self.view_delay)
+        self.camera_view = CameraPanel(self, self.camera, self.view_delay)
         self.camera_view.grid(column=0, row=0)
 
         # pad them all
