@@ -101,7 +101,7 @@ class Camera:
         # write config to camera
         print("Writing configuration to camera... ", end='')
         self.write_configuration()
-        print("success!")
+        print("OK!")
 
     def reset(self) -> None:
         """Reset the camera; not recommended for normal use."""

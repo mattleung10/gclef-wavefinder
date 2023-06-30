@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 
-from zaber_motion.ascii import Connection
+from zaber_motion.ascii import Connection, Axis
 from zaber_motion.exceptions import ConnectionFailedException
 
 from devices.MightexBufCmos import Camera
@@ -15,49 +15,64 @@ class App(tk.Tk):
 
     def __init__(self):
         super().__init__()
-        self.title("Detector Stage Control")
-        self.grid()
 
         self.view_delay = 1000 // 60 # 60 Hz
         self.default_padding = "3 3 12 12"
-
+        
+        self.title("Detector Stage Control")
+        self.grid()
+        self.configure(padx=10, pady=10)
         self.create_devices()
-        self.make_frames()
+        self.make_panels()
         self.start_update_loops()
 
     def create_devices(self):
         """Create device handles"""
+        self.camera = self.init_camera()
+        self.det_ax, self.det_ay, self.det_az = self.init_zaber()
+        
+    def init_camera(self) -> Camera|None:
+        """Initialize connection to camera"""
         try:
-            self.camera = Camera()
+            return Camera()
         except ValueError as e:
             print(e)
-            self.camera = None
+            return None
 
+    def init_zaber(self) -> tuple[Axis|None, Axis|None, Axis|None]:
+        """Initialize connection to Zaber stages"""
+
+        SN_DET_X = 33938
+        SN_DET_Y = 33937
+        SN_DET_Z = 33939
+
+        axes = {SN_DET_X: None,
+                SN_DET_Y: None,
+                SN_DET_Z: None}
+        
         try:
-            SN_X = 33938
-            SN_Y = 33937
-            SN_Z = 33939
-
+            print("Connecting to Zaber stages... ", end='')
             zaber_con = Connection.open_serial_port("/dev/ttyUSB0")
             zaber_con.enable_alerts()
+            print("connected!")
 
             device_list = zaber_con.detect_devices()
-            det_stage_x = next(filter(lambda d: d.serial_number == SN_X, device_list))
-            det_stage_y = next(filter(lambda d: d.serial_number == SN_Y, device_list))
-            det_stage_z = next(filter(lambda d: d.serial_number == SN_Z, device_list))
-
-            self.det_ax = det_stage_x.get_axis(1)
-            self.det_ay = det_stage_y.get_axis(1)
-            self.det_az = det_stage_z.get_axis(1)
+            for sn in axes.keys():
+                try:
+                    print("Finding SN: " + str(sn) + "...", end='')
+                    device = next(filter(lambda d: d.serial_number == sn, device_list), None)
+                    if device:
+                        axes[sn] = device.get_axis(1)
+                        print("OK!")
+                except Exception as e:
+                    print(e)
         except ConnectionFailedException as e:
-            print(e)
-            self.det_ax = None
-            self.det_ay = None
-            self.det_az = None
+            print(e.message)
 
-    def make_frames(self):
-        """Make view frames"""
+        return (axes[SN_DET_X], axes[SN_DET_Y], axes[SN_DET_Z])
 
+    def make_panels(self):
+        """Make UI panels"""
         self.camera_panel = CameraPanel(self, self.camera, self.view_delay)
         self.camera_panel.grid(column=0, row=0)
 
@@ -67,7 +82,6 @@ class App(tk.Tk):
         # pad them all
         for f in self.winfo_children():
             f.configure(padding=self.default_padding) # type: ignore
-
 
     def start_update_loops(self):
         """Start cyclic update loops"""
