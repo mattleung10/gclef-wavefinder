@@ -1,13 +1,14 @@
 import tkinter as tk
 from tkinter import ttk
 
+from zaber_motion import Units
 from zaber_motion.ascii import Connection, Axis
 from zaber_motion.exceptions import ConnectionFailedException
 
 from devices.MightexBufCmos import Camera
 
 from .camera_panel import CameraPanel
-from .detector_motion_panel import DetectorMotionPanel
+from .motion_panel import MotionPanel
 
 
 class App(tk.Tk):
@@ -69,6 +70,11 @@ class App(tk.Tk):
         except ConnectionFailedException as e:
             print(e.message)
 
+        # special limits
+        # limit detector z-axis to 15mm
+        if axes[SN_DET_Z]:
+            a : Axis = axes[SN_DET_Z]
+            a.settings.set(setting="limit.max", value=15, unit=Units.LENGTH_MILLIMETRES)
         return (axes[SN_DET_X], axes[SN_DET_Y], axes[SN_DET_Z])
 
     def make_panels(self):
@@ -76,8 +82,9 @@ class App(tk.Tk):
         self.camera_panel = CameraPanel(self, self.camera, self.view_delay)
         self.camera_panel.grid(column=0, row=0)
 
-        self.detector_motion_panel = DetectorMotionPanel(self, self.det_ax, self.det_ay, self.det_az)
-        self.detector_motion_panel.grid(column=0, row=1)
+        self.motion_panel = MotionPanel(self, self.det_ax, self.det_ay,
+                                        self.det_az, self.view_delay)
+        self.motion_panel.grid(column=0, row=1)
 
         # pad them all
         for f in self.winfo_children():
@@ -86,4 +93,5 @@ class App(tk.Tk):
     def start_update_loops(self):
         """Start cyclic update loops"""
         self.camera_panel.after(self.view_delay, self.camera_panel.update)
+        self.motion_panel.after(self.view_delay, self.motion_panel.update)
 

@@ -249,4 +249,4 @@ class CameraPanel(ttk.LabelFrame):
                 self.preview.img = disp_img # type: ignore # protect from garbage collect
                 self.preview.configure(image=disp_img)
 
-        self.preview.after(self.view_delay, self.update)
+        self.after(self.view_delay, self.update)
