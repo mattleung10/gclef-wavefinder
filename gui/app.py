@@ -2,14 +2,15 @@ import tkinter as tk
 from tkinter import ttk
 
 from zaber_motion import Units
-from zaber_motion.ascii import Connection, Axis
+from zaber_motion.ascii import Axis, Connection
 from zaber_motion.exceptions import ConnectionFailedException
 
 from devices.MightexBufCmos import Camera
 
+from focus import Focuser
 from .camera_panel import CameraPanel
 from .motion_panel import MotionPanel
-
+from .function_panel import FunctionPanel
 
 class App(tk.Tk):
     """Main graphical application"""
@@ -80,11 +81,15 @@ class App(tk.Tk):
     def make_panels(self):
         """Make UI panels"""
         self.camera_panel = CameraPanel(self, self.camera, self.view_delay)
-        self.camera_panel.grid(column=0, row=0)
+        self.camera_panel.grid(column=0, row=0, columnspan=2)
 
         self.motion_panel = MotionPanel(self, self.det_ax, self.det_ay,
                                         self.det_az, self.view_delay)
         self.motion_panel.grid(column=0, row=1)
+
+        self.function_panel = FunctionPanel(self, Focuser(self.camera, self.det_az),
+                                            self.view_delay)
+        self.function_panel.grid(column=1, row=1)
 
         # pad them all
         for f in self.winfo_children():
@@ -94,4 +99,5 @@ class App(tk.Tk):
         """Start cyclic update loops"""
         self.camera_panel.after(self.view_delay, self.camera_panel.update)
         self.motion_panel.after(self.view_delay, self.motion_panel.update)
+        self.function_panel.after(self.view_delay, self.function_panel.update)
 

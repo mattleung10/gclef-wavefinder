@@ -4,7 +4,7 @@ from tkinter import ttk
 from zaber_motion import Units
 from zaber_motion.ascii import Axis
 
-from .utils import valid_float, valid_int
+from .utils import valid_float
 
 
 class MotionPanel(ttk.LabelFrame):
@@ -108,5 +108,7 @@ class MotionPanel(ttk.LabelFrame):
                     self.status[a] = 2 # error/warning/alert
 
             self.status_lights[a].configure(background=self.status_colors[self.status[a].get()])
+
+        # TODO: once all axes are finish moving, update positions one last time
 
         self.after(self.view_delay, self.update)
