@@ -30,7 +30,7 @@ class Frame:
         # last 480 bytes are reserved, not used
 
         # TODO: support 12-bit
-        # store image
+        # store image; for some reason the rows and cols are switched in the buffer
         self.img = np.reshape(frame[0:self.rows*self.cols], (self.cols,self.rows))
 
 class Camera:
@@ -110,6 +110,10 @@ class Camera:
     def read_reply(self) -> array.array:
         """Read reply from camera,
         check that it's good, and return data as an array.
+
+        The first byte is supposed to return 0x01 for "ok,"
+        but the 0x33 command returns 0x08 for "ok,"
+        so we're just checking for non-zero replies.
         """
         reply = self.dev.read(0x81, 0xff)
         if not (reply[0] > 0x00 and len(reply[2:]) == reply[1]):
