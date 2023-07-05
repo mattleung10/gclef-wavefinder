@@ -1,3 +1,4 @@
+import asyncio
 import tkinter as tk
 from tkinter import filedialog, ttk
 
@@ -12,11 +13,10 @@ from .utils import valid_float, valid_int
 class CameraPanel(ttk.LabelFrame):
     """Camera UI Panel"""
 
-    def __init__(self, parent, camera : Camera | None, view_delay : int):
+    def __init__(self, parent, camera : Camera | None):
         super().__init__(parent, text="Camera", labelanchor=tk.N)
 
         # UI variables
-        self.view_delay = view_delay
         self.camera_info1 = tk.StringVar(value="")
         self.camera_info2 = tk.StringVar(value="")
         self.camera_run_mode = tk.IntVar(value=Camera.NORMAL)
@@ -249,4 +249,11 @@ class CameraPanel(ttk.LabelFrame):
                 self.preview.img = disp_img # type: ignore # protect from garbage collect
                 self.preview.configure(image=disp_img)
 
-        self.after(self.view_delay, self.update)
+    async def update_loop(self, interval : float = 1):
+        """Update self in a loop
+                
+        interval: time in seconds between updates
+        """
+        while True:
+            self.update()
+            await asyncio.sleep(interval)

@@ -1,3 +1,4 @@
+import asyncio
 import tkinter as tk
 from tkinter import ttk
 
@@ -12,11 +13,10 @@ class MotionPanel(ttk.LabelFrame):
 
     def __init__(self, parent, ax : Axis | None,
                                ay : Axis | None,
-                               az : Axis | None, view_delay : int):
+                               az : Axis | None):
         super().__init__(parent, text="Detector 3D Stage", labelanchor=tk.N)
 
         # UI variables
-        self.view_delay = view_delay
         self.pos =      {"x": tk.StringVar(value="0"),
                          "y": tk.StringVar(value="0"),
                          "z": tk.StringVar(value="0")}
@@ -94,24 +94,32 @@ class MotionPanel(ttk.LabelFrame):
             if a:
                 self.pos[k].set(str(a.get_position(Units.LENGTH_MILLIMETRES)))
 
-    def update(self):
+    async def update(self):
         """Cyclical task to update UI with axis status"""
 
         # update axes status and position
         for k in self.axes.keys():
             a = self.axes[k]
             if a:
-                if a.is_busy():
+                if await a.is_busy_async():
                     self.readback_axis_position(k)
                     self.status[k] = 1 # busy
                 else:
                     self.status[k] = 0 # ready
                 # TODO: check for warnings, clear them, etc.
-                if len(a.warnings.get_flags()) > 0:
+                w = await a.warnings.get_flags_async()
+                if len(w) > 0:
                     self.status[k] = 2 # error/warning/alert
 
             self.lights[k].configure(background=self.colors[self.status[k]])
 
         # TODO: once all axes are finish moving, update positions one last time
 
-        self.after(self.view_delay, self.update)
+    async def update_loop(self, interval : float = 1):
+        """Update self in a loop
+                
+        interval: time in seconds between updates
+        """
+        while True:
+            await self.update()
+            await asyncio.sleep(interval)
