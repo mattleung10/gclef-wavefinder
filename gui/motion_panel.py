@@ -17,16 +17,16 @@ class MotionPanel(ttk.LabelFrame):
 
         # UI variables
         self.view_delay = view_delay
-        self.pos = {"x": tk.StringVar(value="0"),
-                    "y": tk.StringVar(value="0"),
-                    "z": tk.StringVar(value="0")}
-        self.status = {"x": tk.IntVar(value=2),
-                       "y": tk.IntVar(value=2),
-                       "z": tk.IntVar(value=2)}
-        self.status_lights = {"x": ttk.Label(self, width=1),
-                              "y": ttk.Label(self, width=1),
-                              "z": ttk.Label(self, width=1)}
-        self.status_colors = ["green", "yellow", "red"]
+        self.pos =      {"x": tk.StringVar(value="0"),
+                         "y": tk.StringVar(value="0"),
+                         "z": tk.StringVar(value="0")}
+        self.status =   {"x": 2,
+                         "y": 2,
+                         "z": 2}
+        self.lights =   {"x": ttk.Label(self, width=1),
+                         "y": ttk.Label(self, width=1),
+                         "z": ttk.Label(self, width=1)}
+        self.colors = ["green", "yellow", "red"]
 
         # Motion variables
         self.axes = {"x": ax,
@@ -42,21 +42,21 @@ class MotionPanel(ttk.LabelFrame):
             validatecommand=(self.register(valid_float), '%P'),
             invalidcommand=self.register(self.readback_axis_position),
             validate='focus').grid(column=1, row=0, sticky=tk.W)
-        self.status_lights["x"].grid(column=2, row=0, sticky=tk.W)
+        self.lights["x"].grid(column=2, row=0, sticky=tk.W)
 
         ttk.Label(self, text="y").grid(column=0, row=1)
         ttk.Entry(self, width=5, textvariable=self.pos["y"],
             validatecommand=(self.register(valid_float), '%P'),
             invalidcommand=self.register(self.readback_axis_position),
             validate='focus').grid(column=1, row=1, sticky=tk.W)
-        self.status_lights["y"].grid(column=2, row=1, sticky=tk.W)
+        self.lights["y"].grid(column=2, row=1, sticky=tk.W)
 
         ttk.Label(self, text="z").grid(column=0, row=2)
         ttk.Entry(self, width=5, textvariable=self.pos["z"],
             validatecommand=(self.register(valid_float), '%P'),
             invalidcommand=self.register(self.readback_axis_position),
             validate='focus').grid(column=1, row=2, sticky=tk.W)
-        self.status_lights["z"].grid(column=2, row=2, sticky=tk.W)
+        self.lights["z"].grid(column=2, row=2, sticky=tk.W)
 
     def make_buttons(self):
         ttk.Button(self, text="Home",
@@ -68,46 +68,49 @@ class MotionPanel(ttk.LabelFrame):
 
     def move_stages(self):
         """Move Zaber stages"""
-        for a in self.axes.keys():
-            if self.axes[a]:
-                self.axes[a].move_absolute(float(self.pos[a].get()),
-                                           Units.LENGTH_MILLIMETRES,
-                                           wait_until_idle=False)
+        for k in self.axes.keys():
+            a = self.axes[k]
+            if a:
+                a.move_absolute(float(self.pos[k].get()), Units.LENGTH_MILLIMETRES,
+                                wait_until_idle=False)
 
     def home_stages(self):
         """Home all stages"""
-        for a in self.axes.keys():
-            if self.axes[a] and not self.axes[a].is_homed():
-                self.axes[a].home()
+        for k in self.axes.keys():
+            a = self.axes[k]
+            if a and not a.is_homed():
+                a.home(wait_until_idle=False)
 
-    def readback_axis_position(self, axis=str|None):
+    def readback_axis_position(self, axis : str|None = None):
         """Read axis positions and write back to UI
         
         axis: target axis name, None for all axis
         """
-        for a in self.axes.keys():
+        for k in self.axes.keys():
             # if axis is passed in, only target that one
-            if axis and a != axis:
+            if axis and k != axis:
                 continue
-            if self.axes[a]:
-                self.pos[a].set(str(self.axes[a].get_position(Units.LENGTH_MILLIMETRES)))
+            a = self.axes[k]
+            if a:
+                self.pos[k].set(str(a.get_position(Units.LENGTH_MILLIMETRES)))
 
     def update(self):
         """Cyclical task to update UI with axis status"""
 
         # update axes status and position
-        for a in self.axes.keys():
-            if self.axes[a]:
-                if self.axes[a].is_busy():
-                    self.readback_axis_position(a)
-                    self.status[a] = 1 # busy
+        for k in self.axes.keys():
+            a = self.axes[k]
+            if a:
+                if a.is_busy():
+                    self.readback_axis_position(k)
+                    self.status[k] = 1 # busy
                 else:
-                    self.status[a] = 0 # ready
+                    self.status[k] = 0 # ready
                 # TODO: check for warnings, clear them, etc.
-                if len(self.axes[a].warnings.get_flags()) > 0:
-                    self.status[a] = 2 # error/warning/alert
+                if len(a.warnings.get_flags()) > 0:
+                    self.status[k] = 2 # error/warning/alert
 
-            self.status_lights[a].configure(background=self.status_colors[self.status[a].get()])
+            self.lights[k].configure(background=self.colors[self.status[k]])
 
         # TODO: once all axes are finish moving, update positions one last time
 

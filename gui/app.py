@@ -48,9 +48,9 @@ class App(tk.Tk):
         SN_DET_Y = 33937
         SN_DET_Z = 33939
 
-        axes = {SN_DET_X: None,
-                SN_DET_Y: None,
-                SN_DET_Z: None}
+        axes : dict[int, Axis|None] = {SN_DET_X: None,
+                                       SN_DET_Y: None,
+                                       SN_DET_Z: None}
         
         try:
             print("Connecting to Zaber stages... ", end='')
@@ -61,7 +61,7 @@ class App(tk.Tk):
             device_list = zaber_con.detect_devices()
             for sn in axes.keys():
                 try:
-                    print("Finding SN: " + str(sn) + "...", end='')
+                    print("Finding serial# " + str(sn) + "... ", end='')
                     device = next(filter(lambda d: d.serial_number == sn, device_list), None)
                     if device:
                         axes[sn] = device.get_axis(1)
@@ -73,9 +73,9 @@ class App(tk.Tk):
 
         # special limits
         # limit detector z-axis to 15mm
-        if axes[SN_DET_Z]:
-            a : Axis = axes[SN_DET_Z]
-            a.settings.set(setting="limit.max", value=15, unit=Units.LENGTH_MILLIMETRES)
+        az = axes[SN_DET_Z]
+        if az:
+            az.settings.set(setting="limit.max", value=15, unit=Units.LENGTH_MILLIMETRES)
         return (axes[SN_DET_X], axes[SN_DET_Y], axes[SN_DET_Z])
 
     def make_panels(self):
@@ -97,7 +97,6 @@ class App(tk.Tk):
 
     def start_update_loops(self):
         """Start cyclic update loops"""
-        self.camera_panel.after(self.view_delay, self.camera_panel.update)
-        self.motion_panel.after(self.view_delay, self.motion_panel.update)
-        self.function_panel.after(self.view_delay, self.function_panel.update)
-
+        self.camera_panel.update()
+        self.motion_panel.update()
+        self.function_panel.update()
