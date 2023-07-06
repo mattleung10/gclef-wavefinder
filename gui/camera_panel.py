@@ -213,10 +213,10 @@ class CameraPanel(ttk.LabelFrame):
             if f:
                 self.frame_img.save(f)
 
-    def update(self):
+    async def update(self):
         """Update preview image in viewer"""
         if self.camera:
-            self.camera.acquire_frames()
+            await asyncio.to_thread(self.camera.acquire_frames)
             if self.freeze_txt.get() == "Freeze":
                 camera_frame = self.camera.get_newest_frame()
                 if camera_frame:
@@ -255,5 +255,4 @@ class CameraPanel(ttk.LabelFrame):
         interval: time in seconds between updates
         """
         while True:
-            self.update()
-            await asyncio.sleep(interval)
+            await asyncio.gather(self.update(), asyncio.sleep(interval))

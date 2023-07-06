@@ -115,6 +115,7 @@ class App(tk.Tk):
 
     def run(self):
         """Run the loop"""
+        print("--- Starting Application ---")
         self.loop.run_forever()
 
     async def update_loop(self, interval):
