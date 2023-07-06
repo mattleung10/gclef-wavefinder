@@ -2,7 +2,7 @@ import asyncio
 import tkinter as tk
 from tkinter import ttk
 
-from focus import Focuser
+from functions.focus import Focuser
 
 class FunctionPanel(ttk.LabelFrame):
     """Advanced Function Panel"""

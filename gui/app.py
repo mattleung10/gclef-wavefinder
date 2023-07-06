@@ -1,3 +1,4 @@
+import asyncio
 import tkinter as tk
 from tkinter import ttk
 
@@ -6,13 +7,12 @@ from zaber_motion.ascii import Axis, Connection
 from zaber_motion.exceptions import ConnectionFailedException
 
 from devices.MightexBufCmos import Camera
+from functions.focus import Focuser
 
-from focus import Focuser
 from .camera_panel import CameraPanel
-from .motion_panel import MotionPanel
 from .function_panel import FunctionPanel
+from .motion_panel import MotionPanel
 
-import asyncio
 
 class App(tk.Tk):
     """Main graphical application"""
