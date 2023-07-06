@@ -48,21 +48,21 @@ class MotionPanel(ttk.LabelFrame):
 
     def make_axes_position_slice(self):
         ttk.Label(self, text="x").grid(column=0, row=0)
-        ttk.Entry(self, width=5, textvariable=self.pos["x"],
+        ttk.Entry(self, width=6, textvariable=self.pos["x"],
             validatecommand=(self.register(valid_float), '%P'),
             invalidcommand=self.register(self.readback_axis_position),
             validate='focus').grid(column=1, row=0, sticky=tk.W)
         self.lights["x"].grid(column=2, row=0, sticky=tk.W)
 
         ttk.Label(self, text="y").grid(column=0, row=1)
-        ttk.Entry(self, width=5, textvariable=self.pos["y"],
+        ttk.Entry(self, width=6, textvariable=self.pos["y"],
             validatecommand=(self.register(valid_float), '%P'),
             invalidcommand=self.register(self.readback_axis_position),
             validate='focus').grid(column=1, row=1, sticky=tk.W)
         self.lights["y"].grid(column=2, row=1, sticky=tk.W)
 
         ttk.Label(self, text="z").grid(column=0, row=2)
-        ttk.Entry(self, width=5, textvariable=self.pos["z"],
+        ttk.Entry(self, width=6, textvariable=self.pos["z"],
             validatecommand=(self.register(valid_float), '%P'),
             invalidcommand=self.register(self.readback_axis_position),
             validate='focus').grid(column=1, row=2, sticky=tk.W)

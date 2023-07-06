@@ -12,6 +12,14 @@ class FunctionPanel(ttk.LabelFrame):
 
         self.focuser = focuser
         self.make_focus_slice()
+        # TODO: function to center light source
+        # TODO: function to read in table of positions;
+        #       at each position:
+        #           move to position
+        #           center image
+        #           focus
+        #           take 3 images: [negative offset, on focus, positive offset]
+        #           save images and a table of data
 
     def make_focus_slice(self):
         ttk.Label(self, text="Focus").grid(column=0, row=0)
