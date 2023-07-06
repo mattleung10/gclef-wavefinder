@@ -2,7 +2,7 @@ import asyncio
 import tkinter as tk
 from tkinter import ttk
 
-from zaber_motion import Units
+from zaber_motion import Units, MotionLibException
 from zaber_motion.ascii import Axis
 
 from .utils import valid_float
@@ -29,12 +29,19 @@ class MotionPanel(ttk.LabelFrame):
         self.colors = ["green", "yellow", "red"]
 
         # Motion variables
-        self.axes = {"x": ax,
-                     "y": ay,
-                     "z": az}
+        self.axes =     {"x": ax,
+                         "y": ay,
+                         "z": az}
+        self.moving =   {"x": False,
+                         "y": False,
+                         "z": False}
+        self.error =    {"x": False,
+                         "y": False,
+                         "z": False}
 
         self.make_axes_position_slice()
         self.make_buttons()
+        self.readback_axis_position()
 
     def make_axes_position_slice(self):
         ttk.Label(self, text="x").grid(column=0, row=0)
@@ -71,15 +78,28 @@ class MotionPanel(ttk.LabelFrame):
         for k in self.axes.keys():
             a = self.axes[k]
             if a:
-                a.move_absolute(float(self.pos[k].get()), Units.LENGTH_MILLIMETRES,
+                try:
+                    a.move_absolute(float(self.pos[k].get()), Units.LENGTH_MILLIMETRES,
                                 wait_until_idle=False)
+                    self.moving[k] = True
+                    self.error[k] = False
+                except MotionLibException:
+                    self.error[k] = True
 
     def home_stages(self):
         """Home all stages"""
         for k in self.axes.keys():
             a = self.axes[k]
             if a and not a.is_homed():
-                a.home(wait_until_idle=False)
+                try:
+                    a.home(wait_until_idle=False)
+                    self.moving[k] = True
+                    self.error[k] = False
+                except MotionLibException:
+                    self.error[k] = True
+            # go to zero
+            self.pos[k].set("0")
+        self.move_stages()
 
     def readback_axis_position(self, axis : str|None = None):
         """Read axis positions and write back to UI
@@ -102,18 +122,21 @@ class MotionPanel(ttk.LabelFrame):
             a = self.axes[k]
             if a:
                 if await a.is_busy_async():
+                    # update position while moving
                     self.readback_axis_position(k)
                     self.status[k] = 1 # busy
                 else:
+                    # once finished moving, update position one last time
+                    if self.moving[k]:
+                        self.readback_axis_position(k)
+                        self.moving[k] = False
                     self.status[k] = 0 # ready
-                # TODO: check for warnings, clear them, etc.
+                # check for warnings
                 w = await a.warnings.get_flags_async()
-                if len(w) > 0:
+                if len(w) > 0 or self.error[k]:
                     self.status[k] = 2 # error/warning/alert
 
             self.lights[k].configure(background=self.colors[self.status[k]])
-
-        # TODO: once all axes are finish moving, update positions one last time
 
     async def update_loop(self, interval : float = 1):
         """Update self in a loop
