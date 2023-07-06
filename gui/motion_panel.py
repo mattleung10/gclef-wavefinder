@@ -30,6 +30,8 @@ class MotionPanel(ttk.LabelFrame):
         self.colors = ["green", "yellow", "red"]
 
         # Motion variables
+        # TODO: Put these all in a class so that there's a centralized model for
+        #       panels and functions to get and set the info.
         self.axes =     {"x": ax,
                          "y": ay,
                          "z": az}

@@ -10,6 +10,7 @@ class FunctionPanel(ttk.LabelFrame):
     def __init__(self, parent, focuser : Focuser):
         super().__init__(parent, text="Functions", labelanchor=tk.N)
 
+        self.focuser = focuser
         self.make_focus_slice()
 
     def make_focus_slice(self):
@@ -19,7 +20,8 @@ class FunctionPanel(ttk.LabelFrame):
                                             pady=(10, 0), padx=10)
 
     def focus(self):
-        pass
+        """Start focus routine"""
+        asyncio.create_task(asyncio.to_thread(self.focuser.focus))
 
     def update(self, interval : float = 1):
         """Update UI
