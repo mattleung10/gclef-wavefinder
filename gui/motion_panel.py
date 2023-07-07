@@ -6,15 +6,15 @@ from zaber_motion import Units
 from zaber_motion.ascii import Axis
 from zaber_motion.exceptions import MotionLibException
 
+from devices.ZaberAdapter import ZaberAdapter
+
 from .utils import valid_float
 
 
 class MotionPanel(ttk.LabelFrame):
     """Dector 3D Motion UI Panel"""
 
-    def __init__(self, parent, ax : Axis | None,
-                               ay : Axis | None,
-                               az : Axis | None):
+    def __init__(self, parent, z_motion : ZaberAdapter|None):
         super().__init__(parent, text="Detector 3D Stage", labelanchor=tk.N)
 
         # UI variables
@@ -32,15 +32,15 @@ class MotionPanel(ttk.LabelFrame):
         # Motion variables
         # TODO: Put these all in a class so that there's a centralized model for
         #       panels and functions to get and set the info.
-        self.axes =     {"x": ax,
-                         "y": ay,
-                         "z": az}
-        self.moving =   {"x": False,
-                         "y": False,
-                         "z": False}
-        self.error =    {"x": False,
-                         "y": False,
-                         "z": False}
+        # self.axes =     {"x": ax,
+        #                  "y": ay,
+        #                  "z": az}
+        # self.moving =   {"x": False,
+        #                  "y": False,
+        #                  "z": False}
+        # self.error =    {"x": False,
+        #                  "y": False,
+        #                  "z": False}
 
         self.make_axes_position_slice()
         self.make_buttons()

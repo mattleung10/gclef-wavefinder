@@ -96,12 +96,12 @@ class Camera:
                 break
             except usb.core.USBTimeoutError:
                 continue
-        print("connected!")
+        print("connected.")
 
         # write config to camera
         print("Writing configuration to camera... ", end='')
         self.write_configuration()
-        print("OK!")
+        print("OK.")
 
     def reset(self) -> None:
         """Reset the camera; not recommended for normal use."""
@@ -301,7 +301,7 @@ class Camera:
             if nFrames == 0:
                 break
             elif nFrames == self.nBuffer:
-                print("camera buffer full!")
+                print("camera buffer full")
 
             # tell camera to send one frame
             self.dev.write(0x01, [0x34, 1, 1])

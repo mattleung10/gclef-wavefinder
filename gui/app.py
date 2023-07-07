@@ -1,12 +1,11 @@
 import asyncio
 import tkinter as tk
-from tkinter import ttk
 
 from zaber_motion import Units
-from zaber_motion.ascii import Axis, Connection
 from zaber_motion.exceptions import ConnectionFailedException
 
 from devices.MightexBufCmos import Camera
+from devices.ZaberAdapter import ZaberAdapter
 from functions.focus import Focuser
 
 from .camera_panel import CameraPanel
@@ -45,7 +44,7 @@ class App(tk.Tk):
     def create_devices(self):
         """Create device handles"""
         self.camera = self.init_camera()
-        self.det_ax, self.det_ay, self.det_az = self.init_zaber()
+        self.z_motion = self.init_zaber()
         
     def init_camera(self) -> Camera|None:
         """Initialize connection to camera"""
@@ -55,52 +54,35 @@ class App(tk.Tk):
             print(e)
             return None
 
-    def init_zaber(self) -> tuple[Axis|None, Axis|None, Axis|None]:
+    def init_zaber(self) -> ZaberAdapter|None:
         """Initialize connection to Zaber stages"""
 
-        SN_DET_X = 33938
-        SN_DET_Y = 33937
-        SN_DET_Z = 33939
-
-        axes : dict[int, Axis|None] = {SN_DET_X: None,
-                                       SN_DET_Y: None,
-                                       SN_DET_Z: None}
+        axis_names = {"focal_x" : (33938, 1),
+                      "focal_y" : (33937, 1),
+                      "focal_z" : (33939, 1)}
         
         try:
-            print("Connecting to Zaber stages... ", end='')
-            zaber_con = Connection.open_serial_port("/dev/ttyUSB0")
-            zaber_con.enable_alerts()
-            print("connected!")
-
-            device_list = zaber_con.detect_devices()
-            for sn in axes.keys():
-                try:
-                    print("Finding serial# " + str(sn) + "... ", end='')
-                    device = next(filter(lambda d: d.serial_number == sn, device_list), None)
-                    if device:
-                        axes[sn] = device.get_axis(1)
-                        print("OK!")
-                except Exception as e:
-                    print(e)
+            z_motion = ZaberAdapter("/dev/ttyUSB0", axis_names)
         except ConnectionFailedException as e:
             print(e.message)
-
+            return None
+        
         # special limits
         # limit detector z-axis to 15mm
-        az = axes[SN_DET_Z]
-        if az:
-            az.settings.set(setting="limit.max", value=15, unit=Units.LENGTH_MILLIMETRES)
-        return (axes[SN_DET_X], axes[SN_DET_Y], axes[SN_DET_Z])
+        z_motion.set_axis_setting(33939, 1, "limit.max", 15, Units.LENGTH_MILLIMETRES)
+
+        return z_motion
 
     def make_panels(self):
         """Make UI panels"""
         self.camera_panel = CameraPanel(self, self.camera)
         self.camera_panel.grid(column=0, row=0, columnspan=2)
 
-        self.motion_panel = MotionPanel(self, self.det_ax, self.det_ay, self.det_az)
+        self.motion_panel = MotionPanel(self, self.z_motion)
         self.motion_panel.grid(column=0, row=1)
 
-        self.function_panel = FunctionPanel(self, Focuser(self.camera, self.det_az))
+        axis = self.z_motion.axes["focal_z"] if self.z_motion else None
+        self.function_panel = FunctionPanel(self, Focuser(self.camera, axis))
         self.function_panel.grid(column=1, row=1)
 
         # pad them all

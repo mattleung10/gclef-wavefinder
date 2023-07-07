@@ -2,11 +2,13 @@ import numpy as np
 from zaber_motion import Units
 from zaber_motion.ascii import Axis
 from devices.MightexBufCmos import Camera, Frame
+from devices.ZaberAdapter import AxisModel
 
 class Focuser:
-    def __init__(self, camera : Camera | None, axis : Axis | None) -> None:
+    def __init__(self, camera : Camera | None, axis : AxisModel | None) -> None:
         self.camera = camera
-        self.axis = axis
+        self.axis = axis.axis if axis else None
+        # TODO: using axis.axis temporarily, but it must be fixed
 
     @staticmethod
     def compute_fwhm(img) -> float:
