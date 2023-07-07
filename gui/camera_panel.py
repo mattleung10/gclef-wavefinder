@@ -49,8 +49,8 @@ class CameraPanel(ttk.LabelFrame):
         self.make_image_properties_slice()
         self.make_buttons()
 
-        # update UI to match camera
-        self.restore_camera_entries()
+        # write default settings to camera and update UI to match camera
+        self.set_cam_ctrl()
 
     ### Panel Slices ###
     def make_camera_info_slice(self):
@@ -151,19 +151,21 @@ class CameraPanel(ttk.LabelFrame):
         """Set camera to new settings"""
         if self.camera:
             self.camera.set_mode(run_mode=self.camera_run_mode.get(),
-                                 # TODO bits=self.camera_bits.get()
-                                 write_now=True)
+                                 # TODO bits=self.camera_bits.get())
+                                )
             resolution = ((int(self.camera_resolution1.get()),
                            int(self.camera_resolution2.get())))
             self.camera.set_resolution(resolution=resolution,
-                                       bin_mode=self.camera_bin_mode.get(),
-                                       write_now=True)
-            self.camera.set_exposure_time(exposure_time=float(self.camera_exp_t.get()),
-                                          write_now=True)
-            self.camera.set_fps(fps=float(self.camera_fps.get()), write_now=True)
-            self.camera.set_gain(gain=int(self.camera_gain.get()), write_now=True)
+                                       bin_mode=self.camera_bin_mode.get())
+            self.camera.set_exposure_time(exposure_time=float(self.camera_exp_t.get()))
+            self.camera.set_fps(fps=float(self.camera_fps.get()))
+            self.camera.set_gain(gain=int(self.camera_gain.get()))
             freq_div = (int.bit_length(32 // int(self.camera_freq.get())) - 1)
-            self.camera.set_frequency(freq_mode=freq_div, write_now=True)
+            self.camera.set_frequency(freq_mode=freq_div)
+
+            # do the IO task in a thread
+            t = asyncio.to_thread(self.camera.write_configuration)
+            asyncio.get_event_loop().run_until_complete(t)
 
             # throw out old frames
             self.camera.clear_buffer()
@@ -174,7 +176,8 @@ class CameraPanel(ttk.LabelFrame):
     def snap_img(self):
         """Snap an image"""
         if self.camera:
-            self.camera.trigger()
+            t = asyncio.to_thread(self.camera.trigger)
+            asyncio.get_event_loop().run_until_complete(t)
 
     def restore_camera_entries(self):
         """Restore camera entry boxes from camera
@@ -183,7 +186,8 @@ class CameraPanel(ttk.LabelFrame):
         needs current frame information
         """
         if self.camera:
-            info = self.camera.get_camera_info()
+            t = asyncio.to_thread(self.camera.get_camera_info)
+            info = asyncio.get_event_loop().run_until_complete(t)
             self.camera_info1.set(info["ModuleNo"].strip('\0')) # type: ignore
             self.camera_info2.set(info["SerialNo"].strip('\0')) # type: ignore
             self.camera_exp_t.set(str(self.camera.exposure_time))
