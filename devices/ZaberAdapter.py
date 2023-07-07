@@ -15,6 +15,8 @@ class AxisModel:
     def __init__(self, name : str, axis : Axis) -> None:
         self.name = name
         self.axis = axis
+        self.position = 0.
+        self.status = AxisModel.ERROR
 
     @property
     def serial_number(self) -> int:
