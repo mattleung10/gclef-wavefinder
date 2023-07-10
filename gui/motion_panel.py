@@ -3,7 +3,6 @@ import tkinter as tk
 from tkinter import ttk
 
 from zaber_motion import Units
-from zaber_motion.ascii import Axis
 from zaber_motion.exceptions import MotionLibException
 
 from devices.ZaberAdapter import AxisModel, ZaberAdapter
