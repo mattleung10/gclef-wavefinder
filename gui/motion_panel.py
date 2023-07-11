@@ -35,7 +35,7 @@ class MotionPanel(ttk.LabelFrame):
         row = 0
         for a in self.axes.values():
             # name
-            ttk.Label(self, text=a.name).grid(column=0, row=row, sticky=tk.E)
+            ttk.Label(self, text=a.name).grid(column=0, row=row, padx=10, sticky=tk.E)
             self.pos[a.name] = tk.StringVar(value=str(a.position))
             # position
             ttk.Entry(self, textvariable=self.pos[a.name], validate='focus',
