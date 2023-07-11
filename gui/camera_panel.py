@@ -164,8 +164,9 @@ class CameraPanel(ttk.LabelFrame):
             self.camera.set_frequency(freq_mode=freq_div)
 
             # do the IO task in a thread
+            loop = asyncio.get_event_loop()
             t = asyncio.to_thread(self.camera.write_configuration)
-            asyncio.get_event_loop().run_until_complete(t)
+            loop.create_task(t)
 
             # throw out old frames
             self.camera.clear_buffer()
@@ -176,8 +177,9 @@ class CameraPanel(ttk.LabelFrame):
     def snap_img(self):
         """Snap an image"""
         if self.camera:
+            loop = asyncio.get_event_loop()
             t = asyncio.to_thread(self.camera.trigger)
-            asyncio.get_event_loop().run_until_complete(t)
+            loop.create_task(t)
 
     def restore_camera_entries(self):
         """Restore camera entry boxes from camera
@@ -186,10 +188,9 @@ class CameraPanel(ttk.LabelFrame):
         needs current frame information
         """
         if self.camera:
+            loop = asyncio.get_event_loop()
             t = asyncio.to_thread(self.camera.get_camera_info)
-            info = asyncio.get_event_loop().run_until_complete(t)
-            self.camera_info1.set(info["ModuleNo"].strip('\0')) # type: ignore
-            self.camera_info2.set(info["SerialNo"].strip('\0')) # type: ignore
+            loop.create_task(t).add_done_callback(self.set_camera_info)
             self.camera_exp_t.set(str(self.camera.exposure_time))
             self.camera_fps.set(str(self.camera.fps))
             self.camera_gain.set(str(self.camera.gain))
@@ -197,6 +198,12 @@ class CameraPanel(ttk.LabelFrame):
 
             # update resolution
             self.update_resolution = True
+
+    def set_camera_info(self, future : asyncio.Future):
+        """Update the GUI with the camera info"""
+        info = future.result()
+        self.camera_info1.set(info["ModuleNo"].strip('\0')) # type: ignore
+        self.camera_info2.set(info["SerialNo"].strip('\0')) # type: ignore
 
     def freeze_preview(self):
         """Freeze preview"""
