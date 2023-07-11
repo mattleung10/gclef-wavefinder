@@ -72,11 +72,7 @@ class MotionPanel(ttk.LabelFrame):
         is_homed = await a.axis.is_homed_async()
         if not is_homed:
             try:
-                await a.axis.home_async(wait_until_idle=False)
-                self.pos[a.name].set("0")
-                a.axis.move_absolute(float(self.pos[a.name].get()),
-                                     Units.LENGTH_MILLIMETRES,
-                                     wait_until_idle=False)
+                a.axis.home(wait_until_idle=False)
                 a.status = AxisModel.MOVING
             except MotionLibException:
                 a.status = AxisModel.ERROR
@@ -102,11 +98,6 @@ class MotionPanel(ttk.LabelFrame):
         """Cyclical task to update UI with axis info"""
 
         for a in self.axes.values():
-            # check for warnings/errors
-            w = await a.axis.warnings.get_flags_async()
-            if len(w) > 0:
-                a.status = AxisModel.ERROR
-
             # readback position, unless state is ready
             if a.status is not AxisModel.READY:
                 self.readback_axis_position(a.name)
@@ -114,8 +105,13 @@ class MotionPanel(ttk.LabelFrame):
             # if status is moving, but axis is not busy,
             # set status to ready
             is_busy = await a.axis.is_busy_async()
-            if a.status == AxisModel.MOVING and not is_busy:
+            if a.status != AxisModel.READY and not is_busy:
                 a.status = AxisModel.READY
+
+            # check for warnings/errors
+            w = await a.axis.warnings.get_flags_async()
+            if len(w) > 0:
+                a.status = AxisModel.ERROR
             
             # set status light
             self.lights[a.name].configure(background=MotionPanel.COLORS[a.status])

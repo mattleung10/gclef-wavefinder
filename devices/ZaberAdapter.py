@@ -16,7 +16,7 @@ class AxisModel:
         self.name = name
         self.axis = axis
         self.position = 0.
-        self.status = AxisModel.READY
+        self.status = AxisModel.ERROR
 
     @property
     def serial_number(self) -> int:
