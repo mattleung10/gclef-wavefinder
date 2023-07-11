@@ -59,10 +59,12 @@ class App(tk.Tk):
 
         axis_names = {"focal_x" : (33938, 1),
                       "focal_y" : (33937, 1),
-                      "focal_z" : (33939, 1)}
+                      "focal_z" : (33939, 1),
+                      "cfm2_x"  : (110098, 1),
+                      "cfm2_y"   : (113059, 1)}
         
         try:
-            z_motion = ZaberAdapter("/dev/ttyUSB0", axis_names)
+            z_motion = ZaberAdapter(["/dev/ttyUSB0", "/dev/ttyUSB1"], axis_names)
         except ConnectionFailedException as e:
             print(e.message)
             return None

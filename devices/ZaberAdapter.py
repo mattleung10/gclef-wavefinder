@@ -16,7 +16,7 @@ class AxisModel:
         self.name = name
         self.axis = axis
         self.position = 0.
-        self.status = AxisModel.ERROR
+        self.status = AxisModel.READY
 
     @property
     def serial_number(self) -> int:
@@ -30,7 +30,7 @@ class AxisModel:
 class ZaberAdapter:
     """Interface adapter between application and zaber library"""
 
-    def __init__(self, port_name : str,
+    def __init__(self, port_names : list[str],
                  axis_names : dict[str,tuple[int,int]]) -> None:
         """Set up adapter with all devices' axes visible from port
 
@@ -41,14 +41,18 @@ class ZaberAdapter:
         """
 
         self.axis_names = axis_names
+        self.connections : list[Connection] = []
+        self.device_list : list[Device] = []
         self.axes : dict[str,AxisModel] = {}
 
         print("Connecting to Zaber devices... ", end='')
-        self.connection = Connection.open_serial_port(port_name)
-        self.connection.enable_alerts()
+        for p in port_names:
+            c = Connection.open_serial_port(p)
+            c.enable_alerts()
+            self.connections.append(c)
+            self.device_list.extend(c.detect_devices())
         print("connected.")
 
-        self.device_list = self.connection.detect_devices()
         for a in axis_names.keys():
             sn = axis_names[a][0] # serial number
             an = axis_names[a][1] # axis number

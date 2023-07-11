@@ -25,13 +25,13 @@ class MotionPanel(ttk.LabelFrame):
         self.pos : dict[str,tk.StringVar] = {}
         self.lights : dict[str,ttk.Label] = {}
 
-        self.make_axes_position_slice()
-        self.make_buttons()
+        r = self.make_axes_position_slice()
+        self.make_buttons(r)
 
         # initialize UI to current positions
         self.readback_axis_position()
 
-    def make_axes_position_slice(self):
+    def make_axes_position_slice(self) -> int:
         row = 0
         for a in self.axes.values():
             # name
@@ -45,13 +45,15 @@ class MotionPanel(ttk.LabelFrame):
             # status light
             self.lights[a.name] = ttk.Label(self, width=1)
             self.lights[a.name].grid(column=2, row=row, sticky=tk.W)
+            row += 1
+        return row
 
-    def make_buttons(self):
+    def make_buttons(self, row : int):
         ttk.Button(self, text="Home",
-                   command=self.home_stages).grid(column=0, row=3,
+                   command=self.home_stages).grid(column=0, row=row,
                                                   pady=(10, 0), padx=10)
         ttk.Button(self, text="Move",
-                   command=self.move_stages).grid(column=1, row=3, columnspan=2,
+                   command=self.move_stages).grid(column=1, row=row, columnspan=2,
                                                   pady=(10, 0), padx=10)
 
     def move_stages(self):
@@ -65,20 +67,24 @@ class MotionPanel(ttk.LabelFrame):
             except MotionLibException:
                 a.status = AxisModel.ERROR
 
+    async def home_one_axis(self, a : AxisModel):
+        """Home one axis, async"""
+        is_homed = await a.axis.is_homed_async()
+        if not is_homed:
+            try:
+                await a.axis.home_async(wait_until_idle=False)
+                self.pos[a.name].set("0")
+                a.axis.move_absolute(float(self.pos[a.name].get()),
+                                     Units.LENGTH_MILLIMETRES,
+                                     wait_until_idle=False)
+                a.status = AxisModel.MOVING
+            except MotionLibException:
+                a.status = AxisModel.ERROR
+    
     def home_stages(self):
         """Home all stages"""
         for a in self.axes.values():
-            loop = asyncio.get_event_loop()
-            is_homed = loop.run_until_complete(a.axis.is_homed_async())
-            if not is_homed:
-                try:
-                    a.axis.home(wait_until_idle=False)
-                    a.status = AxisModel.MOVING
-                except MotionLibException:
-                    a.status = AxisModel.ERROR
-            # go to zero
-            self.pos[a.name].set("0")
-        self.move_stages()
+            asyncio.create_task(self.home_one_axis(a))
 
     def readback_axis_position(self, axis_name : str|None = None):
         """Read axis positions and write back to UI
@@ -90,7 +96,7 @@ class MotionPanel(ttk.LabelFrame):
             if axis_name and a.name != axis_name:
                 continue
             p = a.axis.get_position(Units.LENGTH_MILLIMETRES)
-            self.pos[a.name].set(str(p))
+            self.pos[a.name].set(str(round(p,3)))
 
     async def update(self):
         """Cyclical task to update UI with axis info"""
