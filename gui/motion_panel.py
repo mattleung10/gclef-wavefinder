@@ -55,6 +55,10 @@ class MotionPanel(ttk.LabelFrame):
         ttk.Button(self, text="Move",
                    command=self.move_stages).grid(column=1, row=row, columnspan=2,
                                                   pady=(10, 0), padx=10)
+        s = ttk.Style()
+        s.configure("big.TButton", font=("", 24))
+        ttk.Button(self, text="➔", style="big.TButton").grid(column=3, row=row, pady=(10, 0), padx=10)
+        ttk.Button(self, text="🡸").grid(column=4, row=row, pady=(10, 0), padx=10)
 
     def move_stages(self):
         """Move Zaber stages"""
