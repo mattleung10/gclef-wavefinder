@@ -1,5 +1,6 @@
 import asyncio
 import tkinter as tk
+from tkinter import ttk
 
 from zaber_motion import Units
 from zaber_motion.exceptions import ConnectionFailedException
@@ -29,8 +30,7 @@ class App(tk.Tk):
         self.tasks : list[asyncio.Task] = []
 
         # UI variables and setup
-        self.default_padding = "3 3 12 12"
-        self.title("Detector Stage Control")
+        self.title("Red AIT Data Acquisition")
         self.grid()
         self.configure(padx=10, pady=10)
 
@@ -78,18 +78,19 @@ class App(tk.Tk):
     def make_panels(self):
         """Make UI panels"""
         self.camera_panel = CameraPanel(self, self.camera)
-        self.camera_panel.grid(column=0, row=0, columnspan=2)
+        # internal frames of camera panel manage their own grid
 
         self.motion_panel = MotionPanel(self, self.z_motion)
-        self.motion_panel.grid(column=0, row=1)
+        self.motion_panel.grid(column=0, row=1, sticky=tk.NSEW)
 
         axis = self.z_motion.axes["focal_z"] if self.z_motion else None
         self.function_panel = FunctionPanel(self, Focuser(self.camera, axis))
-        self.function_panel.grid(column=1, row=1)
+        self.function_panel.grid(column=1, row=1, sticky=tk.NSEW)
 
         # pad them all
         for f in self.winfo_children():
-            f.configure(padding=self.default_padding) # type: ignore
+            f.configure(padding="3 3 12 12") # type: ignore
+            f.grid_configure(padx=3, pady=12)
 
     def create_tasks(self):
         """Start cyclic update loops"""
