@@ -325,7 +325,7 @@ class CameraPanel():
                             # update img_props
         prop_str = ""
         for p in ["rows", "cols", "bin", "gGain", "expTime", "frameTime",
-                "timestamp", "triggered", "nTriggers", "freq"]:
+                  "timestamp", "triggered", "nTriggers", "freq"]:
             prop_str += str(p) + ': ' + str(getattr(camera_frame, p)) + '\n'
         self.img_props.set(prop_str.strip())
 
