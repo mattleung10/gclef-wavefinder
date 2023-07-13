@@ -61,7 +61,7 @@ class App(tk.Tk):
                       "focal_y" : (33937, 1),
                       "focal_z" : (33939, 1),
                       "cfm2_x"  : (110098, 1),
-                      "cfm2_y"   : (113059, 1)}
+                      "cfm2_y"  : (113059, 1)}
         
         try:
             z_motion = ZaberAdapter(["/dev/ttyUSB0", "/dev/ttyUSB1"], axis_names)

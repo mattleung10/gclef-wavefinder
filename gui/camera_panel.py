@@ -3,9 +3,9 @@ import tkinter as tk
 from tkinter import filedialog, ttk
 
 import numpy as np
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageDraw, ImageColor
 
-from devices.MightexBufCmos import Camera
+from devices.MightexBufCmos import Camera, Frame
 
 from .utils import valid_float, valid_int
 
@@ -39,7 +39,7 @@ class CameraPanel():
         self.roi_x = int(self.roi_x_entry.get())
         self.roi_y = int(self.roi_y_entry.get())
         self.roi_zoom = int(self.roi_zoom_entry.get())
-        self.update_resolution = False
+        self.update_resolution_flag = False
 
         # make panel slices
         settings_frame = ttk.LabelFrame(parent, text="Camera Settings", labelanchor=tk.N)
@@ -244,7 +244,7 @@ class CameraPanel():
             self.camera_freq.set(str((32 >> self.camera.freq_mode)))
 
             # update resolution
-            self.update_resolution = True
+            self.update_resolution_flag = True
 
     def set_camera_info(self, future : asyncio.Future):
         """Update the GUI with the camera info"""
@@ -274,12 +274,12 @@ class CameraPanel():
     def set_roi(self):
         """Set the region of interest"""
 
-        # get inputs and clip to valid,
+        # get inputs and clip to valid (2 px margin),
         # then write back valid values
         x = int(self.roi_x_entry.get())
         y = int(self.roi_y_entry.get())
-        x = np.clip(x, 1, int(self.camera_res_x.get()))
-        y = np.clip(y, 1, int(self.camera_res_y.get()))
+        x = np.clip(x, 2, int(self.camera_res_x.get()) - 2)
+        y = np.clip(y, 2, int(self.camera_res_y.get()) - 2)
         self.roi_x = x
         self.roi_y = y
         self.roi_x_entry.set(str(x))
@@ -289,8 +289,10 @@ class CameraPanel():
         """Set the ROI zoom"""
         self.roi_zoom = int(self.roi_zoom_entry.get())
 
-    def update_roi_img(self):
-        """Update the region of interest image"""
+    def get_roi_box(self):
+        """Return the (left, lower, right, upper)
+        box representing the region of interest
+        """
         if self.full_img:
             x = self.roi_x
             y = self.roi_y
@@ -299,7 +301,17 @@ class CameraPanel():
             left = f_x//2 - x//2
             lower = f_y//2 - x//2
             box = (left, lower, left+x, lower+y)
+            return box
+        else:
+            return (0,0,0,0)
+
+    def update_roi_img(self):
+        """Update the region of interest image"""
+        if self.full_img:
+            box = self.get_roi_box()
             # crop to ROI, then blow up ROI by zoom factor
+            x = box[2] - box[0]
+            y = box[3] - box[1]
             z = self.roi_zoom
             self.roi_img = self.full_img.crop(box).resize(size=(z*x, z*y),
                                                           resample=Image.Resampling.NEAREST)
@@ -307,6 +319,34 @@ class CameraPanel():
             disp_img = ImageTk.PhotoImage(self.roi_img)
             self.roi_preview.img = disp_img # type: ignore # protect from garbage collect
             self.roi_preview.configure(image=disp_img)
+
+    def update_img_props(self, camera_frame : Frame):
+        """Update image properties"""
+                            # update img_props
+        prop_str = ""
+        for p in ["rows", "cols", "bin", "gGain", "expTime", "frameTime",
+                "timestamp", "triggered", "nTriggers", "freq"]:
+            prop_str += str(p) + ': ' + str(getattr(camera_frame, p)) + '\n'
+        self.img_props.set(prop_str.strip())
+
+    def update_full_frame_preview(self):
+        """Update the full frame preview"""
+        if self.full_img:
+            # draw roi box
+            roi_box = self.get_roi_box()
+            img = self.full_img.convert("RGB")
+            ImageDraw.Draw(img).rectangle(roi_box, width=3, outline=ImageColor.getrgb("yellow"))
+            # display
+            disp_img = ImageTk.PhotoImage(img.resize((img.width // 4, img.height // 4)))
+            self.full_frame_preview.img = disp_img # type: ignore # protect from garbage collect
+            self.full_frame_preview.configure(image=disp_img)
+
+    def update_resolution(self):
+        """Update resolution from camera, matching newest frame """
+        resolution : tuple[int,int] = self.camera.query_buffer()["resolution"] # type: ignore
+        self.camera_res_x.set(str(resolution[0]))
+        self.camera_res_y.set(str(resolution[1]))
+        self.update_resolution_flag = False
 
     async def update(self):
         """Update preview image in viewer"""
@@ -316,34 +356,15 @@ class CameraPanel():
                 camera_frame = self.camera.get_newest_frame()
                 if camera_frame:
                     self.full_img = Image.fromarray(camera_frame.img)
-                    disp_img = ImageTk.PhotoImage(self.full_img.resize((self.full_img.width // 4,
-                                                                        self.full_img.height // 4)))
-                    self.full_frame_preview.img = disp_img # type: ignore # protect from garbage collect
-                    self.full_frame_preview.configure(image=disp_img)
-
-                    # update img_props
-                    prop_str = ""
-                    for p in ["rows", "cols", "bin", "gGain", "expTime", "frameTime",
-                            "timestamp", "triggered", "nTriggers", "freq"]:
-                        prop_str += str(p) + ': ' + str(getattr(camera_frame, p)) + '\n'
-                    self.img_props.set(prop_str.strip())
-
-                    # update resolution, matching newest frame 
-                    if self.update_resolution:
-                        resolution : tuple[int,int] = self.camera.query_buffer()["resolution"] # type: ignore
-                        self.camera_res_x.set(str(resolution[0]))
-                        self.camera_res_y.set(str(resolution[1]))
-                        self.update_resolution = False
-
+                    self.update_full_frame_preview()
+                    self.update_img_props(camera_frame)
+                    if self.update_resolution_flag:
+                        self.update_resolution()
         else: # no camera, testing purposes
             if self.freeze_txt.get() == "Freeze":
                 self.full_img = Image.fromarray(np.random.randint(255, size=(960, 1280),
                                                                   dtype=np.uint8)) # random noise
-                disp_img = ImageTk.PhotoImage(self.full_img.resize((self.full_img.width // 4,
-                                                                    self.full_img.height // 4)))
-                self.full_frame_preview.img = disp_img # type: ignore # protect from garbage collect
-                self.full_frame_preview.configure(image=disp_img)
-        
+                self.update_full_frame_preview()
         self.update_roi_img()
 
     async def update_loop(self, interval : float = 1):
