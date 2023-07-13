@@ -19,20 +19,26 @@ class CameraPanel():
         self.camera_info2 = tk.StringVar(value="")
         self.camera_run_mode = tk.IntVar(value=Camera.NORMAL)
         self.camera_bits = tk.IntVar(value=8)
-        self.camera_resolution1 = tk.StringVar(value="1280")
-        self.camera_resolution2 = tk.StringVar(value="960")
+        self.camera_res_x = tk.StringVar(value="1280")
+        self.camera_res_y = tk.StringVar(value="960")
         self.camera_bin_mode = tk.IntVar(value=Camera.NO_BIN)
         self.camera_exp_t = tk.StringVar(value="50.0")
         self.camera_fps = tk.StringVar(value="10.0")
         self.camera_gain = tk.StringVar(value="15")
         self.camera_freq = tk.StringVar(value="32")
-        self.img_props = tk.StringVar(value="str")
+        self.img_props = tk.StringVar(value="1\n2\n3\n4\n5\n6\n7\n8\n9\n10")
         self.freeze_txt = tk.StringVar(value="Freeze")
+        self.roi_x_entry = tk.StringVar(value="50")
+        self.roi_y_entry = tk.StringVar(value="50")
+        self.roi_zoom_entry = tk.StringVar(value="10")
 
         # camera variables
         self.camera = camera
         self.full_img = None
         self.roi_img = None
+        self.roi_x = int(self.roi_x_entry.get())
+        self.roi_y = int(self.roi_y_entry.get())
+        self.roi_zoom = int(self.roi_zoom_entry.get())
         self.update_resolution = False
 
         # make panel slices
@@ -49,15 +55,21 @@ class CameraPanel():
         settings_frame.grid(column=0, row=0, sticky=tk.NSEW)
 
         full_frame = ttk.LabelFrame(parent, text="Full Frame", labelanchor=tk.N)
-        self.make_image_preview_slice(full_frame)
+        self.make_full_frame_preview_slice(full_frame)
         self.make_image_properties_slice(full_frame)
+        self.make_roi_input_slice(full_frame)
         self.make_full_frame_buttons(full_frame)
         full_frame.grid(column=1, row=0, sticky=tk.NSEW)
+
+        roi_frame = ttk.LabelFrame(parent, text="Region of Interest", labelanchor=tk.N)
+        self.make_roi_zoom_slice(roi_frame)
+        self.make_roi_preview_slice(roi_frame)
+        roi_frame.grid(column=2, row=0, sticky=tk.NSEW)
 
         # write default settings to camera and update UI to match camera
         self.set_cam_ctrl()
 
-    ### Panel Slices ###
+    ### Camera Settings Slices ###
     def make_camera_info_slice(self, parent):
         ttk.Label(parent, text="Model").grid(column=0, row=0, sticky=tk.E, padx=10)
         ttk.Label(parent, textvariable=self.camera_info1).grid(column=1, row=0,
@@ -80,11 +92,11 @@ class CameraPanel():
         
     def make_camera_resolution_slice(self, parent):
         ttk.Label(parent, text="Resolution").grid(column=0, row=4, sticky=tk.E, padx=10)
-        ttk.Entry(parent, width=5, textvariable=self.camera_resolution1,
+        ttk.Entry(parent, width=5, textvariable=self.camera_res_x,
                   validatecommand=(parent.register(valid_int), '%P'),
                   invalidcommand=parent.register(self.restore_camera_entries),
                   validate='focus').grid(column=1, row=4, sticky=tk.E)
-        ttk.Entry(parent, width=5, textvariable=self.camera_resolution2,
+        ttk.Entry(parent, width=5, textvariable=self.camera_res_y,
                   validatecommand=(parent.register(valid_int), '%P'),
                   invalidcommand=parent.register(self.restore_camera_entries),
                   validate='focus').grid(column=2, row=4, sticky=tk.W)
@@ -133,24 +145,53 @@ class CameraPanel():
     def make_settings_buttons(self, parent):
         b = ttk.Button(parent, text="Write Config", command=self.set_cam_ctrl)
         b.grid(column=0, row=12, columnspan=3, pady=(10, 0), padx=10, sticky=tk.S)
-        
-    def make_image_preview_slice(self, parent):
-        self.full_frame = ttk.Label(parent)
-        self.full_frame.grid(column=0, row=0, columnspan=3, rowspan=12, sticky=tk.N)
+
+    ### Full Frame Slices ###
+    def make_full_frame_preview_slice(self, parent):
+        self.full_frame_preview = ttk.Label(parent)
+        self.full_frame_preview.grid(column=0, row=0, columnspan=3, rowspan=13, sticky=tk.N)
 
     def make_image_properties_slice(self, parent):
         l = ttk.Label(parent, textvariable=self.img_props)
-        l.grid(column=3, row=0, rowspan=10, padx=10, sticky=tk.NW)
+        l.grid(column=3, row=0, rowspan=10, columnspan=2, padx=10, sticky=tk.NW)
+
     def make_roi_input_slice(self, parent):
-        ttk.Label(parent, text="Region of Interest").grid(column=3, columnspan=2)
+        ttk.Label(parent, text="Region of Interest").grid(column=3, row=11,
+                                                          columnspan=2, padx=10)
+        ttk.Entry(parent, width=5, textvariable=self.roi_x_entry,
+                  validatecommand=(parent.register(valid_int), '%P'),
+                  invalidcommand=(parent.register(self.roi_x_entry.set), self.camera_res_x.get()),
+                  validate='focus').grid(column=3, row=12, sticky=tk.E)
+        ttk.Entry(parent, width=5, textvariable=self.roi_y_entry,
+                  validatecommand=(parent.register(valid_int), '%P'),
+                  invalidcommand=(parent.register(self.roi_y_entry.set), self.camera_res_y.get()),
+                  validate='focus').grid(column=4, row=12, sticky=tk.W)
+        ttk.Button(parent, text="Set ROI",
+                   command=self.set_roi).grid(column=3, row=13, pady=(10, 0), columnspan=2)
 
     def make_full_frame_buttons(self, parent):
         ttk.Button(parent, text="Trigger",
-                   command=self.snap_img).grid(column=0, row=12, pady=(10, 0), padx=10)
+                   command=self.snap_img).grid(column=0, row=13, pady=(10, 0), padx=10)
         ttk.Button(parent, textvariable=self.freeze_txt,
-                   command=self.freeze_preview).grid(column=1, row=12, pady=(10, 0), padx=10)
+                   command=self.freeze_preview).grid(column=1, row=13, pady=(10, 0), padx=10)
         ttk.Button(parent, text="Save",
-                   command=self.save_img).grid(column=2, row=12, pady=(10, 0), padx=10)
+                   command=self.save_img).grid(column=2, row=13, pady=(10, 0), padx=10)
+        
+    ### ROI Frame Slices ###
+    def make_roi_zoom_slice(self, parent):
+        zoom_frame = ttk.Frame(parent)
+        ttk.Label(zoom_frame, text="ROI Zoom").grid(column=0, row=0, padx=10)
+        ttk.Entry(zoom_frame, width=4, textvariable=self.roi_zoom_entry,
+                  validatecommand=(parent.register(valid_int), '%P'),
+                  invalidcommand=(parent.register(self.roi_zoom_entry.set), str(1)),
+                  validate='focus').grid(column=0, row=1)
+        ttk.Button(zoom_frame, text="Set Zoom",
+                   command=self.set_roi_zoom).grid(column=0, row=2, pady=(10, 0))
+        zoom_frame.grid(column=0, row=0, sticky=tk.N)
+
+    def make_roi_preview_slice(self, parent):
+        self.roi_preview = ttk.Label(parent)
+        self.roi_preview.grid(column=1, row=0, rowspan=3)
 
     ### Functions ###
     def set_cam_ctrl(self):
@@ -159,8 +200,8 @@ class CameraPanel():
             self.camera.set_mode(run_mode=self.camera_run_mode.get(),
                                  # TODO bits=self.camera_bits.get())
                                 )
-            resolution = ((int(self.camera_resolution1.get()),
-                           int(self.camera_resolution2.get())))
+            resolution = ((int(self.camera_res_x.get()),
+                           int(self.camera_res_y.get())))
             self.camera.set_resolution(resolution=resolution,
                                        bin_mode=self.camera_bin_mode.get())
             self.camera.set_exposure_time(exposure_time=float(self.camera_exp_t.get()))
@@ -230,6 +271,43 @@ class CameraPanel():
             if f:
                 self.full_img.save(f)
 
+    def set_roi(self):
+        """Set the region of interest"""
+
+        # get inputs and clip to valid,
+        # then write back valid values
+        x = int(self.roi_x_entry.get())
+        y = int(self.roi_y_entry.get())
+        x = np.clip(x, 1, int(self.camera_res_x.get()))
+        y = np.clip(y, 1, int(self.camera_res_y.get()))
+        self.roi_x = x
+        self.roi_y = y
+        self.roi_x_entry.set(str(x))
+        self.roi_y_entry.set(str(y))
+
+    def set_roi_zoom(self):
+        """Set the ROI zoom"""
+        self.roi_zoom = int(self.roi_zoom_entry.get())
+
+    def update_roi_img(self):
+        """Update the region of interest image"""
+        if self.full_img:
+            x = self.roi_x
+            y = self.roi_y
+            f_x = self.full_img.size[0]
+            f_y = self.full_img.size[1]
+            left = f_x//2 - x//2
+            lower = f_y//2 - x//2
+            box = (left, lower, left+x, lower+y)
+            # crop to ROI, then blow up ROI by zoom factor
+            z = self.roi_zoom
+            self.roi_img = self.full_img.crop(box).resize(size=(z*x, z*y),
+                                                          resample=Image.Resampling.NEAREST)
+            # self.roi_img = self.full_img
+            disp_img = ImageTk.PhotoImage(self.roi_img)
+            self.roi_preview.img = disp_img # type: ignore # protect from garbage collect
+            self.roi_preview.configure(image=disp_img)
+
     async def update(self):
         """Update preview image in viewer"""
         if self.camera:
@@ -240,8 +318,8 @@ class CameraPanel():
                     self.full_img = Image.fromarray(camera_frame.img)
                     disp_img = ImageTk.PhotoImage(self.full_img.resize((self.full_img.width // 4,
                                                                         self.full_img.height // 4)))
-                    self.full_frame.img = disp_img # type: ignore # protect from garbage collect
-                    self.full_frame.configure(image=disp_img)
+                    self.full_frame_preview.img = disp_img # type: ignore # protect from garbage collect
+                    self.full_frame_preview.configure(image=disp_img)
 
                     # update img_props
                     prop_str = ""
@@ -253,8 +331,8 @@ class CameraPanel():
                     # update resolution, matching newest frame 
                     if self.update_resolution:
                         resolution : tuple[int,int] = self.camera.query_buffer()["resolution"] # type: ignore
-                        self.camera_resolution1.set(str(resolution[0]))
-                        self.camera_resolution2.set(str(resolution[1]))
+                        self.camera_res_x.set(str(resolution[0]))
+                        self.camera_res_y.set(str(resolution[1]))
                         self.update_resolution = False
 
         else: # no camera, testing purposes
@@ -263,8 +341,10 @@ class CameraPanel():
                                                                   dtype=np.uint8)) # random noise
                 disp_img = ImageTk.PhotoImage(self.full_img.resize((self.full_img.width // 4,
                                                                     self.full_img.height // 4)))
-                self.full_frame.img = disp_img # type: ignore # protect from garbage collect
-                self.full_frame.configure(image=disp_img)
+                self.full_frame_preview.img = disp_img # type: ignore # protect from garbage collect
+                self.full_frame_preview.configure(image=disp_img)
+        
+        self.update_roi_img()
 
     async def update_loop(self, interval : float = 1):
         """Update self in a loop
