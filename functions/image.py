@@ -12,7 +12,11 @@ def get_centroid_and_variance(img : Image.Image)-> tuple[float,float,float,float
     # NOTE that np arrays have x and y transposed from image
     img_array = np.array(img)
 
-    # make a grid of pixel coordinates in the x and y dimensions
+    # make a grid of pixel coordinates in the x and y dimensions, e.g.:
+    #   xx, yy = np.meshgrid(np.arange(2), np.arange(3))
+    #   xx = array([[0, 1],     yy = array([[0, 0],
+    #               [0, 1],                 [1, 1],
+    #               [0, 1]])                [2, 2]])
     xx, yy = np.meshgrid(np.arange(img_array.shape[1]), np.arange(img_array.shape[0]))
     
     # take the weighted average of the pixel coordinates, using the pixel values as weghts
