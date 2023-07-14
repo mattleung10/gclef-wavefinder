@@ -8,22 +8,12 @@ if __name__ == "__main__":
 
 
 ### TODO list
-# Galil motion control
-# Jog buttons with radio selection
-# Stabilize size of preview image
-# ROI preview frame
-#   input ROI pixels
-#   display ROI, zoomed in but not smoothed (pixelated)
-#   cross-cuts with axis labels
-# display image statistics
-#   centroid
-#   FWHM (in px)
-#   histogram of values
-# draw ROI onto full frame, enabled with checkbox
-# draw computed centroid onto full and ROI frames, enabled with checkbox
-# 12-bit imaging
-# implement auto-focus
 # auto-center image button
+# Galil motion control
+# Cross-cuts with axis labels
+# histogram of values
+# 12-bit imaging
 # save in FITS format
+# Stabilize size of preview image
 # read in input configuration and table of wavelengths
 # run on windows without wsl

@@ -4,6 +4,7 @@ from zaber_motion.exceptions import MotionLibException
 
 from devices.MightexBufCmos import Camera, Frame
 from devices.ZaberAdapter import AxisModel
+from functions.image import frame_to_img, get_centroid_and_variance
 
 
 class Focuser:
@@ -16,11 +17,6 @@ class Focuser:
         self.camera = camera
         self.f_axis = f_axis
 
-    @staticmethod
-    def compute_fwhm(img) -> float:
-        """Compute full width half max"""
-        return 100.0
-    
     def focus(self, steps_per_pass : int = 10, min_move : float = 0.001) -> float|None:
         """Start the automatic focus routine
 
@@ -58,13 +54,15 @@ class Focuser:
                     self.camera.acquire_frames()
                     frame : Frame = self.camera.get_newest_frame() # type: ignore
                     if frame:
-                        fwhm = self.compute_fwhm(frame.img)
-                        focus_curve[pos] = fwhm
+                        stats = get_centroid_and_variance(frame_to_img(frame.img))
+                        v = np.sqrt(stats[2]) * np.sqrt(stats[3]) # sqrt(var_x) * sqrt(var_y)
+                        focus_curve[pos] = v
                     else:
                         return None
 
-                # TODO calculate minimum along focus_curve
-                focus_pos = 5
+                # find minimum along focus_curve
+                focus_pos = min(focus_curve, key=focus_curve.get) # type: ignore
+
                 # set up for next pass
                 travel_min = np.clip(focus_pos - step_dist, limit_min, limit_max)
                 travel_max = np.clip(focus_pos + step_dist, limit_min, limit_max)
