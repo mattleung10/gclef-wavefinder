@@ -371,6 +371,7 @@ class CameraPanel():
         resolution : tuple[int,int] = self.camera.query_buffer()["resolution"] # type: ignore
         self.camera_res_x.set(str(resolution[0]))
         self.camera_res_y.set(str(resolution[1]))
+        self.update_resolution_flag = False
 
     async def update(self):
         """Update preview image in viewer"""
