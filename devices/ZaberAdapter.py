@@ -1,10 +1,8 @@
-from zaber_motion.ascii import Axis, Connection, Device
 from zaber_motion import Units
-from zaber_motion.exceptions import ConnectionFailedException
+from zaber_motion.ascii import Axis, Connection, Device
 
-# TODO: perhaps this becomes "MotionAdapter" ?
 
-class AxisModel:
+class ZaberAxis:
     """Model holds information about Zaber Axis"""
 
     READY   = 0
@@ -16,7 +14,7 @@ class AxisModel:
         self.name = name
         self.axis = axis
         self.position = 0.
-        self.status = AxisModel.ERROR
+        self.status = ZaberAxis.ERROR
 
     @property
     def serial_number(self) -> int:
@@ -43,7 +41,7 @@ class ZaberAdapter:
         self.axis_names = axis_names
         self.connections : list[Connection] = []
         self.device_list : list[Device] = []
-        self.axes : dict[str,AxisModel] = {}
+        self.axes : dict[str,ZaberAxis] = {}
 
         print("Connecting to Zaber devices... ", end='')
         for p in port_names:
@@ -61,7 +59,7 @@ class ZaberAdapter:
                 device : Device = next(filter(lambda d: d.serial_number == sn,
                                                 self.device_list))
                 axis = device.get_axis(an)
-                self.axes[a] = AxisModel(a, axis)
+                self.axes[a] = ZaberAxis(a, axis)
                 print("OK.")
             except StopIteration:
                 print("not found.") # device not found

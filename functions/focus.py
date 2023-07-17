@@ -1,16 +1,15 @@
 import numpy as np
 from zaber_motion import Units
-from zaber_motion.exceptions import MotionLibException
 
-from devices.MightexBufCmos import Camera, Frame
-from devices.ZaberAdapter import AxisModel
+from devices.MightexBufCmos import Camera
+from devices.ZaberAdapter import ZaberAxis
 from functions.image import frame_to_img, get_centroid_and_variance
 
 
 class Focuser:
     def __init__(self,
                  camera : Camera | None,
-                 f_axis : AxisModel | None,
+                 f_axis : ZaberAxis | None,
                  steps  : int = 10,
                  min_move : float = 0.001) -> None:
         """Focuser class
@@ -50,7 +49,7 @@ class Focuser:
 
                 for i in range(self.steps):
                     pos = travel_min + i * step_dist
-                    self.f_axis.status = AxisModel.MOVING
+                    self.f_axis.status = ZaberAxis.MOVING
                     self.f_axis.axis.move_absolute(pos, Units.LENGTH_MILLIMETRES,
                                                    wait_until_idle=True)
                     self.camera.trigger()
@@ -71,7 +70,7 @@ class Focuser:
                 step_dist = travel_dist / (self.steps - 1)
 
             # move to focus position
-            self.f_axis.status = AxisModel.MOVING      
+            self.f_axis.status = ZaberAxis.MOVING      
             self.f_axis.axis.move_absolute(focus_pos, Units.LENGTH_MILLIMETRES,
                                            wait_until_idle=True)
 

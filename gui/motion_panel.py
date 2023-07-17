@@ -5,7 +5,7 @@ from tkinter import ttk
 from zaber_motion import Units
 from zaber_motion.exceptions import MotionLibException
 
-from devices.ZaberAdapter import AxisModel, ZaberAdapter
+from devices.ZaberAdapter import ZaberAdapter, ZaberAxis
 
 from .utils import valid_float
 
@@ -84,19 +84,19 @@ class MotionPanel(ttk.LabelFrame):
                 a.axis.move_absolute(float(self.pos[a.name].get()),
                                      Units.LENGTH_MILLIMETRES,
                                      wait_until_idle=False)
-                a.status = AxisModel.MOVING
+                a.status = ZaberAxis.MOVING
             except MotionLibException:
-                a.status = AxisModel.ERROR
+                a.status = ZaberAxis.ERROR
 
-    async def home_one_axis(self, a : AxisModel):
+    async def home_one_axis(self, a : ZaberAxis):
         """Home one axis, async"""
         is_homed = await a.axis.is_homed_async()
         if not is_homed:
             try:
                 a.axis.home(wait_until_idle=False)
-                a.status = AxisModel.MOVING
+                a.status = ZaberAxis.MOVING
             except MotionLibException:
-                a.status = AxisModel.ERROR
+                a.status = ZaberAxis.ERROR
     
     def home_stages(self):
         """Home all stages"""
@@ -112,10 +112,10 @@ class MotionPanel(ttk.LabelFrame):
 
         if self.jog_less.instate(["pressed"]):
             a.axis.move_relative(-0.01, Units.LENGTH_MILLIMETRES, wait_until_idle=False)
-            a.status = AxisModel.MOVING
+            a.status = ZaberAxis.MOVING
         elif self.jog_more.instate(["pressed"]):
             a.axis.move_relative(+0.01, Units.LENGTH_MILLIMETRES, wait_until_idle=False)
-            a.status = AxisModel.MOVING
+            a.status = ZaberAxis.MOVING
 
     async def update(self):
         """Cyclical task to update UI with axis info"""
@@ -127,19 +127,19 @@ class MotionPanel(ttk.LabelFrame):
             # readback position if set or axis is not ready
             # We don't want to readback in the READY state because it would
             # override user input.
-            if self.readback or a.status is not AxisModel.READY:
+            if self.readback or a.status is not ZaberAxis.READY:
                 p = await a.axis.get_position_async(Units.LENGTH_MILLIMETRES)
                 self.pos[a.name].set(str(round(p,3)))
 
             # set status to ready and turn off readback if axis is not busy
             if not await a.axis.is_busy_async():
-                a.status = AxisModel.READY
+                a.status = ZaberAxis.READY
                 self.readback = False
 
             # check for warnings/errors; do last to override READY flag
             w = await a.axis.warnings.get_flags_async()
             if len(w) > 0:
-                a.status = AxisModel.ERROR
+                a.status = ZaberAxis.ERROR
             
             # set status light
             self.lights[a.name].configure(background=MotionPanel.COLORS[a.status])

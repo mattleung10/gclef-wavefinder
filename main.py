@@ -8,7 +8,6 @@ if __name__ == "__main__":
 
 
 ### TODO list
-# auto-center image button
 # Galil motion control
 # Cross-cuts with axis labels
 # histogram of values

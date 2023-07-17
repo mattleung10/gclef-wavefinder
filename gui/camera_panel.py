@@ -36,8 +36,8 @@ class CameraPanel():
 
         # camera variables
         self.camera = camera
-        self.full_img = None
-        self.roi_img = None
+        res = (int(self.camera_res_x.get()), int(self.camera_res_y.get()))
+        self.full_img = Image.new(mode='L', size=res, color=0)
         self.roi_size_x = int(self.roi_x_entry.get())
         self.roi_size_y = int(self.roi_y_entry.get())
         self.roi_zoom = int(self.roi_zoom_entry.get())
@@ -120,7 +120,8 @@ class CameraPanel():
                         variable=self.camera_bin_mode).grid(column=2, row=7, sticky=tk.W)
         
     def make_camera_exposure_time_slice(self, parent):
-        ttk.Label(parent, text="Exp. Time (ms)").grid(column=0, row=8, sticky=tk.E, padx=10)
+        ttk.Label(parent, text="Exp. Time (ms)").grid(column=0, row=8,
+                                                      sticky=tk.E, padx=10)
         ttk.Entry(parent, width=5, textvariable=self.camera_exp_t,
                   validatecommand=(parent.register(valid_float), '%P'),
                   invalidcommand=parent.register(self.restore_camera_entries),
@@ -134,14 +135,16 @@ class CameraPanel():
                   validate='focus').grid(column=1, row=9, sticky=tk.W)
 
     def make_camera_gain_slice(self, parent):
-        ttk.Label(parent, text="Gain [6-41]dB").grid(column=0, row=10, sticky=tk.E, padx=10)
+        ttk.Label(parent, text="Gain [6-41]dB").grid(column=0, row=10,
+                                                     sticky=tk.E, padx=10)
         ttk.Entry(parent, width=5, textvariable=self.camera_gain,
                   validatecommand=(parent.register(valid_int), '%P'),
                   invalidcommand=parent.register(self.restore_camera_entries),
                   validate='focus').grid(column=1, row=10, sticky=tk.W)
 
     def make_camera_frequency_slice(self, parent):
-        ttk.Label(parent, text="Frequency (MHz)").grid(column=0, row=11, sticky=tk.E, padx=10)
+        ttk.Label(parent, text="Frequency (MHz)").grid(column=0, row=11,
+                                                       sticky=tk.E, padx=10)
         ttk.Combobox(parent, textvariable=self.camera_freq,
                      values=["32", "16", "8", "4", "2"], state="readonly",
                      width=4).grid(column=1, row=11, sticky=tk.W)
@@ -153,7 +156,8 @@ class CameraPanel():
     ### Full Frame Slices ###
     def make_full_frame_preview_slice(self, parent):
         self.full_frame_preview = ttk.Label(parent)
-        self.full_frame_preview.grid(column=0, row=0, columnspan=3, rowspan=13, sticky=tk.N)
+        self.full_frame_preview.grid(column=0, row=0, columnspan=3,
+                                     rowspan=13, sticky=tk.N)
 
     def make_image_properties_slice(self, parent):
         l = ttk.Label(parent, textvariable=self.img_props)
@@ -164,14 +168,17 @@ class CameraPanel():
                                                           columnspan=2, padx=10)
         ttk.Entry(parent, width=5, textvariable=self.roi_x_entry,
                   validatecommand=(parent.register(valid_int), '%P'),
-                  invalidcommand=(parent.register(self.roi_x_entry.set), self.camera_res_x.get()),
+                  invalidcommand=(parent.register(self.roi_x_entry.set),
+                                  self.camera_res_x.get()),
                   validate='focus').grid(column=3, row=12, sticky=tk.E)
         ttk.Entry(parent, width=5, textvariable=self.roi_y_entry,
                   validatecommand=(parent.register(valid_int), '%P'),
-                  invalidcommand=(parent.register(self.roi_y_entry.set), self.camera_res_y.get()),
+                  invalidcommand=(parent.register(self.roi_y_entry.set),
+                                  self.camera_res_y.get()),
                   validate='focus').grid(column=4, row=12, sticky=tk.W)
         ttk.Button(parent, text="Set ROI",
-                   command=self.set_roi).grid(column=3, row=13, pady=(10, 0), columnspan=2)
+                   command=self.set_roi).grid(column=3, row=13,
+                                              pady=(10, 0), columnspan=2)
 
     def make_full_frame_buttons(self, parent):
         ttk.Button(parent, text="Trigger",
@@ -270,14 +277,13 @@ class CameraPanel():
     def save_img(self):
         """Save image dialog"""
         # TODO: FITS format
-        if self.full_img:
-            f = filedialog.asksaveasfilename(initialdir="images/",
-                                             initialfile="img.png",
-                                             filetypes = (("image files",["*.jpg","*.png"]),
-                                                          ("all files","*.*")),
-                                             defaultextension=".png")
-            if f:
-                self.full_img.save(f)
+        f = filedialog.asksaveasfilename(initialdir="images/",
+                                            initialfile="img.png",
+                                            filetypes = (("image files",["*.jpg","*.png"]),
+                                                        ("all files","*.*")),
+                                            defaultextension=".png")
+        if f:
+            self.full_img.save(f)
 
     def set_roi(self):
         """Set the region of interest"""
@@ -286,8 +292,8 @@ class CameraPanel():
         # then write back valid values
         size_x = int(self.roi_x_entry.get())
         size_y = int(self.roi_y_entry.get())
-        size_x = np.clip(size_x, 1, int(self.camera_res_x.get()))
-        size_y = np.clip(size_y, 1, int(self.camera_res_y.get()))
+        size_x = int(np.clip(size_x, 1, int(self.camera_res_x.get())))
+        size_y = int(np.clip(size_y, 1, int(self.camera_res_y.get())))
         self.roi_size_x = size_x
         self.roi_size_y = size_y
         self.roi_x_entry.set(str(size_x))
@@ -298,35 +304,31 @@ class CameraPanel():
         self.roi_zoom = int(self.roi_zoom_entry.get())
         self.update_roi_img()
 
-    def get_roi_box(self):
+    def get_roi_box(self) -> tuple[int,int,int,int]:
         """Return the (left, lower, right, upper)
         box representing the region of interest
         """
-        if self.full_img:
-            size_x = self.roi_size_x
-            size_y = self.roi_size_y
-            f_size_x = self.full_img.size[0]
-            f_size_y = self.full_img.size[1]
-            left = f_size_x//2 - size_x//2
-            lower = f_size_y//2 - size_y//2
-            box = (left, lower, left+size_x, lower+size_y)
-            return box
-        else:
-            return (0,0,0,0)
+        size_x = self.roi_size_x
+        size_y = self.roi_size_y
+        f_size_x = self.full_img.size[0]
+        f_size_y = self.full_img.size[1]
+        left = f_size_x//2 - size_x//2
+        lower = f_size_y//2 - size_y//2
+        box = (left, lower, left+size_x, lower+size_y)
+        return box
 
     def update_roi_img(self):
         """Update the region of interest image"""
-        if self.full_img:
-            box = self.get_roi_box()
-            # crop to ROI, then blow up ROI by zoom factor
-            x = box[2] - box[0]
-            y = box[3] - box[1]
-            z = self.roi_zoom
-            self.roi_img = self.full_img.crop(box)
-            zoomed = self.roi_img.resize(size=(z*x, z*y), resample=Image.Resampling.NEAREST)
-            disp_img = ImageTk.PhotoImage(zoomed)
-            self.roi_preview.img = disp_img # type: ignore # protect from garbage collect
-            self.roi_preview.configure(image=disp_img)
+        box = self.get_roi_box()
+        # crop to ROI, then blow up ROI by zoom factor
+        x = box[2] - box[0]
+        y = box[3] - box[1]
+        z = self.roi_zoom
+        roi_img = self.full_img.crop(box)
+        zoomed = roi_img.resize(size=(z*x, z*y), resample=Image.Resampling.NEAREST)
+        disp_img = ImageTk.PhotoImage(zoomed)
+        self.roi_preview.img = disp_img # type: ignore # protect from garbage collect
+        self.roi_preview.configure(image=disp_img)
 
     def update_img_props(self, camera_frame : Frame):
         """Update image properties"""
@@ -338,32 +340,35 @@ class CameraPanel():
 
     def update_img_stats(self):
         """Update image statistics"""
-        if self.full_img:
-            stats = ""
-            self.img_stats = get_centroid_and_variance(self.full_img)
-            stats += "Centroid: " + str(tuple(map(lambda v: round(v, 3), self.img_stats[0:2])))
-            stats += "\nVariance: " + str(tuple(map(lambda v: round(v, 3), self.img_stats[2:])))
-            stats += "\nStd Dev: " + str(tuple(map(lambda v: round(np.sqrt(v), 3), self.img_stats[2:4])))
-            stats += "\nFWHM: " + str(tuple(map(lambda v: round(variance_to_fwhm(v), 3), self.img_stats[2:4])))
-            self.img_stats_txt.set(stats)
+        stats_txt = ""
+        self.img_stats = get_centroid_and_variance(self.full_img)
+        stats_txt += "Centroid: " + str(tuple(map(lambda v: round(v, 3),
+                                                  self.img_stats[0:2])))
+        stats_txt += "\nVariance: " + str(tuple(map(lambda v: round(v, 3),
+                                                    self.img_stats[2:])))
+        stats_txt += "\nStd Dev: " + str(tuple(map(lambda v: round(np.sqrt(v), 3),
+                                                   self.img_stats[2:4])))
+        stats_txt += "\nFWHM: " + str(tuple(map(lambda v: round(variance_to_fwhm(v), 3),
+                                                self.img_stats[2:4])))
+        self.img_stats_txt.set(stats_txt)
 
     def update_full_frame_preview(self):
         """Update the full frame preview"""
-        if self.full_img:
-            # draw roi box
-            roi_box = self.get_roi_box()
-            img = self.full_img.convert("RGB")
-            ImageDraw.Draw(img).rectangle(roi_box, width=3, outline=ImageColor.getrgb("yellow"))
-            # draw FWHM
-            c = self.img_stats
-            x_hwhm = variance_to_fwhm(c[2]) / 2
-            y_hwhm = variance_to_fwhm(c[3]) / 2 
-            ImageDraw.Draw(img).ellipse((c[0]-x_hwhm, c[1]-y_hwhm, c[0]+x_hwhm, c[1]+y_hwhm),
-                                        width=3, outline=ImageColor.getrgb("red"))
-            # display
-            disp_img = ImageTk.PhotoImage(img.resize((img.width // 4, img.height // 4)))
-            self.full_frame_preview.img = disp_img # type: ignore # protect from garbage collect
-            self.full_frame_preview.configure(image=disp_img)
+        # draw roi box
+        roi_box = self.get_roi_box()
+        img = self.full_img.convert("RGB")
+        ImageDraw.Draw(img).rectangle(roi_box, width=3,
+                                        outline=ImageColor.getrgb("yellow"))
+        # draw FWHM
+        c = self.img_stats
+        x_hwhm = variance_to_fwhm(c[2]) / 2
+        y_hwhm = variance_to_fwhm(c[3]) / 2 
+        ImageDraw.Draw(img).ellipse((c[0]-x_hwhm, c[1]-y_hwhm, c[0]+x_hwhm, c[1]+y_hwhm),
+                                    width=3, outline=ImageColor.getrgb("red"))
+        # display
+        disp_img = ImageTk.PhotoImage(img.resize((img.width // 4, img.height // 4)))
+        self.full_frame_preview.img = disp_img # type: ignore # protect from garbage collect
+        self.full_frame_preview.configure(image=disp_img)
 
     def update_resolution(self):
         """Update resolution from camera, matching newest frame """
@@ -389,11 +394,11 @@ class CameraPanel():
         else: # no camera, testing purposes
             if self.freeze_txt.get() == "Freeze":
                 # image components
-                # noise = Image.effect_noise(size=(1280, 960), sigma=100)
-                black = Image.fromarray(np.zeros((960, 1280))) # np and image dimensions are flipped
+                res = (int(self.camera_res_x.get()), int(self.camera_res_y.get()))
+                black = Image.new(mode='L', size=res, color=0)
+                # noise = Image.effect_noise(size=res, sigma=100)
                 gradient = ImageOps.invert(Image.radial_gradient(mode='L'))
                 # set image to black and then paste in the gradient at specified position
-                # self.full_img = noise
                 self.full_img = black
                 self.full_img.paste(gradient, (85,400))
 

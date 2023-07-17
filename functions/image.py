@@ -2,6 +2,7 @@
 import numpy as np
 from PIL import Image
 
+
 def frame_to_img(frame : np.ndarray) -> Image.Image:
     return Image.fromarray(frame)
 

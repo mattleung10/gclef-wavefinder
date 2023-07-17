@@ -3,6 +3,7 @@ import array
 import numpy as np
 import usb.core
 
+
 class Frame:
     """Image frame object for Mightex camera"""
 

@@ -1,6 +1,5 @@
 import asyncio
 import tkinter as tk
-from tkinter import ttk
 
 from zaber_motion import Units
 from zaber_motion.exceptions import ConnectionFailedException
@@ -8,6 +7,7 @@ from zaber_motion.exceptions import ConnectionFailedException
 from devices.MightexBufCmos import Camera
 from devices.ZaberAdapter import ZaberAdapter
 from functions.focus import Focuser
+from functions.position import Positioner
 
 from .camera_panel import CameraPanel
 from .function_panel import FunctionPanel
@@ -83,8 +83,13 @@ class App(tk.Tk):
         self.motion_panel = MotionPanel(self, self.z_motion)
         self.motion_panel.grid(column=0, row=1, sticky=tk.NSEW)
 
-        axis = self.z_motion.axes["focal_z"] if self.z_motion else None
-        self.function_panel = FunctionPanel(self, Focuser(self.camera, axis))
+        z_axis = self.z_motion.axes["focal_z"] if self.z_motion else None
+        x_axis = self.z_motion.axes["focal_x"] if self.z_motion else None
+        y_axis = self.z_motion.axes["focal_y"] if self.z_motion else None
+        focuser = Focuser(self.camera, z_axis, steps=10, min_move=0.001)
+        positioner = Positioner(self.camera, x_axis, y_axis, px_size=(3.75, 3.75))
+        
+        self.function_panel = FunctionPanel(self, focuser=focuser, positioner=positioner)
         self.function_panel.grid(column=1, row=1, sticky=tk.NSEW)
 
         # pad them all
