@@ -47,6 +47,7 @@ class Camera:
     # run modes; see function set_mode for description
     NORMAL  = 0
     TRIGGER = 1
+    RUN_MODES = [NORMAL, TRIGGER]
     # bin modes; see function set_resolution for description
     NO_BIN = 0
     BIN1X2 = 0x81
@@ -84,7 +85,8 @@ class Camera:
         print("Connecting to camera... ", end='')
 
         # find USB camera and set USB configuration
-        self.dev : usb.core.Device = usb.core.find(idVendor=0x04b4, idProduct=0x0528) # type: ignore
+        self.dev : usb.core.Device = usb.core.find(idVendor=0x04b4,
+                                                   idProduct=0x0528) # type: ignore
         if self.dev is None:
             raise ValueError("Mightex camera not found")
         self.dev.set_configuration() # type: ignore
@@ -148,14 +150,15 @@ class Camera:
             print(item[0] + ": " + str(item[1]))
         print("Firmware: " + '.'.join(map(str, self.get_firmware_version())))
 
-    def set_mode(self, run_mode : int = NORMAL, bits : int = 8, write_now : bool = False) -> None:
+    def set_mode(self, run_mode : int = NORMAL,
+                 bits : int = 8, write_now : bool = False) -> None:
         """Set camera work mode and bitrate.
 
         run_mode:   NORMAL (default) or TRIGGER
         bits:       8 (default) or 12
         write_now:  write to camera immediately
         """
-        self.run_mode = run_mode if run_mode in [Camera.NORMAL, Camera.TRIGGER] else Camera.NORMAL
+        self.run_mode = run_mode if run_mode in Camera.RUN_MODES else Camera.NORMAL
         self.bits = bits if bits in [8, 12] else 8
         if write_now:
             self.dev.write(0x01, [0x30, 2, self.run_mode, self.bits])
@@ -328,6 +331,9 @@ class Camera:
         nFrames = np.clip(nFrames, 0, len(self.app_buffer))
         return self.app_buffer[0:nFrames]
 
-    def get_newest_frame(self) -> Frame | None:
+    def get_newest_frame(self) -> Frame:
         """Get most recent frame."""
-        return self.app_buffer[0] if len(self.app_buffer) > 0 else None
+        if len(self.app_buffer) > 0:
+            return self.app_buffer[0]
+        else:
+            raise IndexError("no frames in app buffer")

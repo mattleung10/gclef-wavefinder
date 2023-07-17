@@ -360,7 +360,6 @@ class CameraPanel():
             y_hwhm = variance_to_fwhm(c[3]) / 2 
             ImageDraw.Draw(img).ellipse((c[0]-x_hwhm, c[1]-y_hwhm, c[0]+x_hwhm, c[1]+y_hwhm),
                                         width=3, outline=ImageColor.getrgb("red"))
-
             # display
             disp_img = ImageTk.PhotoImage(img.resize((img.width // 4, img.height // 4)))
             self.full_frame_preview.img = disp_img # type: ignore # protect from garbage collect
@@ -378,12 +377,15 @@ class CameraPanel():
         if self.camera:
             await asyncio.to_thread(self.camera.acquire_frames)
             if self.freeze_txt.get() == "Freeze":
-                camera_frame = self.camera.get_newest_frame()
-                if camera_frame:
+                try:
+                    camera_frame = self.camera.get_newest_frame()
                     self.full_img = Image.fromarray(camera_frame.img)
                     self.update_img_props(camera_frame)
                     if self.update_resolution_flag:
                         self.update_resolution()
+                except IndexError:
+                    pass
+
         else: # no camera, testing purposes
             if self.freeze_txt.get() == "Freeze":
                 # image components
