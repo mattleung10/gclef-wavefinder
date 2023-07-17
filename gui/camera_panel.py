@@ -206,7 +206,13 @@ class CameraPanel():
 
     def make_roi_preview_slice(self, parent):
         self.roi_preview = ttk.Label(parent)
-        self.roi_preview.grid(column=1, row=0, rowspan=3)
+        self.roi_preview.grid(column=1, row=0)
+
+        # TODO test adding cross-cuts
+        self.cc_x = ttk.Label(parent)
+        self.cc_x.grid(column=1, row=1)
+        self.cc_y = ttk.Label(parent)
+        self.cc_y.grid(column=2, row=0)
 
     ### Functions ###
     def set_cam_ctrl(self):
@@ -316,6 +322,16 @@ class CameraPanel():
         lower = f_size_y//2 - size_y//2
         box = (left, lower, left+size_x, lower+size_y)
         return box
+    
+    def get_crosscut_box(self) -> tuple[int,int,int,int]:
+        """Get the cross-cut boxes as (left, lower, right, upper)"""
+        cc_width = 10 # TODO configure crosscut width
+        f_size_x = self.full_img.size[0]
+        f_size_y = self.full_img.size[1]
+        left = f_size_x//2 - cc_width//2
+        lower = f_size_y//2 - cc_width//2
+        box = (left, lower, left+cc_width, lower+cc_width)
+        return box
 
     def update_roi_img(self):
         """Update the region of interest image"""
@@ -329,6 +345,29 @@ class CameraPanel():
         disp_img = ImageTk.PhotoImage(zoomed)
         self.roi_preview.img = disp_img # type: ignore # protect from garbage collect
         self.roi_preview.configure(image=disp_img)
+        self.update_crosscuts()
+    
+    def update_crosscuts(self):
+        """Update cross cuts"""
+        cc_box = self.get_crosscut_box()
+        cc_x = cc_box[2] - cc_box[0]
+        cc_y = cc_box[3] - cc_box[1]
+        roi_box = self.get_roi_box()
+        x = roi_box[2] - roi_box[0]
+        y = roi_box[3] - roi_box[1]
+        z = self.roi_zoom
+
+        x_img = self.full_img.crop((roi_box[0], cc_box[1], roi_box[2], cc_box[3]))
+        zoomed_x = x_img.resize(size=(z*x, z*cc_y), resample=Image.Resampling.NEAREST)
+        disp_x_img = ImageTk.PhotoImage(zoomed_x)
+        self.cc_x.img = disp_x_img # type: ignore # protect from garbage collect
+        self.cc_x.configure(image=disp_x_img)
+
+        y_img = self.full_img.crop((cc_box[0], roi_box[1], cc_box[2], roi_box[3]))
+        zoomed_y = y_img.resize(size=(z*cc_x, z*y), resample=Image.Resampling.NEAREST)
+        disp_y_img = ImageTk.PhotoImage(zoomed_y)
+        self.cc_y.img = disp_y_img # type: ignore # protect from garbage collect
+        self.cc_y.configure(image=disp_y_img)
 
     def update_img_props(self, camera_frame : Frame):
         """Update image properties"""
