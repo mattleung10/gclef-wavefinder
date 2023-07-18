@@ -110,12 +110,15 @@ class MotionPanel(ttk.LabelFrame):
         except KeyError:
             return
 
-        if self.jog_less.instate(["pressed"]):
-            a.axis.move_relative(-0.01, Units.LENGTH_MILLIMETRES, wait_until_idle=False)
-            a.status = ZaberAxis.MOVING
-        elif self.jog_more.instate(["pressed"]):
-            a.axis.move_relative(+0.01, Units.LENGTH_MILLIMETRES, wait_until_idle=False)
-            a.status = ZaberAxis.MOVING
+        try:
+            if self.jog_less.instate(["pressed"]):
+                a.axis.move_relative(-0.1, Units.LENGTH_MILLIMETRES, wait_until_idle=False)
+                a.status = ZaberAxis.MOVING
+            elif self.jog_more.instate(["pressed"]):
+                a.axis.move_relative(+0.1, Units.LENGTH_MILLIMETRES, wait_until_idle=False)
+                a.status = ZaberAxis.MOVING
+        except MotionLibException:
+            pass
 
     async def update(self):
         """Cyclical task to update UI with axis info"""

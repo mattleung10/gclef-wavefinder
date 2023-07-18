@@ -25,7 +25,6 @@ def get_centroid_and_variance(img : Image.Image)-> tuple[float,float,float,float
     xx, yy = np.meshgrid(np.arange(img_array.shape[1]), np.arange(img_array.shape[0]))
 
     try:
-        print(img_array[0:10][0:10])
         # take the weighted average of the pixel coordinates, using the pixel values as weights
         x_avg = float(np.average(xx, weights=img_array))
         y_avg = float(np.average(yy, weights=img_array))

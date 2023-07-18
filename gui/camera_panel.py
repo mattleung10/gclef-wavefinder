@@ -191,6 +191,9 @@ class CameraPanel():
     def make_image_stats_slice(self, parent):
         ttk.Label(parent, textvariable=self.img_stats_txt).grid(column=0, row=14,
                                                             columnspan=3, sticky=tk.W)
+        # NOTE secret reset button
+        # ttk.Button(parent, text="Reset",
+        #            command=self.reset_camera).grid(column=4, row=14, pady=(10, 0), padx=10)
         
     ### ROI Frame Slices ###
     def make_roi_zoom_slice(self, parent):
@@ -290,6 +293,10 @@ class CameraPanel():
                                             defaultextension=".png")
         if f:
             self.full_img.save(f)
+
+    def reset_camera(self):
+        if self.camera:
+            self.camera.reset()
 
     def set_roi(self):
         """Set the region of interest"""
