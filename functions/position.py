@@ -26,14 +26,17 @@ class Positioner:
         self.px_size = px_size
 
     def center(self):
-        """Move the x and y axes to center the centroid"""
+        """Move the x and y axes to center the centroid
+        
+        X is mirrored.
+        """
 
         if self.camera and self.x_axis and self.y_axis:
             img = Image.fromarray(self.camera.get_newest_frame().img)
             stats = get_centroid_and_variance(img)
             img_center = ((img.size[0] - 1) / 2, (img.size[1] - 1) / 2)
-            move_x_px = stats[0] - img_center[0]
-            move_y_px = stats[1] - img_center[1]
+            move_x_px = -(stats[0] - img_center[0])
+            move_y_px =   stats[1] - img_center[1]
 
             self.x_axis.axis.move_relative(move_x_px * self.px_size[0],
                                         Units.LENGTH_MICROMETRES,
