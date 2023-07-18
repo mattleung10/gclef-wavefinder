@@ -71,9 +71,9 @@ class MotionPanel(ttk.LabelFrame):
         ttk.Button(self, text="Move",
                    command=self.move_stages).grid(column=1, row=row, columnspan=2,
                                                   pady=(10, 0), padx=10)
-        self.jog_less = ttk.Button(self, text="◄", width=3)
+        self.jog_less = ttk.Button(self, text="◄", command=self.jog, width=3)
         self.jog_less.grid(column=3, row=row, pady=(10, 0), padx=2)
-        self.jog_more = ttk.Button(self, text="►", width=3)
+        self.jog_more = ttk.Button(self, text="►", command=self.jog, width=3)
         self.jog_more.grid(column=4, row=row, pady=(10, 0), padx=2)
 
     ### Functions ###
@@ -111,10 +111,10 @@ class MotionPanel(ttk.LabelFrame):
             return
 
         try:
-            if self.jog_less.instate(["pressed"]):
+            if self.jog_less.instate(["active"]):
                 a.axis.move_relative(-0.1, Units.LENGTH_MILLIMETRES, wait_until_idle=False)
                 a.status = ZaberAxis.MOVING
-            elif self.jog_more.instate(["pressed"]):
+            elif self.jog_more.instate(["active"]):
                 a.axis.move_relative(+0.1, Units.LENGTH_MILLIMETRES, wait_until_idle=False)
                 a.status = ZaberAxis.MOVING
         except MotionLibException:
@@ -123,29 +123,30 @@ class MotionPanel(ttk.LabelFrame):
     async def update(self):
         """Cyclical task to update UI with axis info"""
 
-        self.jog()
-
         # update UI
         for a in self.axes.values():
-            # readback position if set or axis is not ready
-            # We don't want to readback in the READY state because it would
-            # override user input.
-            if self.readback or a.status is not ZaberAxis.READY:
-                p = await a.axis.get_position_async(Units.LENGTH_MILLIMETRES)
-                self.pos[a.name].set(str(round(p,3)))
-
-            # set status to ready and turn off readback if axis is not busy
-            if not await a.axis.is_busy_async():
-                a.status = ZaberAxis.READY
-                self.readback = False
-
-            # check for warnings/errors; do last to override READY flag
-            w = await a.axis.warnings.get_flags_async()
-            if len(w) > 0:
-                a.status = ZaberAxis.ERROR
-            
-            # set status light
             self.lights[a.name].configure(background=MotionPanel.COLORS[a.status])
+            w = await a.axis.warnings.get_flags_async()
+            p = await a.axis.get_position_async(Units.LENGTH_MILLIMETRES)
+            if len(w) > 0:
+                self.readback = True
+                a.status = ZaberAxis.ERROR
+            elif await a.axis.is_busy_async():
+                # busy moving
+                self.readback = True
+                a.status = ZaberAxis.MOVING
+            elif a.status is not ZaberAxis.READY:
+                # transition to ready
+                self.readback = True
+                a.status = ZaberAxis.READY
+            else:
+                a.status = ZaberAxis.READY
+            
+            if self.readback:
+                self.pos[a.name].set(str(round(p,3)))
+            self.lights[a.name].configure(background=MotionPanel.COLORS[a.status])
+        
+        self.readback = False
 
     async def update_loop(self, interval : float = 1):
         """Update self in a loop
