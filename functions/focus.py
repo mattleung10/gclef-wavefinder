@@ -43,6 +43,7 @@ class Focuser:
             travel_max = limit_max
             travel_dist = travel_max - travel_min
             step_dist = travel_dist / (self.steps - 1)
+            n_pass = 0
 
             while step_dist >= self.min_move:
                 focus_curve : dict[float,float] = {}
@@ -53,8 +54,14 @@ class Focuser:
                     self.f_axis.axis.move_absolute(pos, Units.LENGTH_MILLIMETRES,
                                                    wait_until_idle=True)
                     self.camera.trigger()
-                    self.camera.acquire_frames()
+                    # NOTE camera_panel loop is acquiring frames
                     frame = self.camera.get_newest_frame()
+                    # if this frame isn't the right trigger, wait
+                    exp_nTriggers = (i+1) + self.steps*n_pass
+                    while frame.nTriggers < exp_nTriggers:
+                        frame = self.camera.get_newest_frame()
+                    print(exp_nTriggers, frame.nTriggers, frame.timestamp)
+                    # continue
                     stats = get_centroid_and_variance(frame_to_img(frame.img))
                     # sqrt(var_x) * sqrt(var_y)
                     v = np.sqrt(stats[2]) * np.sqrt(stats[3])
@@ -68,11 +75,15 @@ class Focuser:
                 travel_max = np.clip(focus_pos + step_dist, limit_min, limit_max)
                 travel_dist = travel_max - travel_min
                 step_dist = travel_dist / (self.steps - 1)
+                n_pass += 1
 
             # move to focus position
             self.f_axis.status = ZaberAxis.MOVING      
             self.f_axis.axis.move_absolute(focus_pos, Units.LENGTH_MILLIMETRES,
                                            wait_until_idle=True)
+            
+            # set camera to stream mode
+            self.camera.set_mode(run_mode=Camera.NORMAL, write_now=True)
 
         # return minimum position
         return focus_pos

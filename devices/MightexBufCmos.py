@@ -31,6 +31,9 @@ class Frame:
         # last 480 bytes are reserved, not used
 
         # TODO: support 12-bit
+
+        if (len(frame) != self.rows*self.cols + 512):
+            raise BufferError("got bad frame from camera")
         # store image; for some reason the rows and cols are switched in the buffer
         self.img = np.reshape(frame[0:self.rows*self.cols], (self.cols,self.rows))
 
@@ -321,8 +324,12 @@ class Camera:
             try:
                 data = self.dev.read(0x82, frame_size)
             except usb.core.USBTimeoutError:
-                continue
-            self.app_buffer.insert(0, Frame(data))
+                break
+            try:
+                frame = Frame(data)
+            except BufferError:
+                break
+            self.app_buffer.insert(0, frame)
             # trim buffer
             while len(self.app_buffer) > self.buffer_max:
                 self.app_buffer.pop()
