@@ -50,12 +50,11 @@ class App(tk.Tk):
         if zaber_adapter:
             self.axes.update(zaber_adapter.get_axes())
 
-        # TODO
         # special limits
         # limit detector z-axis to 15mm
-        # z_axis = self.axes["focal_z"] if self.axes else None
-        # if z_axis:
-        #     z_axis.set_limits(0, 15)
+        z_axis = self.axes["focal_z"] if self.axes else None
+        if z_axis:
+            self.loop.create_task(z_axis.set_limits(None, 15.0))
         
     def init_camera(self) -> Camera|None:
         """Initialize connection to camera"""

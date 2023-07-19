@@ -20,9 +20,9 @@ class MotionPanel(ttk.LabelFrame):
 
         # Task variables
         self.tasks : set[asyncio.Task] = set()
+        self.extra_init = True
 
         # UI variables
-        self.extra_init = True
         self.pos    : dict[str,tk.StringVar] = {}
         self.pos_in : dict[str, tk.StringVar] = {}
         self.lights : dict[str,ttk.Label] = {}

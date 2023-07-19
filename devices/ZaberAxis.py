@@ -59,7 +59,10 @@ class ZaberAxis(Axis):
       
     async def get_status(self) -> int:
         try:
-            if await self.axis.warnings.get_flags_async():
+            if self.status == Axis.ERROR:
+                # latch errors until cleared by a good move
+                self.status = Axis.ERROR
+            elif await self.axis.warnings.get_flags_async():
                 self.status = Axis.ERROR
             elif await self.axis.is_busy_async():
                 self.status = Axis.BUSY
@@ -69,12 +72,12 @@ class ZaberAxis(Axis):
             self.status = Axis.ERROR
         return self.status
     
-    async def set_limits(self, high_limit : float|None = None, low_limit : float|None = None):
+    async def set_limits(self, low_limit : float|None = None, high_limit : float|None = None):
         try:
-            if high_limit:
-                await self.axis.settings.set_async('limit.max', high_limit, Units.LENGTH_MILLIMETRES)
             if low_limit:
                 await self.axis.settings.set_async('limit.min', low_limit,  Units.LENGTH_MILLIMETRES)
+            if high_limit:
+                await self.axis.settings.set_async('limit.max', high_limit, Units.LENGTH_MILLIMETRES)
         except MotionLibException:
             self.status = Axis.ERROR
 

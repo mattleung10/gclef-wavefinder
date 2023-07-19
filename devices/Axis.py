@@ -12,7 +12,7 @@ class Axis(ABC):
     def __init__(self, name : str) -> None:
         self.name = name
         self.position = 0.
-        self.status = Axis.ERROR
+        self.status = Axis.BUSY
         self.is_homed = False
 
     @abstractmethod
