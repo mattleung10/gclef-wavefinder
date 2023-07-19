@@ -1,29 +1,7 @@
 from zaber_motion import Units
 from zaber_motion.ascii import Axis, Connection, Device
 
-
-class ZaberAxis:
-    """Model holds information about Zaber Axis"""
-
-    READY   = 0
-    MOVING  = 1
-    BUSY    = 2
-    ERROR   = 3
-
-    def __init__(self, name : str, axis : Axis) -> None:
-        self.name = name
-        self.axis = axis
-        self.position = 0.
-        self.status = ZaberAxis.ERROR
-
-    @property
-    def serial_number(self) -> int:
-        return self.axis.device.serial_number
-
-    @property
-    def axis_number(self) -> int:
-        return self.axis.axis_number
-
+from ZaberAxis import ZaberAxis
 
 class ZaberAdapter:
     """Interface adapter between application and zaber library"""
@@ -33,7 +11,7 @@ class ZaberAdapter:
         """Set up adapter with all devices' axes visible from port
 
         Args:
-            port_name: name of port, e.g. '/dev/ttyUSB0'
+            port_names: list of ports, e.g. ['/dev/ttyUSB0', '/dev/ttyUSB1']
             axis_names: mapping of name to axis (device serial number, axis number)
                 e.g. {"x" : (33938, 1), "y" : (33937, 1)}
         """
