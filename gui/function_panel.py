@@ -12,13 +12,14 @@ class FunctionPanel(ttk.LabelFrame):
     def __init__(self, parent, focuser : Focuser, positioner : Positioner):
         super().__init__(parent, text="Functions", labelanchor=tk.N)
 
+        # Task variables
+        self.tasks : set[asyncio.Task] = set()
+
         # focus variables
         self.focuser = focuser
-        self.focus_task = None
 
         # position variables
         self.positioner = positioner
-        self.position_task = None
 
         self.make_focus_slice()
         self.make_positioner_slice()
@@ -43,21 +44,21 @@ class FunctionPanel(ttk.LabelFrame):
 
     def focus(self):
         """Start focus routine"""
-        self.focus_task = asyncio.create_task(asyncio.to_thread(self.focuser.focus))
+        t = asyncio.create_task(self.focuser.focus())
+        t.add_done_callback(self.tasks.discard)
+        self.tasks.add(t)
         self.focus_button.configure(state=tk.DISABLED)
 
     def center(self):
         """Center the image"""
-        self.position_task = asyncio.create_task(asyncio.to_thread(self.positioner.center))
+        t = asyncio.create_task(self.positioner.center())
+        t.add_done_callback(self.tasks.discard)
+        self.tasks.add(t)
 
-    def update(self, interval : float = 1):
-        """Update UI
-   
-        interval: time in seconds between updates
-        """
-        if self.focus_task:
-            if self.focus_task.done() and tk.DISABLED in self.focus_button.state():
-                self.focus_button.configure(state=tk.NORMAL)
+    async def update(self):
+        """Update UI"""
+        if len(self.tasks) == 0:
+            self.focus_button.configure(state=tk.NORMAL)
 
     async def update_loop(self, interval : float = 1):
         """Update self in a loop
@@ -65,5 +66,9 @@ class FunctionPanel(ttk.LabelFrame):
         interval: time in seconds between updates
         """
         while True:
-            self.update()
-            await asyncio.sleep(interval)
+            await asyncio.gather(self.update(), asyncio.sleep(interval))
+
+    def close(self):
+        """Close out all tasks"""
+        for t in self.tasks:
+            t.cancel()

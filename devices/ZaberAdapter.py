@@ -1,7 +1,8 @@
-from zaber_motion import Units
-from zaber_motion.ascii import Axis, Connection, Device
+from zaber_motion.ascii import Connection, Device
 
-from ZaberAxis import ZaberAxis
+from .Axis import Axis
+from .ZaberAxis import ZaberAxis
+
 
 class ZaberAdapter:
     """Interface adapter between application and zaber library"""
@@ -46,25 +47,6 @@ class ZaberAdapter:
             except Exception as e:
                 print(e) # can't make AxisModel, other errors
 
-    def set_axis_setting(self, serial_number : int, axis_number : int,
-                         setting : str, value : float, unit : Units) -> bool:
-        """Set a setting on an axis
-
-        Args:
-            serial_number: device serial number
-            axis_number: axis number on device
-            setting: setting name
-            value: value to set
-            unit: unit of setting value
-
-        Returns:
-            True if successful; False if failed
-        """
-        try:
-            device : Device = next(filter(lambda d: d.serial_number == serial_number,
-                                        self.device_list))
-            axis : Axis = device.get_axis(axis_number)
-            axis.settings.set(setting=setting, value=value, unit=unit)
-            return True
-        except Exception:
-            return False
+    def get_axes(self) -> dict[str, ZaberAxis]:
+        """Get all axes from this adapter."""
+        return self.axes

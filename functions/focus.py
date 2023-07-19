@@ -2,14 +2,14 @@ import numpy as np
 from zaber_motion import Units
 
 from devices.MightexBufCmos import Camera
-from devices.ZaberAdapter import ZaberAxis
+from devices.Axis import Axis
 from functions.image import frame_to_img, get_centroid_and_variance
 
 
 class Focuser:
     def __init__(self,
                  camera : Camera | None,
-                 f_axis : ZaberAxis | None,
+                 f_axis : Axis | None,
                  steps  : int = 10,
                  min_move : float = 0.001) -> None:
         """Focuser class
@@ -24,7 +24,7 @@ class Focuser:
         self.steps = steps
         self.min_move = min_move
 
-    def focus(self) -> float:
+    async def focus(self) -> float:
         """Start the automatic focus routine
 
         returns the best focus position
@@ -35,10 +35,7 @@ class Focuser:
             self.camera.set_mode(run_mode=Camera.TRIGGER, write_now=True)
 
             # set up for first pass
-            limit_min = self.f_axis.axis.settings.get("limit.min",
-                                                      Units.LENGTH_MILLIMETRES)
-            limit_max = self.f_axis.axis.settings.get("limit.max",
-                                                      Units.LENGTH_MILLIMETRES)
+            limit_min, limit_max = await self.f_axis.get_limits()
             travel_min = limit_min
             travel_max = limit_max
             travel_dist = travel_max - travel_min
@@ -50,9 +47,7 @@ class Focuser:
 
                 for i in range(self.steps):
                     pos = travel_min + i * step_dist
-                    self.f_axis.status = ZaberAxis.MOVING
-                    self.f_axis.axis.move_absolute(pos, Units.LENGTH_MILLIMETRES,
-                                                   wait_until_idle=True)
+                    await self.f_axis.move_absolute(pos)
                     self.camera.trigger()
                     # NOTE camera_panel loop is also acquiring frames, may conflict
                     self.camera.acquire_frames()
@@ -79,10 +74,8 @@ class Focuser:
                 step_dist = travel_dist / (self.steps - 1)
                 n_pass += 1
 
-            # move to focus position
-            self.f_axis.status = ZaberAxis.MOVING      
-            self.f_axis.axis.move_absolute(focus_pos, Units.LENGTH_MILLIMETRES,
-                                           wait_until_idle=True)
+            # move to focus position 
+            await self.f_axis.move_absolute(focus_pos)
             
             # set camera to stream mode
             self.camera.set_mode(run_mode=Camera.NORMAL, write_now=True)

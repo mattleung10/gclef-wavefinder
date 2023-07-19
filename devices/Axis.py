@@ -44,14 +44,28 @@ class Axis(ABC):
 
     @abstractmethod
     async def get_position(self) -> float:
-        """Get position from device."""
+        """Get position from device"""
         return self.position
     
     @abstractmethod    
     async def get_status(self):
-        """Get status from device."""
+        """Get status from device"""
         return self.status
     
     @abstractmethod
-    async def set_limits(self, high_limit : float, low_limit :float):
+    async def set_limits(self, low_limit : float|None = None, high_limit : float|None = None):
+        """Set axis low and high movement limits
+        
+        Args:
+            low_limit: minimum movement limit in mm or None to not set
+            high_limit: maximum movement limit in mm or None to not set
+        """
+        pass
+
+    @abstractmethod
+    async def get_limits(self) -> tuple[float, float]:
+        """Axis low and high movement limits
+
+        Returns: tuple (low, high) of limits as floats
+        """
         pass

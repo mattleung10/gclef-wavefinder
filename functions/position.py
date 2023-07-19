@@ -1,17 +1,16 @@
 # import numpy as np
 from PIL import Image
-from zaber_motion import Units
 
 from devices.MightexBufCmos import Camera
-from devices.ZaberAdapter import ZaberAxis
+from devices.Axis import Axis
 from functions.image import get_centroid_and_variance
 
 
 class Positioner:
     def __init__(self,
                  camera : Camera|None,
-                 x_axis : ZaberAxis|None,
-                 y_axis : ZaberAxis|None,
+                 x_axis : Axis|None,
+                 y_axis : Axis|None,
                  px_size: tuple[float,float]) -> None:
         """General-purpose positioner
         
@@ -25,7 +24,7 @@ class Positioner:
         self.y_axis = y_axis
         self.px_size = px_size
 
-    def center(self):
+    async def center(self):
         """Move the x and y axes to center the centroid
         
         X is mirrored.
@@ -38,11 +37,5 @@ class Positioner:
             move_x_px = -(stats[0] - img_center[0])
             move_y_px =   stats[1] - img_center[1]
 
-            self.x_axis.axis.move_relative(move_x_px * self.px_size[0],
-                                        Units.LENGTH_MICROMETRES,
-                                        wait_until_idle=False)
-            self.x_axis.status = ZaberAxis.MOVING
-            self.y_axis.axis.move_relative(move_y_px * self.px_size[1],
-                                        Units.LENGTH_MICROMETRES,
-                                        wait_until_idle=False)
-            self.y_axis.status = ZaberAxis.MOVING
+            await self.x_axis.move_relative(move_x_px * self.px_size[0])
+            await self.y_axis.move_relative(move_y_px * self.px_size[1])

@@ -1,7 +1,7 @@
-from Axis import Axis
+from .Axis import Axis
 
 from zaber_motion.ascii import Axis as ZAxis
-from zaber_motion import Units
+from zaber_motion import Units, MotionLibException
 
 class ZaberAxis(Axis):
     # Zaber implementation of Axis superclass
@@ -26,32 +26,64 @@ class ZaberAxis(Axis):
         return self.axis.axis_number
     
     async def home(self, force : bool = False):
-        if force or not await self.axis.is_homed_async():
-            await self.axis.home_async()
+        try:
+            if force or not await self.axis.is_homed_async():
+                self.status = Axis.BUSY
+                await self.axis.home_async()
+                self.status = Axis.READY
+        except MotionLibException:
+            self.status = Axis.ERROR
 
     async def move_relative(self, distance : float):
-        await self.axis.move_relative_async(distance, Units.LENGTH_MILLIMETRES)
+        try:
+            self.status = Axis.MOVING
+            await self.axis.move_relative_async(distance, Units.LENGTH_MILLIMETRES)
+            self.status = Axis.READY
+        except MotionLibException:
+            self.status = Axis.ERROR
 
     async def move_absolute(self, distance : float):
-        await self.axis.move_absolute_async(distance, Units.LENGTH_MILLIMETRES)
+        try:
+            self.status = Axis.MOVING
+            await self.axis.move_absolute_async(distance, Units.LENGTH_MILLIMETRES)
+            self.status = Axis.READY
+        except MotionLibException:
+            self.status = Axis.ERROR
 
     async def get_position(self) -> float:
-
-        
+        try:
+            self.position = await self.axis.get_position_async(Units.LENGTH_MILLIMETRES)
+        except MotionLibException:
+            self.status = Axis.ERROR
         return self.position
       
     async def get_status(self) -> int:
-        if await self.axis.warnings.get_flags_async():
+        try:
+            if await self.axis.warnings.get_flags_async():
+                self.status = Axis.ERROR
+            elif await self.axis.is_busy_async():
+                self.status = Axis.BUSY
+            else:
+                self.status = Axis.READY
+        except MotionLibException:
             self.status = Axis.ERROR
-        elif await self.axis.is_busy_async():
-            self.status = Axis.BUSY
-        else:
-            self.status = Axis.READY
         return self.status
     
-    async def get_warnings(self):
-        """Get warning flags from device."""
-        return await self.axis.warnings.get_flags_async()
-    
-    async def set_limits(self, high_limit : float, low_limit :float):
-        pass
+    async def set_limits(self, high_limit : float|None = None, low_limit : float|None = None):
+        try:
+            if high_limit:
+                await self.axis.settings.set_async('limit.max', high_limit, Units.LENGTH_MILLIMETRES)
+            if low_limit:
+                await self.axis.settings.set_async('limit.min', low_limit,  Units.LENGTH_MILLIMETRES)
+        except MotionLibException:
+            self.status = Axis.ERROR
+
+    async def get_limits(self) -> tuple[float, float]:
+        l = 0.
+        h = 0.
+        try:
+            l = await self.axis.settings.get_async('limit.min', Units.LENGTH_MILLIMETRES)
+            h = await self.axis.settings.get_async('limit.max', Units.LENGTH_MILLIMETRES)
+        except MotionLibException:
+            self.status = Axis.ERROR
+        return (l,h)
