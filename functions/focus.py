@@ -49,20 +49,20 @@ class Focuser:
                     pos = travel_min + i * step_dist
                     await self.f_axis.move_absolute(pos)
                     self.camera.trigger()
-                    # NOTE camera_panel loop is also acquiring frames, may conflict
-                    self.camera.acquire_frames()
-                    frame = self.camera.get_newest_frame()
 
                     # if this frame isn't the right trigger, wait
+                    nT = 0
                     exp_nTriggers = (i+1) + self.steps*n_pass
-                    while frame.nTriggers < exp_nTriggers:
+                    while nT < exp_nTriggers:
+                        # NOTE camera_panel loop is also acquiring frames, may conflict
+                        self.camera.acquire_frames()
                         frame = self.camera.get_newest_frame()
+                        nT = frame.nTriggers
 
-                    stats = get_centroid_and_variance(frame_to_img(frame.img))
-                    # sqrt(var_x) * sqrt(var_y)
-                    v = np.sqrt(stats[2]) * np.sqrt(stats[3])
-                    # print(round(pos,3), round(v, 3), frame.nTriggers, frame.timestamp)
-                    focus_curve[pos] = v
+                        stats = get_centroid_and_variance(frame_to_img(frame.img))
+                        # sqrt(var_x) * sqrt(var_y)
+                        v = np.sqrt(stats[2]) * np.sqrt(stats[3])
+                        focus_curve[pos] = v
 
                 # find minimum along focus_curve
                 focus_pos = min(focus_curve, key=focus_curve.get) # type: ignore

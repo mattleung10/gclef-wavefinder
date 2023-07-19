@@ -48,15 +48,15 @@ class MotionPanel(ttk.LabelFrame):
             l.grid(column=1, row=row, padx=10, sticky=tk.E)
             # position input
             self.pos_in[a.name] = tk.StringVar(value=str(0.0))
-            e = ttk.Entry(self, textvariable=self.pos[a.name], validate='focus',
+            e = ttk.Entry(self, textvariable=self.pos_in[a.name], validate='focus',
                           validatecommand=(self.register(valid_float), '%P'), width=6)
-            e.grid(column=1, row=row, sticky=tk.W)
+            e.grid(column=2, row=row, sticky=tk.W)
             # status light
             self.lights[a.name] = ttk.Label(self, width=1)
-            self.lights[a.name].grid(column=2, row=row, sticky=tk.W)
+            self.lights[a.name].grid(column=3, row=row, sticky=tk.W)
             # jog selector
             r = ttk.Radiobutton(self, value=a.name, variable=self.jog_sel)
-            r.grid(column=3, row=row, columnspan=2)
+            r.grid(column=4, row=row, columnspan=2)
 
             row += 1
         return row
@@ -77,7 +77,7 @@ class MotionPanel(ttk.LabelFrame):
     def move_stages(self):
         """Move Zaber stages"""
         for a in self.axes.values():
-            p = float(self.pos[a.name].get())
+            p = float(self.pos_in[a.name].get())
             t = asyncio.create_task(a.move_absolute(p))
             t.add_done_callback(self.tasks.discard)
             self.tasks.add(t)

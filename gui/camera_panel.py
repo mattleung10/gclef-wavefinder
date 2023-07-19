@@ -427,8 +427,7 @@ class CameraPanel():
         """Update preview image in viewer"""
         if self.camera:
             # TODO inspect why this fails in a thread
-            await asyncio.create_task(asyncio.to_thread(self.camera.acquire_frames))
-            # self.camera.acquire_frames()
+            self.camera.acquire_frames()
             if self.freeze_txt.get() == "Freeze":
                 try:
                     camera_frame = self.camera.get_newest_frame()
