@@ -30,7 +30,8 @@ class ZaberAxis(Axis):
             if force or not await self.axis.is_homed_async():
                 self.status = Axis.BUSY
                 await self.axis.home_async()
-                self.status = Axis.READY
+                await self.update_position()
+                await self.update_status()
         except MotionLibException:
             self.status = Axis.ERROR
 
@@ -38,7 +39,8 @@ class ZaberAxis(Axis):
         try:
             self.status = Axis.MOVING
             await self.axis.move_relative_async(distance, Units.LENGTH_MILLIMETRES)
-            self.status = Axis.READY
+            await self.update_position()
+            await self.update_status()
         except MotionLibException:
             self.status = Axis.ERROR
 
@@ -46,18 +48,19 @@ class ZaberAxis(Axis):
         try:
             self.status = Axis.MOVING
             await self.axis.move_absolute_async(distance, Units.LENGTH_MILLIMETRES)
-            self.status = Axis.READY
+            await self.update_position()
+            await self.update_status()
         except MotionLibException:
             self.status = Axis.ERROR
 
-    async def get_position(self) -> float:
+    async def update_position(self) -> float:
         try:
             self.position = await self.axis.get_position_async(Units.LENGTH_MILLIMETRES)
         except MotionLibException:
             self.status = Axis.ERROR
         return self.position
       
-    async def get_status(self) -> int:
+    async def update_status(self) -> int:
         try:
             if self.status == Axis.ERROR:
                 # latch errors until cleared by a good move

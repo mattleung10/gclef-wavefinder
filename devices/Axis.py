@@ -43,13 +43,13 @@ class Axis(ABC):
         pass
 
     @abstractmethod
-    async def get_position(self) -> float:
-        """Get position from device"""
+    async def update_position(self) -> float:
+        """Update application model of position by querying device"""
         return self.position
     
     @abstractmethod    
-    async def get_status(self):
-        """Get status from device"""
+    async def update_status(self) -> int:
+        """Update application model of status by querying device"""
         return self.status
     
     @abstractmethod

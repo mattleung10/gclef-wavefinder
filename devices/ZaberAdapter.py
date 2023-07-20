@@ -1,3 +1,4 @@
+import asyncio
 from zaber_motion.ascii import Connection, Device
 
 from .Axis import Axis
@@ -50,3 +51,17 @@ class ZaberAdapter:
     def get_axes(self) -> dict[str, ZaberAxis]:
         """Get all axes from this adapter."""
         return self.axes
+    
+    async def update(self):
+        """Update all devices on this adapter"""
+        for a in self.axes.values():
+            await a.update_position()
+            await a.update_status()
+
+    async def update_loop(self, interval : float = 1):
+        """Update self in a loop
+                
+        interval: time in seconds between updates
+        """
+        while True:
+           await asyncio.gather(self.update(), asyncio.sleep(interval))

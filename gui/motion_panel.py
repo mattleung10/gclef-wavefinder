@@ -107,18 +107,14 @@ class MotionPanel(ttk.LabelFrame):
 
     async def update(self):
         """Cyclical task to update UI with axis info"""
-
-        # update device info and UI
         for a in self.axes.values():
-            p = await a.get_position()
-            s = await a.get_status()
-
-            self.pos[a.name].set(str(round(p,3)))
-            self.lights[a.name].configure(background=MotionPanel.COLORS[s])
-
             # on the first pass, set up some extra stuff
             if self.extra_init:
-                self.pos_in[a.name].set(self.pos[a.name].get())
+                await a.update_position()
+                await a.update_status()
+                self.pos_in[a.name].set(str(round(a.position,3)))
+            self.pos[a.name].set(str(round(a.position,3)))
+            self.lights[a.name].configure(background=MotionPanel.COLORS[a.status])
         self.extra_init = False
 
     async def update_loop(self, interval : float = 1):

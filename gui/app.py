@@ -45,10 +45,10 @@ class App(tk.Tk):
     def create_devices(self):
         """Create device handles"""
         self.camera = self.init_camera()
-        zaber_adapter = self.init_zaber()
+        self.zaber_adapter = self.init_zaber()
         self.axes : dict[str,Axis] = {}
-        if zaber_adapter:
-            self.axes.update(zaber_adapter.get_axes())
+        if self.zaber_adapter:
+            self.axes.update(self.zaber_adapter.get_axes())
 
         # special limits
         # limit detector z-axis to 15mm
@@ -111,6 +111,9 @@ class App(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", self.close) # bind close
         for panel in [self, self.camera_panel, self.motion_panel, self.function_panel]:
             self.tasks.append(self.loop.create_task(panel.update_loop(self.interval)))
+        for adapter in [self.zaber_adapter]:
+            if adapter:
+                self.tasks.append(self.loop.create_task(adapter.update_loop(self.interval)))
 
     def run(self):
         """Run the loop"""
