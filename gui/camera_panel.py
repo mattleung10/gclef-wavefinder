@@ -8,13 +8,14 @@ from PIL import Image, ImageColor, ImageDraw, ImageOps, ImageTk
 from devices.MightexBufCmos import Camera, Frame
 from functions.image import get_centroid_and_variance, variance_to_fwhm
 
+from .app import App
 from .utils import valid_float, valid_int
 
 
 class CameraPanel():
     """Camera UI Panel is made of 3 LabelFrames"""
 
-    def __init__(self, parent, camera: Camera | None):
+    def __init__(self, parent: App, camera: Camera | None):
         # UI variables
         self.camera_info1 = tk.StringVar(value="")
         self.camera_info2 = tk.StringVar(value="")
