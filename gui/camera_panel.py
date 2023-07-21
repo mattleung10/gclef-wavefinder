@@ -443,6 +443,7 @@ class CameraPanel():
                 # image components
                 res = (int(self.camera_res_x.get()), int(self.camera_res_y.get()))
                 black = Image.new(mode='L', size=res, color=0)
+                # grey = Image.new(mode='L', size=res, color=20)
                 # noise = Image.effect_noise(size=res, sigma=100)
                 gradient = ImageOps.invert(Image.radial_gradient(mode='L'))
                 # set image to black and then paste in the gradient at specified position
