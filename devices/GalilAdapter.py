@@ -19,25 +19,27 @@ class GalilAdapter:
         self.axis_names = axis_names
         self.axes: dict[str, GalilAxis] = {}
         
-        print("Connecting to Galil devices... ", end='')
-        self.g = gclib.py()
-        self.g.GOpen(self.address + " -s ALL")
+        print(f"Connecting to Galil devices on {address}... ", end='')
+        try:
+            self.g = gclib.py()
+            self.g.GOpen(self.address + " -s ALL")
+        except gclib.GclibError as e:
+            print(e)
         print("connected.")
         
         for a_nm, a_ch in self.axis_names.items():
-            print("Finding " + a_nm + " (" + a_ch + ")... ", end='')
+            print(f"Finding {a_nm} on channel {a_ch}... ", end='')
             try:
-                # test if we can get the axis position
-                self.g.GCommand("TP{}".format(a_ch))
                 self.axes[a_nm] = GalilAxis(a_nm, a_ch, self.g)
-                print("OK.")
             except gclib.GclibError:
                 print("not found.") # device not found
             except Exception as e:
                 print(e) # can't make Axis, other errors
+            else:
+                print("OK.")
 
     @property
-    def connection(self):
+    def connection(self) -> gclib.py:
         return self.g
 
     async def update(self):

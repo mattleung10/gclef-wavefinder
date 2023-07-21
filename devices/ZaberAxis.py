@@ -17,6 +17,9 @@ class ZaberAxis(Axis):
         super().__init__(name)
         self.axis = axis_handle
 
+        # check that this axis is working
+        self.axis.get_position()
+
     @property
     def serial_number(self) -> int:
         return self.axis.device.serial_number

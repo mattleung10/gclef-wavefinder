@@ -1,7 +1,6 @@
 import asyncio
 from zaber_motion.ascii import Connection, Device
-from zaber_motion import MotionLibException
-
+from zaber_motion import MotionLibException, ConnectionFailedException
 from .ZaberAxis import ZaberAxis
 
 
@@ -24,33 +23,37 @@ class ZaberAdapter:
         self.device_list: list[Device] = []
         self.axes: dict[str, ZaberAxis] = {}
 
-        print("Connecting to Zaber devices... ", end='')
         for p in self.port_names:
-            c = Connection.open_serial_port(p)
-            c.enable_alerts()
-            self.connections.append(c)
-            self.device_list.extend(c.detect_devices())
-        print("connected.")
+            print(f"Connecting to Zaber devices on {p}... ", end='')
+            try:
+                c = Connection.open_serial_port(p)
+                c.enable_alerts()
+                self.connections.append(c)
+                self.device_list.extend(c.detect_devices())
+            except ConnectionFailedException as e:
+                print(e.message)
+            else:
+                print("connected.")
 
         for a in self.axis_names.keys():
             sn = self.axis_names[a][0] # serial number
             an = self.axis_names[a][1] # axis number
-            print("Finding " + a + " " + str((sn,an))  + "... ", end='')
+            print(f"Finding {a} {(sn,an)}...", end='')
             try:
                 device: Device = next(filter(lambda d: d.serial_number == sn,
-                                                self.device_list))
+                                             self.device_list))
                 axis = device.get_axis(an)
-                axis.get_position()
                 self.axes[a] = ZaberAxis(a, axis)
-                print("OK.")
             except StopIteration:
                 print("not found.") # device not found
             except ValueError:
                 print("not found.") # axis number bad
             except MotionLibException:
-                print("not found.") # can't get axis position
+                print("not found.") # axis not functional
             except Exception as e:
                 print(e) # can't make Axis, other errors
+            else:
+                print("OK.")
 
     async def update(self):
         """Update all devices on this adapter"""

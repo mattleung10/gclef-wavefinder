@@ -19,25 +19,55 @@ class GalilAxis(Axis):
         self.ch = channel
         self.g = connection
 
+        # enable axis with "Servo Here"
+        self.g.GCommand(f"SH{self.ch}")
+        # set acceleration
+        self.g.GCommand(f"AC{self.ch} 2000000")
+        # set deceleration
+        self.g.GCommand(f"DC{self.ch} 2000000")
+        # set slew speed
+        self.g.GCommand(f"SP{self.ch} 200000")
+
     async def home(self, force: bool = False):
-        pass
+        # home mode, begin move, wait until after move
+        s = self.g.GCommand(f"HM{self.ch};BG{self.ch};AM{self.ch}")
+        print(s) # TODO remove
 
     async def move_relative(self, distance: float):
-        pass
+        # TODO counts per degree
+        # relative position mode, begin move, wait until after move
+        s = self.g.GCommand(f"PR{self.ch} {round(distance)};BG{self.ch};AM{self.ch}")
+        print(s) # TODO remove
     
     async def move_absolute(self, distance: float):
-        pass
+        # TODO counts per degree
+        # absolute position mode, begin move, wait until after move
+        s = self.g.GCommand(f"PA{self.ch} {round(distance)};BG{self.ch};AM{self.ch}")
+        print(s) # TODO remove
     
     async def update_position(self) -> float:
-        return 0.0
+        s = self.g.GCommand(f"TP{self.ch}")
+        return float(s)
     
     async def update_status(self) -> int:
-        return Axis.ERROR
+        try:
+            if self.status == Axis.ERROR:
+                # latch errors until cleared by a good move
+                self.status = Axis.ERROR
+            elif int(self.g.GCommand(f"TC")) > 0:
+                self.status = Axis.ERROR
+            elif int(self.g.GCommand(f"SC{self.ch}")) == 0:
+                self.status = Axis.BUSY
+            else:
+                self.status = Axis.READY
+        except GclibError:
+            self.status = Axis.ERROR
+        return self.status
     
     async def set_limits(self, low_limit: float | None = None, high_limit: float | None = None):
-        pass
+        pass # TODO
     
     async def get_limits(self) -> tuple[float, float]:
-        return (0., 0.)
+        return (0., 0.) # TODO
 
     

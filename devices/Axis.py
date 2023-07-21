@@ -29,7 +29,7 @@ class Axis(ABC):
         """Relative position move
         
         Args:
-            distance: in millimeters
+            distance: in millimeters or degrees
         """
         pass
 
@@ -38,7 +38,7 @@ class Axis(ABC):
         """Absolute position move
             
             Args:
-                distance: in millimeters
+                distance: in millimeters or degrees
         """
         pass
 
@@ -57,8 +57,8 @@ class Axis(ABC):
         """Set axis low and high movement limits
         
         Args:
-            low_limit: minimum movement limit in mm or None to not set
-            high_limit: maximum movement limit in mm or None to not set
+            low_limit: minimum movement limit in mm or degrees or None to not set
+            high_limit: maximum movement limit in mm or degrees or None to not set
         """
         pass
 

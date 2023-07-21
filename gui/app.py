@@ -1,8 +1,6 @@
 import asyncio
 import tkinter as tk
 
-from zaber_motion.exceptions import ConnectionFailedException
-
 from devices.Axis import Axis
 from devices.GalilAdapter import GalilAdapter
 from devices.MightexBufCmos import Camera
@@ -47,15 +45,18 @@ class App(tk.Tk):
         """Create device handles"""
         self.camera = self.init_camera()
         self.zaber_adapter = self.init_zaber()
+        self.galil_adapter = self.init_galil()
         self.axes: dict[str, Axis] = {}
-        if self.zaber_adapter:
-            self.axes.update(self.zaber_adapter.axes)
+        self.axes.update(self.zaber_adapter.axes)
+        self.axes.update(self.galil_adapter.axes)
 
         # special limits
         # limit detector z-axis to 15mm
         z_axis = self.axes["focal_z"] if self.axes else None
         if z_axis:
-            self.loop.create_task(z_axis.set_limits(None, 15.0))
+            t = self.loop.create_task(z_axis.set_limits(None, 15.0))
+            t.add_done_callback(self.tasks.discard)
+            self.tasks.add(t)
         
     def init_camera(self) -> Camera | None:
         """Initialize connection to camera"""
@@ -65,28 +66,28 @@ class App(tk.Tk):
             print(e)
             return None
 
-    def init_zaber(self) -> ZaberAdapter | None:
+    def init_zaber(self) -> ZaberAdapter:
         """Initialize connection to Zaber stages"""
 
-        axis_names = {"focal_x": (33938, 1),
-                      "focal_y": (33937, 1),
-                      "focal_z": (33939, 1),
-                      "cfm2_x" : (110098, 1),
-                      "cfm2_y" : (113059, 1)}
+        zaber_axis_names = {"focal_x": (33938, 1),
+                            "focal_y": (33937, 1),
+                            "focal_z": (33939, 1),
+                            "cfm2_x" : (110098, 1),
+                            "cfm2_y" : (113059, 1)}
         
-        try:
-            z_motion = ZaberAdapter(["/dev/ttyUSB0", "/dev/ttyUSB1"], axis_names)
-        except ConnectionFailedException as e:
-            print(e.message)
-            return None
-
-        return z_motion
+        zaber = ZaberAdapter(["/dev/ttyUSB0", "/dev/ttyUSB1"], zaber_axis_names)
+        return zaber
     
     def init_galil(self) -> GalilAdapter:
         """Initialize connection to Galil stages"""
-        # TODO do
-        g = GalilAdapter("1.2.3.4", {"gimbal 1 elevation": "A", "gimbal 2 azimuth": "D"})
-        return g
+
+        galil_axis_names = {"gimbal_1_el": "A",
+                            "gimbal_1_az": "B",
+                            "gimbal_2_el": "C",
+                            "gimbal_2_az": "D"}
+        
+        galil = GalilAdapter("192.168.1.19", galil_axis_names)
+        return galil
         
     def make_functions(self):
         """Make function units"""
@@ -123,8 +124,7 @@ class App(tk.Tk):
         for panel in [self, self.camera_panel, self.motion_panel, self.function_panel]:
             self.tasks.add(self.loop.create_task(panel.update_loop(self.interval)))
         for interface in [self.zaber_adapter]:
-            if interface:
-                self.tasks.add(self.loop.create_task(interface.update_loop(self.interval)))
+            self.tasks.add(self.loop.create_task(interface.update_loop(self.interval)))
 
     def run(self):
         """Run the loop"""
