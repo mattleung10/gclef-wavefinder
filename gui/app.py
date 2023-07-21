@@ -4,6 +4,7 @@ import tkinter as tk
 from zaber_motion.exceptions import ConnectionFailedException
 
 from devices.Axis import Axis
+from devices.GalilAdapter import GalilAdapter
 from devices.MightexBufCmos import Camera
 from devices.ZaberAdapter import ZaberAdapter
 from functions.focus import Focuser
@@ -17,7 +18,7 @@ from .motion_panel import MotionPanel
 class App(tk.Tk):
     """Main graphical application"""
 
-    def __init__(self, run_now : bool = True):
+    def __init__(self, run_now: bool = True):
         """Main graphical application
 
         run_now: True to start loop immediately
@@ -27,7 +28,7 @@ class App(tk.Tk):
         # task variables
         self.loop = asyncio.get_event_loop()
         self.interval = 1/60 # in seconds
-        self.tasks : list[asyncio.Task] = []
+        self.tasks: set[asyncio.Task] = set()
 
         # UI variables and setup
         self.title("Red AIT Data Acquisition")
@@ -46,9 +47,9 @@ class App(tk.Tk):
         """Create device handles"""
         self.camera = self.init_camera()
         self.zaber_adapter = self.init_zaber()
-        self.axes : dict[str,Axis] = {}
+        self.axes: dict[str, Axis] = {}
         if self.zaber_adapter:
-            self.axes.update(self.zaber_adapter.get_axes())
+            self.axes.update(self.zaber_adapter.axes)
 
         # special limits
         # limit detector z-axis to 15mm
@@ -56,7 +57,7 @@ class App(tk.Tk):
         if z_axis:
             self.loop.create_task(z_axis.set_limits(None, 15.0))
         
-    def init_camera(self) -> Camera|None:
+    def init_camera(self) -> Camera | None:
         """Initialize connection to camera"""
         try:
             return Camera()
@@ -64,14 +65,14 @@ class App(tk.Tk):
             print(e)
             return None
 
-    def init_zaber(self) -> ZaberAdapter|None:
+    def init_zaber(self) -> ZaberAdapter | None:
         """Initialize connection to Zaber stages"""
 
-        axis_names = {"focal_x" : (33938, 1),
-                      "focal_y" : (33937, 1),
-                      "focal_z" : (33939, 1),
-                      "cfm2_x"  : (110098, 1),
-                      "cfm2_y"  : (113059, 1)}
+        axis_names = {"focal_x": (33938, 1),
+                      "focal_y": (33937, 1),
+                      "focal_z": (33939, 1),
+                      "cfm2_x" : (110098, 1),
+                      "cfm2_y" : (113059, 1)}
         
         try:
             z_motion = ZaberAdapter(["/dev/ttyUSB0", "/dev/ttyUSB1"], axis_names)
@@ -80,7 +81,13 @@ class App(tk.Tk):
             return None
 
         return z_motion
-
+    
+    def init_galil(self) -> GalilAdapter:
+        """Initialize connection to Galil stages"""
+        # TODO do
+        g = GalilAdapter("1.2.3.4", {"gimbal 1 elevation": "A", "gimbal 2 azimuth": "D"})
+        return g
+        
     def make_functions(self):
         """Make function units"""
         z_axis = self.axes["focal_z"] if self.axes else None
@@ -98,7 +105,8 @@ class App(tk.Tk):
         self.motion_panel = MotionPanel(self, self.axes)
         self.motion_panel.grid(column=0, row=1, sticky=tk.NSEW)
         
-        self.function_panel = FunctionPanel(self, focuser=self.focuser, positioner=self.positioner)
+        self.function_panel = FunctionPanel(self, focuser=self.focuser,
+                                            positioner=self.positioner)
         self.function_panel.grid(column=1, row=1, sticky=tk.NSEW)
 
         # pad them all
@@ -107,13 +115,16 @@ class App(tk.Tk):
             f.grid_configure(padx=3, pady=12)
 
     def create_tasks(self):
-        """Start cyclic update loops"""
+        """Start cyclic update loops
+        
+        These will run forever.
+        """
         self.protocol("WM_DELETE_WINDOW", self.close) # bind close
         for panel in [self, self.camera_panel, self.motion_panel, self.function_panel]:
-            self.tasks.append(self.loop.create_task(panel.update_loop(self.interval)))
-        for adapter in [self.zaber_adapter]:
-            if adapter:
-                self.tasks.append(self.loop.create_task(adapter.update_loop(self.interval)))
+            self.tasks.add(self.loop.create_task(panel.update_loop(self.interval)))
+        for interface in [self.zaber_adapter]:
+            if interface:
+                self.tasks.add(self.loop.create_task(interface.update_loop(self.interval)))
 
     def run(self):
         """Run the loop"""
