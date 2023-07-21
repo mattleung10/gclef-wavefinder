@@ -8,10 +8,10 @@ from functions.image import frame_to_img, get_centroid_and_variance
 
 class Focuser:
     def __init__(self,
-                 camera : Camera | None,
-                 f_axis : Axis | None,
-                 steps  : int = 10,
-                 min_move : float = 0.001) -> None:
+                 camera: Camera | None,
+                 f_axis: Axis | None,
+                 steps : int = 10,
+                 min_move: float = 0.001) -> None:
         """Focuser class
         
         camera: MightexBufCmos Camera device
@@ -43,7 +43,7 @@ class Focuser:
             n_pass = 0
 
             while step_dist >= self.min_move:
-                focus_curve : dict[float,float] = {}
+                focus_curve: dict[float, float] = {}
 
                 for i in range(self.steps):
                     pos = travel_min + i * step_dist

@@ -14,7 +14,7 @@ from .utils import valid_float, valid_int
 class CameraPanel():
     """Camera UI Panel is made of 3 LabelFrames"""
 
-    def __init__(self, parent, camera : Camera | None):
+    def __init__(self, parent, camera: Camera | None):
         # UI variables
         self.camera_info1 = tk.StringVar(value="")
         self.camera_info2 = tk.StringVar(value="")
@@ -270,7 +270,7 @@ class CameraPanel():
             # update resolution
             self.update_resolution_flag = True
 
-    def set_camera_info(self, future : asyncio.Future):
+    def set_camera_info(self, future: asyncio.Future):
         """Update the GUI with the camera info"""
         info = future.result()
         self.camera_info1.set(info["ModuleNo"].strip('\0')) # type: ignore
@@ -317,7 +317,7 @@ class CameraPanel():
         self.roi_zoom = int(self.roi_zoom_entry.get())
         self.update_roi_img()
 
-    def get_roi_box(self) -> tuple[int,int,int,int]:
+    def get_roi_box(self) -> tuple[int, int, int, int]:
         """Return the (left, lower, right, upper)
         box representing the region of interest
         """
@@ -330,7 +330,7 @@ class CameraPanel():
         box = (left, lower, left+size_x, lower+size_y)
         return box
     
-    def get_crosscut_box(self) -> tuple[int,int,int,int]:
+    def get_crosscut_box(self) -> tuple[int, int, int, int]:
         """Get the cross-cut boxes as (left, lower, right, upper)"""
         cc_width = 10 # TODO configure crosscut width
         f_size_x = self.full_img.size[0]
@@ -376,7 +376,7 @@ class CameraPanel():
         self.cc_y.img = disp_y_img # type: ignore # protect from garbage collect
         self.cc_y.configure(image=disp_y_img)
 
-    def update_img_props(self, camera_frame : Frame):
+    def update_img_props(self, camera_frame: Frame):
         """Update image properties"""
         prop_str = ""
         for p in ["rows", "cols", "bin", "gGain", "expTime", "frameTime",
@@ -418,7 +418,7 @@ class CameraPanel():
 
     def update_resolution(self):
         """Update resolution from camera, matching newest frame """
-        resolution : tuple[int,int] = self.camera.query_buffer()["resolution"] # type: ignore
+        resolution: tuple[int, int] = self.camera.query_buffer()["resolution"] # type: ignore
         self.camera_res_x.set(str(resolution[0]))
         self.camera_res_y.set(str(resolution[1]))
         self.update_resolution_flag = False
@@ -448,13 +448,13 @@ class CameraPanel():
                 gradient = ImageOps.invert(Image.radial_gradient(mode='L'))
                 # set image to black and then paste in the gradient at specified position
                 self.full_img = black
-                self.full_img.paste(gradient, (85,400))
+                self.full_img.paste(gradient, (85, 400))
 
         self.update_img_stats()
         self.update_full_frame_preview()
         self.update_roi_img()
 
-    async def update_loop(self, interval : float = 1):
+    async def update_loop(self, interval: float = 1):
         """Update self in a loop
                 
         interval: time in seconds between updates

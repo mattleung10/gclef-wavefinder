@@ -13,19 +13,19 @@ class MotionPanel(ttk.LabelFrame):
     # number of colors must match number of status codes
     COLORS = ["green", "yellow", "yellow", "red"]
 
-    def __init__(self, parent, axes : dict[str, Axis]):
+    def __init__(self, parent, axes: dict[str, Axis]):
         super().__init__(parent, text="Zaber Slide Motion Control", labelanchor=tk.N)
 
         self.axes = axes
 
         # Task variables
-        self.tasks : set[asyncio.Task] = set()
+        self.tasks: set[asyncio.Task] = set()
         self.extra_init = True
 
         # UI variables
-        self.pos    : dict[str,tk.StringVar] = {}
-        self.pos_in : dict[str, tk.StringVar] = {}
-        self.lights : dict[str,ttk.Label] = {}
+        self.pos:    dict[str, tk.StringVar] = {}
+        self.pos_in: dict[str, tk.StringVar] = {}
+        self.lights: dict[str, ttk.Label] = {}
         self.jog_sel = tk.StringVar(self)
 
         r = self.make_header_slice()
@@ -38,7 +38,7 @@ class MotionPanel(ttk.LabelFrame):
         ttk.Label(self, text="Jog").grid(column=3, row=0, columnspan=2)
         return 1
 
-    def make_axes_position_slice(self, row : int) -> int:
+    def make_axes_position_slice(self, row: int) -> int:
         for a in self.axes.values():
             # name
             ttk.Label(self, text=a.name).grid(column=0, row=row, padx=10, sticky=tk.E)
@@ -61,7 +61,7 @@ class MotionPanel(ttk.LabelFrame):
             row += 1
         return row
 
-    def make_buttons(self, row : int):
+    def make_buttons(self, row: int):
         ttk.Button(self, text="Home",
                    command=self.home_stages).grid(column=0, row=row,
                                                   pady=(10, 0), padx=10)
@@ -112,12 +112,12 @@ class MotionPanel(ttk.LabelFrame):
             if self.extra_init:
                 await a.update_position()
                 await a.update_status()
-                self.pos_in[a.name].set(str(round(a.position,3)))
-            self.pos[a.name].set(str(round(a.position,3)))
+                self.pos_in[a.name].set(str(round(a.position, 3)))
+            self.pos[a.name].set(str(round(a.position, 3)))
             self.lights[a.name].configure(background=MotionPanel.COLORS[a.status])
         self.extra_init = False
 
-    async def update_loop(self, interval : float = 1):
+    async def update_loop(self, interval: float = 1):
         """Update self in a loop
                 
         interval: time in seconds between updates

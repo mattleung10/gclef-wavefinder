@@ -3,10 +3,10 @@ import numpy as np
 from PIL import Image
 
 
-def frame_to_img(frame : np.ndarray) -> Image.Image:
+def frame_to_img(frame: np.ndarray) -> Image.Image:
     return Image.fromarray(frame)
 
-def get_centroid_and_variance(img : Image.Image)-> tuple[float,float,float,float,float]:
+def get_centroid_and_variance(img: Image.Image)-> tuple[float, float, float, float, float]:
     """Get image centroid and variance/covariance as (u_x, u_y, var_x, var_y, covar)"""
     x_avg, y_avg, x_var, y_var, covar = 0.0, 0.0, 0.0, 0.0, 0.0
 
@@ -37,7 +37,7 @@ def get_centroid_and_variance(img : Image.Image)-> tuple[float,float,float,float
 
     return (x_avg, y_avg, x_var, y_var, covar)
 
-def variance_to_fwhm(var : float) -> float:
+def variance_to_fwhm(var: float) -> float:
     """Get full width half maximum from variance"""
     const = 2.3548200450309493
     return np.sqrt(var) * const

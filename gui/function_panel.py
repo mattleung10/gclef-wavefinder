@@ -9,11 +9,11 @@ from functions.position import Positioner
 class FunctionPanel(ttk.LabelFrame):
     """Advanced Function Panel"""
 
-    def __init__(self, parent, focuser : Focuser, positioner : Positioner):
+    def __init__(self, parent, focuser: Focuser, positioner: Positioner):
         super().__init__(parent, text="Functions", labelanchor=tk.N)
 
         # Task variables
-        self.tasks : set[asyncio.Task] = set()
+        self.tasks: set[asyncio.Task] = set()
 
         # focus variables
         self.focuser = focuser
@@ -60,7 +60,7 @@ class FunctionPanel(ttk.LabelFrame):
         if len(self.tasks) == 0:
             self.focus_button.configure(state=tk.NORMAL)
 
-    async def update_loop(self, interval : float = 1):
+    async def update_loop(self, interval: float = 1):
         """Update self in a loop
                 
         interval: time in seconds between updates

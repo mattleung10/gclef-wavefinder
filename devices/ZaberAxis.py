@@ -7,7 +7,7 @@ class ZaberAxis(Axis):
     # Zaber implementation of Axis superclass
     # See Axis for abstract function descriptions.
 
-    def __init__(self, name: str, axis_handle : ZAxis) -> None:
+    def __init__(self, name: str, axis_handle: ZAxis) -> None:
         """Zaber motion control axis
         
         Args:
@@ -25,7 +25,7 @@ class ZaberAxis(Axis):
     def axis_number(self) -> int:
         return self.axis.axis_number
     
-    async def home(self, force : bool = False):
+    async def home(self, force: bool = False):
         try:
             if force or not await self.axis.is_homed_async():
                 self.status = Axis.BUSY
@@ -35,7 +35,7 @@ class ZaberAxis(Axis):
         except MotionLibException:
             self.status = Axis.ERROR
 
-    async def move_relative(self, distance : float):
+    async def move_relative(self, distance: float):
         try:
             self.status = Axis.MOVING
             await self.axis.move_relative_async(distance, Units.LENGTH_MILLIMETRES)
@@ -44,7 +44,7 @@ class ZaberAxis(Axis):
         except MotionLibException:
             self.status = Axis.ERROR
 
-    async def move_absolute(self, distance : float):
+    async def move_absolute(self, distance: float):
         try:
             self.status = Axis.MOVING
             await self.axis.move_absolute_async(distance, Units.LENGTH_MILLIMETRES)
@@ -75,7 +75,7 @@ class ZaberAxis(Axis):
             self.status = Axis.ERROR
         return self.status
     
-    async def set_limits(self, low_limit : float|None = None, high_limit : float|None = None):
+    async def set_limits(self, low_limit: float | None = None, high_limit: float | None = None):
         try:
             if low_limit:
                 await self.axis.settings.set_async('limit.min', low_limit,  Units.LENGTH_MILLIMETRES)
@@ -92,4 +92,4 @@ class ZaberAxis(Axis):
             h = await self.axis.settings.get_async('limit.max', Units.LENGTH_MILLIMETRES)
         except MotionLibException:
             self.status = Axis.ERROR
-        return (l,h)
+        return (l, h)

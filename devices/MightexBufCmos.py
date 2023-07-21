@@ -7,7 +7,7 @@ import usb.core
 class Frame:
     """Image frame object for Mightex camera"""
 
-    def __init__(self, frame : array.array) -> None:
+    def __init__(self, frame: array.array) -> None:
         # store properties (little endian format)
         frame_prop = frame[-512:] # last 512 bytes
         self.rows       = frame_prop[0]  + (frame_prop[1]  << 0x8) # number of rows
@@ -35,7 +35,7 @@ class Frame:
         if (len(frame) != self.rows*self.cols + 512):
             raise BufferError("got bad frame from camera")
         # store image; for some reason the rows and cols are switched in the buffer
-        self.img = np.reshape(frame[0:self.rows*self.cols], (self.cols,self.rows))
+        self.img = np.reshape(frame[0 : self.rows*self.cols], (self.cols, self.rows))
 
 class Camera:
     """Interface for Mightex Buffer USB CMOS Camera
@@ -61,15 +61,15 @@ class Camera:
     BIN_MODES = [NO_BIN, BIN1X2, BIN1X3, BIN1X4, SKIP]
 
     def __init__(self,
-                 run_mode : int = NORMAL,
-                 bits : int = 8,
-                 freq_mode : int = 0,
-                 resolution : tuple[int, int] =(1280,960),
-                 bin_mode : int = NO_BIN,
-                 nBuffer : int = 24,
-                 exposure_time : float = 50,
-                 fps : float = 10,
-                 gain : int = 15) -> None:
+                 run_mode: int = NORMAL,
+                 bits: int = 8,
+                 freq_mode: int = 0,
+                 resolution: tuple[int, int] = (1280, 960),
+                 bin_mode: int = NO_BIN,
+                 nBuffer: int = 24,
+                 exposure_time: float = 50,
+                 fps: float = 10,
+                 gain: int = 15) -> None:
 
         # set configuration
         self.run_mode = run_mode
@@ -83,13 +83,13 @@ class Camera:
         self.gain = gain
 
         # data structures
-        self.app_buffer : list[Frame] = []
+        self.app_buffer: list[Frame] = []
         self.buffer_max = 100 # max 100 frames
 
         print("Connecting to camera... ", end='')
 
         # find USB camera and set USB configuration
-        self.dev : usb.core.Device = usb.core.find(idVendor=0x04b4,
+        self.dev: usb.core.Device = usb.core.find(idVendor=0x04b4,
                                                    idProduct=0x0528) # type: ignore
         if self.dev is None:
             raise ValueError("Mightex camera not found")
@@ -134,14 +134,14 @@ class Camera:
         self.dev.write(0x01, [0x01, 1, 0x01])
         return list(self.read_reply())
 
-    def get_camera_info(self) -> dict[str,str|int]:
+    def get_camera_info(self) -> dict[str, str | int]:
         """Get camera information.
 
         returns a dict with keys "ConfigRev", "ModuleNo", "SerialNo", "MftrDate"
         """
         self.dev.write(0x01, [0x21, 1, 0x00])
         reply = self.read_reply()
-        info : dict[str,str|int] = {}
+        info: dict[str, str | int] = {}
         info["ConfigRv"] = int(reply[0])                    # configuration version
         info["ModuleNo"] = reply[1:15].tobytes().decode()   # camera model
         info["SerialNo"] = reply[15:29].tobytes().decode()  # serial number
@@ -154,8 +154,8 @@ class Camera:
             print(item[0] + ": " + str(item[1]))
         print("Firmware: " + '.'.join(map(str, self.get_firmware_version())))
 
-    def set_mode(self, run_mode : int = NORMAL,
-                 bits : int = 8, write_now : bool = False) -> None:
+    def set_mode(self, run_mode: int = NORMAL,
+                 bits: int = 8, write_now: bool = False) -> None:
         """Set camera work mode and bitrate.
 
         run_mode:   NORMAL (default) or TRIGGER
@@ -167,7 +167,7 @@ class Camera:
         if write_now:
             self.dev.write(0x01, [0x30, 2, self.run_mode, self.bits])
 
-    def set_frequency(self, freq_mode : int = 0, write_now : bool = False) -> None:
+    def set_frequency(self, freq_mode: int = 0, write_now: bool = False) -> None:
         """Set CCD frequency divider.
 
         freq_mode: frequency divider; freq = full / (2^freq_mode)
@@ -179,9 +179,9 @@ class Camera:
         if write_now:
             self.dev.write(0x01, [0x32, 1, self.freq_mode])
 
-    def set_resolution(self, resolution : tuple[int,int] = (1280, 960),
-                       bin_mode : int = NO_BIN, nBuffer : int = 24,
-                       write_now : bool = False) -> None:
+    def set_resolution(self, resolution: tuple[int, int] = (1280, 960),
+                       bin_mode: int = NO_BIN, nBuffer: int = 24,
+                       write_now: bool = False) -> None:
         """Set camera resolution, bin mode, and buffer size.
 
         resolution: tuple of (rows, columns)
@@ -205,8 +205,8 @@ class Camera:
                                   self.resolution[1] >> 8, self.resolution[1] & 0xff,
                                   self.bin_mode, self.nBuffer, 0])
 
-    def set_exposure_time(self, exposure_time : float = 50,
-                          write_now : bool = False) -> None:
+    def set_exposure_time(self, exposure_time: float = 50,
+                          write_now: bool = False) -> None:
         """Set exposure time.
 
         exposure_time:  time in milliseconds, in increments of 0.05ms
@@ -223,7 +223,7 @@ class Camera:
                                   (set_val >>  8) & 0xff,
                                   (set_val >>  0) & 0xff])
 
-    def set_fps(self, fps : float = 10, write_now : bool = False) -> None:
+    def set_fps(self, fps: float = 10, write_now: bool = False) -> None:
         """Set frames per second.
 
         fps:        frames per second
@@ -239,7 +239,7 @@ class Camera:
             set_val = int(frame_time * 10000)
             self.dev.write(0x01, [0x64, 2, set_val >> 8, set_val & 0xff])
 
-    def set_gain(self, gain : int = 15, write_now : bool = False) -> None:
+    def set_gain(self, gain: int = 15, write_now: bool = False) -> None:
         """Set camera gain.
 
         gain:       6 to 41 db, inclusive
@@ -272,14 +272,14 @@ class Camera:
         """
         self.dev.write(0x01, [0x36, 1, 0x00])
 
-    def query_buffer(self) -> dict[str,int|tuple[int,int]]:
+    def query_buffer(self) -> dict[str, int | tuple[int, int]]:
         """Query camera's buffer for number of available frames and configuration.
 
         returns dict with keys "nFrames", "resolution", "bin_mode"
         """
         self.dev.write(0x01, [0x33, 1, 0x00])
         reply = self.read_reply()
-        buffer_info : dict[str, int|tuple[int,int]] = {}
+        buffer_info: dict[str, int | tuple[int, int]] = {}
         buffer_info["nFrames"] = reply[0]
         buffer_info["resolution"] = ((reply[1] << 8) + reply[2],
                                      (reply[3] << 8) + reply[4])
@@ -301,8 +301,8 @@ class Camera:
         while True:
             # get frame buffer information
             buffer_info = self.query_buffer()
-            nFrames : int = buffer_info["nFrames"] # type: ignore
-            resolution : tuple[int,int] = buffer_info["resolution"] # type: ignore
+            nFrames: int = buffer_info["nFrames"] # type: ignore
+            resolution: tuple[int, int] = buffer_info["resolution"] # type: ignore
 
             # check camera buffer size
             if nFrames == 0:
@@ -334,7 +334,7 @@ class Camera:
             while len(self.app_buffer) > self.buffer_max:
                 self.app_buffer.pop()
 
-    def get_frames(self, nFrames : int = 1) -> list[Frame]:
+    def get_frames(self, nFrames: int = 1) -> list[Frame]:
         """Get most recent nFrames frames."""
         nFrames = np.clip(nFrames, 0, len(self.app_buffer))
         return self.app_buffer[0:nFrames]

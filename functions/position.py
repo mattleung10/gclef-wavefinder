@@ -8,10 +8,10 @@ from functions.image import get_centroid_and_variance
 
 class Positioner:
     def __init__(self,
-                 camera : Camera|None,
-                 x_axis : Axis|None,
-                 y_axis : Axis|None,
-                 px_size: tuple[float,float]) -> None:
+                 camera: Camera | None,
+                 x_axis: Axis | None,
+                 y_axis: Axis | None,
+                 px_size: tuple[float, float]) -> None:
         """General-purpose positioner
         
         camera: MightexBufCmos Camera device
@@ -37,5 +37,5 @@ class Positioner:
             move_x_px = -(stats[0] - img_center[0])
             move_y_px =   stats[1] - img_center[1]
 
-            await self.x_axis.move_relative((move_x_px * self.px_size[0])/1000)
-            await self.y_axis.move_relative((move_y_px * self.px_size[1])/1000)
+            await self.x_axis.move_relative((move_x_px * self.px_size[0]) / 1000)
+            await self.y_axis.move_relative((move_y_px * self.px_size[1]) / 1000)

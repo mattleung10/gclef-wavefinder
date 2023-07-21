@@ -9,14 +9,14 @@ class Axis(ABC):
     ERROR   = 3
     STATES = [READY, MOVING, BUSY, ERROR]
 
-    def __init__(self, name : str) -> None:
+    def __init__(self, name: str) -> None:
         self.name = name
         self.position = 0.
         self.status = Axis.BUSY
         self.is_homed = False
 
     @abstractmethod
-    async def home(self, force : bool = False):
+    async def home(self, force: bool = False):
         """Home the axis if necessary
         
         Args:
@@ -25,7 +25,7 @@ class Axis(ABC):
         pass
 
     @abstractmethod
-    async def move_relative(self, distance : float):
+    async def move_relative(self, distance: float):
         """Relative position move
         
         Args:
@@ -34,7 +34,7 @@ class Axis(ABC):
         pass
 
     @abstractmethod
-    async def move_absolute(self, distance : float):
+    async def move_absolute(self, distance: float):
         """Absolute position move
             
             Args:
@@ -53,7 +53,7 @@ class Axis(ABC):
         return self.status
     
     @abstractmethod
-    async def set_limits(self, low_limit : float|None = None, high_limit : float|None = None):
+    async def set_limits(self, low_limit: float | None = None, high_limit: float | None = None):
         """Set axis low and high movement limits
         
         Args:
