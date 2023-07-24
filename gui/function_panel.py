@@ -5,13 +5,11 @@ from tkinter import ttk
 from functions.focus import Focuser
 from functions.position import Positioner
 
-from .app import App
-
 
 class FunctionPanel(ttk.LabelFrame):
     """Advanced Function Panel"""
 
-    def __init__(self, parent: App, focuser: Focuser, positioner: Positioner):
+    def __init__(self, parent, focuser: Focuser, positioner: Positioner):
         super().__init__(parent, text="Functions", labelanchor=tk.N)
 
         # Task variables

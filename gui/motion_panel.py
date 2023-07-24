@@ -4,7 +4,6 @@ from tkinter import ttk
 
 from devices.Axis import Axis
 
-from .app import App
 from .utils import valid_float
 
 
@@ -14,7 +13,7 @@ class MotionPanel(ttk.LabelFrame):
     # number of colors must match number of status codes
     COLORS = ["green", "yellow", "yellow", "red"]
 
-    def __init__(self, parent: App, axes: dict[str, Axis]):
+    def __init__(self, parent, axes: dict[str, Axis]):
         super().__init__(parent, text="Zaber Slide Motion Control", labelanchor=tk.N)
 
         self.axes = axes

@@ -20,29 +20,30 @@ class GalilAxis(Axis):
         self.g = connection
 
         # enable axis with "Servo Here"
-        self.g.GCommand(f"SH{self.ch}")
+        s = self.g.GCommand(f"SH{self.ch}")
         # set acceleration
-        self.g.GCommand(f"AC{self.ch} 2000000")
+        self.g.GCommand(f"AC{self.ch}=2000000")
         # set deceleration
-        self.g.GCommand(f"DC{self.ch} 2000000")
+        self.g.GCommand(f"DC{self.ch}=2000000")
         # set slew speed
-        self.g.GCommand(f"SP{self.ch} 200000")
+        self.g.GCommand(f"SP{self.ch}=200000")
 
     async def home(self, force: bool = False):
         # home mode, begin move, wait until after move
-        s = self.g.GCommand(f"HM{self.ch};BG{self.ch};AM{self.ch}")
-        print(s) # TODO remove
+        self.g.GCommand(f"HM{self.ch}")
+        self.g.GCommand(f"BG{self.ch}")
+        self.g.GCommand(f"AM{self.ch}")
 
     async def move_relative(self, distance: float):
         # TODO counts per degree
         # relative position mode, begin move, wait until after move
-        s = self.g.GCommand(f"PR{self.ch} {round(distance)};BG{self.ch};AM{self.ch}")
+        s = self.g.GCommand(f"PR{self.ch}={round(distance)};BG{self.ch};AM{self.ch}")
         print(s) # TODO remove
     
     async def move_absolute(self, distance: float):
         # TODO counts per degree
         # absolute position mode, begin move, wait until after move
-        s = self.g.GCommand(f"PA{self.ch} {round(distance)};BG{self.ch};AM{self.ch}")
+        s = self.g.GCommand(f"PA{self.ch}={round(distance)};BG{self.ch};AM{self.ch}")
         print(s) # TODO remove
     
     async def update_position(self) -> float:

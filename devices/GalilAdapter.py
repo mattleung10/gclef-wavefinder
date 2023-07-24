@@ -25,7 +25,9 @@ class GalilAdapter:
             self.g.GOpen(self.address + " -s ALL")
         except gclib.GclibError as e:
             print(e)
-        print("connected.")
+            return
+        else:
+            print("connected.")
         
         for a_nm, a_ch in self.axis_names.items():
             print(f"Finding {a_nm} on channel {a_ch}... ", end='')
@@ -44,7 +46,9 @@ class GalilAdapter:
 
     async def update(self):
         """Update all devices on this adapter"""
-        pass
+        for a in self.axes.values():
+            await a.update_position()
+            await a.update_status()
 
     async def update_loop(self, interval: float = 1):
         """Update self in a loop

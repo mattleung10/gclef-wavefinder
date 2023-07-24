@@ -32,6 +32,7 @@ class ZaberAdapter:
                 self.device_list.extend(c.detect_devices())
             except ConnectionFailedException as e:
                 print(e.message)
+                return
             else:
                 print("connected.")
 

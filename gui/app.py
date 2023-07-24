@@ -123,7 +123,7 @@ class App(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", self.close) # bind close
         for panel in [self, self.camera_panel, self.motion_panel, self.function_panel]:
             self.tasks.add(self.loop.create_task(panel.update_loop(self.interval)))
-        for interface in [self.zaber_adapter]:
+        for interface in [self.zaber_adapter, self.galil_adapter]:
             self.tasks.add(self.loop.create_task(interface.update_loop(self.interval)))
 
     def run(self):
