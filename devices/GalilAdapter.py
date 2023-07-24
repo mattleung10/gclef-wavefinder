@@ -22,7 +22,9 @@ class GalilAdapter:
         print(f"Connecting to Galil devices on {address}... ", end='')
         try:
             self.g = gclib.py()
-            self.g.GOpen(self.address + " -s ALL")
+            # connect in direct mode, subscribe to all unsolicited
+            s = self.g.GOpen(f"{self.address} -d -s ALL")
+            print(s)
         except gclib.GclibError as e:
             print(e)
             return

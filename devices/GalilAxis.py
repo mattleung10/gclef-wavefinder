@@ -21,33 +21,47 @@ class GalilAxis(Axis):
 
         # enable axis with "Servo Here"
         s = self.g.GCommand(f"SH{self.ch}")
-        # set acceleration
+        # set acceleration, decleration, slew speed
         self.g.GCommand(f"AC{self.ch}=2000000")
-        # set deceleration
         self.g.GCommand(f"DC{self.ch}=2000000")
-        # set slew speed
         self.g.GCommand(f"SP{self.ch}=200000")
 
     async def home(self, force: bool = False):
         # home mode, begin move, wait until after move
-        self.g.GCommand(f"HM{self.ch}")
-        self.g.GCommand(f"BG{self.ch}")
-        self.g.GCommand(f"AM{self.ch}")
+        # TODO fix routine, see galil_sandbox.py
+        try:
+            self.status = Axis.BUSY
+            self.g.GCommand(f"HM{self.ch}")
+            self.g.GCommand(f"BG{self.ch}")
+            self.g.GCommand(f"AM{self.ch}")
+        except GclibError:
+            self.status = Axis.ERROR
 
     async def move_relative(self, distance: float):
         # TODO counts per degree
         # relative position mode, begin move, wait until after move
-        s = self.g.GCommand(f"PR{self.ch}={round(distance)};BG{self.ch};AM{self.ch}")
-        print(s) # TODO remove
+        try:
+            self.status = Axis.MOVING
+            self.g.GCommand(f"PR{self.ch}={round(distance)}")
+            self.g.GCommand(f"BG{self.ch}")
+            self.g.GCommand(f"AM{self.ch}")
+        except GclibError:
+            self.status = Axis.ERROR
     
     async def move_absolute(self, distance: float):
         # TODO counts per degree
         # absolute position mode, begin move, wait until after move
-        s = self.g.GCommand(f"PA{self.ch}={round(distance)};BG{self.ch};AM{self.ch}")
-        print(s) # TODO remove
+        try:
+            self.status = Axis.MOVING
+            self.g.GCommand(f"PA{self.ch}={round(distance)}")
+            self.g.GCommand(f"BG{self.ch}")
+            self.g.GCommand(f"AM{self.ch}")
+        except GclibError:
+            self.status = Axis.ERROR
     
     async def update_position(self) -> float:
         s = self.g.GCommand(f"TP{self.ch}")
+        self.position = float(s)
         return float(s)
     
     async def update_status(self) -> int:
