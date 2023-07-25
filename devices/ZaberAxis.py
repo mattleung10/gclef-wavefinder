@@ -28,13 +28,12 @@ class ZaberAxis(Axis):
     def axis_number(self) -> int:
         return self.axis.axis_number
     
-    async def home(self, force: bool = False):
+    async def home(self):
         try:
-            if force or not await self.axis.is_homed_async():
-                self.status = Axis.BUSY
-                await self.axis.home_async()
-                await self.update_position()
-                await self.update_status()
+            self.status = Axis.BUSY
+            await self.axis.home_async()
+            await self.update_position()
+            await self.update_status()
         except MotionLibException:
             self.status = Axis.ERROR
 
@@ -59,6 +58,8 @@ class ZaberAxis(Axis):
     async def stop(self):
         try:
             await self.axis.stop_async()
+            await self.update_position()
+            await self.update_status()
         except MotionLibException:
             self.status = Axis.ERROR
 

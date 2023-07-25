@@ -51,10 +51,17 @@ class App(tk.Tk):
         self.axes.update(self.galil_adapter.axes)
 
         # special limits
+        # TODO add all limits
         # limit detector z-axis to 15mm
         z_axis = self.axes.get("focal_z", None)
         if z_axis:
             t = self.loop.create_task(z_axis.set_limits(None, 15.0))
+            t.add_done_callback(self.tasks.discard)
+            self.tasks.add(t)
+        # limit gimbal_1_el to (-10, 10)
+        gimbal_1_el = self.axes.get("gimbal_1_el", None)
+        if gimbal_1_el:
+            t = self.loop.create_task(gimbal_1_el.set_limits(-10, 10))
             t.add_done_callback(self.tasks.discard)
             self.tasks.add(t)
         

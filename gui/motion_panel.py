@@ -48,12 +48,13 @@ class MotionPanel(ttk.LabelFrame):
             ttk.Label(self, text=a.name).grid(column=0, row=row, padx=10, sticky=tk.E)
             # position
             self.pos[a.name] = tk.StringVar(value=str(a.position))
-            l = ttk.Label(self, textvariable=self.pos[a.name])
+            l = ttk.Label(self, textvariable=self.pos[a.name], width=7)
             l.grid(column=1, row=row, padx=10, sticky=tk.E)
-            # position input
+            # position input TODO: validate not working
             self.pos_in[a.name] = tk.StringVar(value=str(0.0))
             e = ttk.Entry(self, textvariable=self.pos_in[a.name], validate='focus',
-                          validatecommand=(self.register(valid_float), '%P'), width=6)
+                          validatecommand=(self.register(valid_float), '%P'),
+                          invalidcommand=self.register(self.bad_input), width=7)
             e.grid(column=2, row=row, sticky=tk.W)
             # status light
             self.lights[a.name] = ttk.Label(self, width=1)
@@ -100,9 +101,10 @@ class MotionPanel(ttk.LabelFrame):
         """Move all stages"""
         for a in self.axes.values():
             p = float(self.pos_in[a.name].get())
-            t = asyncio.create_task(a.move_absolute(p))
-            t.add_done_callback(self.tasks.discard)
-            self.tasks.add(t)
+            if p != float(self.pos[a.name].get()):
+                t = asyncio.create_task(a.move_absolute(p))
+                t.add_done_callback(self.tasks.discard)
+                self.tasks.add(t)
 
     def home_stages(self):
         """Home all stages"""
@@ -136,7 +138,12 @@ class MotionPanel(ttk.LabelFrame):
     def zero_input(self):
         """Zero position input"""
         for a in self.axes.keys():
-            self.pos_in[a].set("0")
+            self.pos_in[a].set("0.0")
+    
+    def bad_input(self):
+        for e in self.pos_in.values():
+            if not valid_float(e.get()):
+                e.set("0.0")
 
     async def update(self):
         """Cyclical task to update UI with axis info"""

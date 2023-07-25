@@ -8,7 +8,6 @@ if __name__ == "__main__":
 
 
 ### TODO list
-# Galil motion control
 # Cross-cuts with axis labels
 # histogram of values
 # 12-bit imaging
@@ -16,3 +15,4 @@ if __name__ == "__main__":
 # Stabilize size of preview image
 # read in input configuration and table of wavelengths
 # run on windows without wsl
+# task launcher wrapper to reduce boilerplate

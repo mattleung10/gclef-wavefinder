@@ -8,8 +8,10 @@ class GalilAxis(Axis):
     # Galil implementation of Axis superclass
     # See Axis for abstract function descriptions.
 
-    def __init__(self, name: str, channel: str, connection: py,
-                 accel: int = 2000000, decel: int = 2000000, speed: int = 100000) -> None:
+    def __init__(self, name: str, channel: str, connection: py, accel: int = 2000000,
+                 decel: int = 2000000, speed: int = 100000, homing_speed: int = 5000,
+                 encoder_counts_per_degree: int = 800,
+                 drive_counts_per_degree: int = 10000) -> None:
         """Zaber motion control axis
         
         Args:
@@ -23,38 +25,47 @@ class GalilAxis(Axis):
         self.accel = accel
         self.decel = decel
         self.speed = speed
+        self.hspeed = homing_speed
+        self.encoder_scale = encoder_counts_per_degree
+        self.drive_scale = drive_counts_per_degree
 
         # enable axis with "Servo Here"
         s = self.g.GCommand(f"SH{self.ch}")
         # set acceleration, decleration, slew speed
-        self.g.GCommand(f"AC{self.ch}=2000000")
-        self.g.GCommand(f"DC{self.ch}=2000000")
-        self.g.GCommand(f"SP{self.ch}=100000")
-        self.g.GCommand(f"HV{self.ch}=5000")
+        self.g.GCommand(f"AC{self.ch}={self.accel}")
+        self.g.GCommand(f"DC{self.ch}={self.decel}")
+        self.g.GCommand(f"SP{self.ch}={self.speed}")
+        self.g.GCommand(f"HV{self.ch}={self.hspeed}")
 
     async def home(self):
+        # TODO: consider adding extra FI at the end to reduce position error when
+        #       moving in the positive direction
         try:
             self.status = Axis.BUSY
+            # jog negative until limit, if not at limit already
             not_limit_reverse = bool(float(self.g.GCommand(f"MG _LR{self.ch}")))
-
-            # jog negative until limit
             if not_limit_reverse:
                 self.g.GCommand(f"JG{self.ch}=-{self.speed};BG{self.ch}")
-            await self.wait_for_motion_complete(self.ch)
+                await self.wait_for_motion_complete(self.ch)
             # Home
             self.g.GCommand(f"HM{self.ch};BG{self.ch}")
             await self.wait_for_motion_complete(self.ch)
             # zero position
             self.g.GCommand(f"DE{self.ch}=0")
+            # update
+            await self.update_position()
+            await self.update_status()
         except GclibError:
             self.status = Axis.ERROR
 
     async def move_relative(self, distance: float):
-        # TODO counts per degree
         try:
             self.status = Axis.MOVING
-            self.g.GCommand(f"PR{self.ch}={round(distance)};BG{self.ch}")
+            counts = round(distance * self.drive_scale)
+            self.g.GCommand(f"PR{self.ch}={counts};BG{self.ch}")
             await self.wait_for_motion_complete(self.ch)
+            await self.update_position()
+            await self.update_status()
         except GclibError:
             self.status = Axis.ERROR
     
@@ -62,8 +73,11 @@ class GalilAxis(Axis):
         # TODO counts per degree
         try:
             self.status = Axis.MOVING
-            self.g.GCommand(f"PA{self.ch}={round(distance)};BG{self.ch}")
+            counts = round(distance * self.drive_scale)
+            self.g.GCommand(f"PA{self.ch}={counts};BG{self.ch}")
             await self.wait_for_motion_complete(self.ch)
+            await self.update_position()
+            await self.update_status()
         except GclibError:
             self.status = Axis.ERROR
 
@@ -84,13 +98,15 @@ class GalilAxis(Axis):
     async def stop(self):
         try:
             self.g.GCommand("AB")
+            await self.update_position()
+            await self.update_status()
         except GclibError:
             self.status = Axis.ERROR
     
     async def update_position(self) -> float:
-        s = self.g.GCommand(f"TP{self.ch}")
-        self.position = float(s)
-        return float(s)
+        p = float(self.g.GCommand(f"TP{self.ch}"))
+        self.position = p / self.encoder_scale
+        return self.position
     
     async def update_status(self) -> int:
         try:
@@ -116,9 +132,22 @@ class GalilAxis(Axis):
         return self.status
     
     async def set_limits(self, low_limit: float | None = None, high_limit: float | None = None):
-        pass # TODO
+        try:
+            if low_limit:
+                self.g.GCommand(f"BL{self.ch}={low_limit * self.drive_scale}")
+            if high_limit:
+                self.g.GCommand(f"FL{self.ch}={high_limit * self.drive_scale}")
+        except GclibError:
+            self.status = Axis.ERROR
     
     async def get_limits(self) -> tuple[float, float]:
-        return (0., 0.) # TODO
+        l = 0.
+        h = 0.
+        try:
+            l = float(self.g.GCommand(f"BL{self.ch}=?")) * self.drive_scale
+            h = float(self.g.GCommand(f"FL{self.ch}=?")) * self.drive_scale
+        except GclibError:
+            self.status = Axis.ERROR
+        return (l, h)
 
     
