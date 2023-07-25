@@ -56,6 +56,12 @@ class ZaberAxis(Axis):
         except MotionLibException:
             self.status = Axis.ERROR
 
+    async def stop(self):
+        try:
+            await self.axis.stop_async()
+        except MotionLibException:
+            self.status = Axis.ERROR
+
     async def update_position(self) -> float:
         try:
             self.position = await self.axis.get_position_async(Units.LENGTH_MILLIMETRES)
@@ -68,12 +74,16 @@ class ZaberAxis(Axis):
             if self.status == Axis.ERROR:
                 # latch errors until cleared by a good move
                 self.status = Axis.ERROR
-            elif await self.axis.warnings.get_flags_async():
-                self.status = Axis.ERROR
-            elif await self.axis.is_busy_async():
-                self.status = Axis.BUSY
             else:
-                self.status = Axis.READY
+                flags = await self.axis.warnings.get_flags_async()
+                if flags:
+                    # print error
+                    print(f"Error on axis {self.name}: {flags}")
+                    self.status = Axis.ERROR
+                elif await self.axis.is_busy_async():
+                    self.status = Axis.BUSY
+                else:
+                    self.status = Axis.READY
         except MotionLibException:
             self.status = Axis.ERROR
         return self.status

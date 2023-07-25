@@ -21,24 +21,28 @@ try:
 
     # status
     ts = int(g.GCommand(f"TS{ch}"))
+    lr = ts & 0b00000100
     print(f"switches: {ts:08b}")
     tp = g.GCommand(f"TP{ch}")
     print(f"position: {tp}")
 
     # jog negative
-    g.GCommand(f"JG{ch}=-100000")
-    g.GCommand(f"BG{ch}")
-    g.GMotionComplete(f"{ch}")
-    print("found negative limit")
+    if lr:
+        g.GCommand(f"JG{ch}=-100000")
+        g.GCommand(f"BG{ch}")
+        g.GMotionComplete(f"{ch}")
+        print("found negative limit")
 
-    # status
-    ts = int(g.GCommand(f"TS{ch}"))
-    print(f"switches: {ts:08b}")
-    tp = g.GCommand(f"TP{ch}")
-    print(f"position: {tp}")
+        # status
+        ts = int(g.GCommand(f"TS{ch}"))
+        print(f"switches: {ts:08b}")
+        tp = g.GCommand(f"TP{ch}")
+        print(f"position: {tp}")
+    else:
+        print("already at negative limit")
 
     # home
-    g.GCommand(f"HV{ch}=2000")
+    g.GCommand(f"HV{ch}=5000")
     g.GCommand(f"HM{ch}")
     g.GCommand(f"BG{ch}")
     g.GMotionComplete(f"{ch}")

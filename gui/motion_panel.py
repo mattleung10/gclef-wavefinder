@@ -14,7 +14,7 @@ class MotionPanel(ttk.LabelFrame):
     COLORS = ["green", "yellow", "yellow", "red"]
 
     def __init__(self, parent, axes: dict[str, Axis]):
-        super().__init__(parent, text="Zaber Slide Motion Control", labelanchor=tk.N)
+        super().__init__(parent, text="Motion Control", labelanchor=tk.N)
 
         self.axes = axes
 
@@ -26,6 +26,7 @@ class MotionPanel(ttk.LabelFrame):
         self.pos:    dict[str, tk.StringVar] = {}
         self.pos_in: dict[str, tk.StringVar] = {}
         self.lights: dict[str, ttk.Label] = {}
+        self.home_sel: dict[str, tk.IntVar] = {}
         self.jog_sel = tk.StringVar(self)
 
         r = self.make_header_slice()
@@ -34,8 +35,11 @@ class MotionPanel(ttk.LabelFrame):
 
     ### Panel Slices ###
     def make_header_slice(self) -> int:
-        ttk.Label(self, text="Axis").grid(column=0, row=0, columnspan=3)
-        ttk.Label(self, text="Jog").grid(column=3, row=0, columnspan=2)
+        ttk.Label(self, text="Axis").grid(column=0, row=0, pady=10)
+        ttk.Label(self, text="Position").grid(column=1, row=0)
+        ttk.Label(self, text="Input").grid(column=2, row=0)
+        ttk.Label(self, text="Jog").grid(column=4, row=0)
+        ttk.Label(self, text="Home").grid(column=5, row=0)
         return 1
 
     def make_axes_position_slice(self, row: int) -> int:
@@ -53,29 +57,47 @@ class MotionPanel(ttk.LabelFrame):
             e.grid(column=2, row=row, sticky=tk.W)
             # status light
             self.lights[a.name] = ttk.Label(self, width=1)
-            self.lights[a.name].grid(column=3, row=row, sticky=tk.W)
+            self.lights[a.name].grid(column=3, row=row, padx=10)
             # jog selector
             r = ttk.Radiobutton(self, value=a.name, variable=self.jog_sel)
-            r.grid(column=4, row=row, columnspan=2)
+            r.grid(column=4, row=row)
+            # home selector
+            self.home_sel[a.name] = tk.IntVar(value=0)
+            c = ttk.Checkbutton(self, variable=self.home_sel[a.name])
+            c.grid(column=5,row=row)
 
             row += 1
         return row
 
     def make_buttons(self, row: int):
-        ttk.Button(self, text="Home",
-                   command=self.home_stages).grid(column=0, row=row,
-                                                  pady=(10, 0), padx=10)
-        ttk.Button(self, text="Move",
-                   command=self.move_stages).grid(column=1, row=row, columnspan=2,
-                                                  pady=(10, 0), padx=10)
+        s = ttk.Button(self, text="Stop", command=self.stop_stages)
+        s.grid(column=0, row=row, pady=(10, 0), padx=10)
+
+        m = ttk.Button(self, text="Move", command=self.move_stages)
+        m.grid(column=1, row=row, columnspan=2, pady=(10, 0), padx=10)
+
         self.jog_less = ttk.Button(self, text="◄", command=self.jog, width=3)
-        self.jog_less.grid(column=3, row=row, pady=(10, 0), padx=2)
+        self.jog_less.grid(column=4, row=row, pady=(10, 0), padx=2)
         self.jog_more = ttk.Button(self, text="►", command=self.jog, width=3)
-        self.jog_more.grid(column=4, row=row, pady=(10, 0), padx=2)
+        self.jog_more.grid(column=5, row=row, pady=(10, 0), padx=2)
+        # 2nd row
+        z = ttk.Button(self, text="Zero Input", command=self.zero_input)
+        z.grid(column=0, row=row+1, pady=(10, 0), padx=10)
+        cp = ttk.Button(self, text="Copy Position", command=self.copy_position)
+        cp.grid(column=1, row=row+1, columnspan=2, pady=(10, 0), padx=10)
+        h = ttk.Button(self, text="Home", command=self.home_stages)
+        h.grid(column=4, row=row+1, columnspan=2, pady=(10, 0), padx=10)
 
     ### Functions ###
+    def stop_stages(self):
+        "Stop all stages"
+        for a in self.axes.values():
+            t= asyncio.create_task(a.stop())
+            t.add_done_callback(self.tasks.discard)
+            self.tasks.add(t)
+
     def move_stages(self):
-        """Move Zaber stages"""
+        """Move all stages"""
         for a in self.axes.values():
             p = float(self.pos_in[a.name].get())
             t = asyncio.create_task(a.move_absolute(p))
@@ -84,10 +106,11 @@ class MotionPanel(ttk.LabelFrame):
 
     def home_stages(self):
         """Home all stages"""
-        for a in self.axes.values():
-            t = asyncio.create_task(a.home())
-            t.add_done_callback(self.tasks.discard)
-            self.tasks.add(t)
+        for name, axis in self.axes.items():
+            if self.home_sel[name].get() == 1:
+                t = asyncio.create_task(axis.home())
+                t.add_done_callback(self.tasks.discard)
+                self.tasks.add(t)
 
     def jog(self):
         """Jog when button is pressed"""
@@ -104,6 +127,16 @@ class MotionPanel(ttk.LabelFrame):
             t = asyncio.create_task(a.move_relative(+0.1))
             t.add_done_callback(self.tasks.discard)
             self.tasks.add(t)
+
+    def copy_position(self):
+        """Copy position to input"""
+        for a in self.axes.keys():
+            self.pos_in[a].set(self.pos[a].get())
+
+    def zero_input(self):
+        """Zero position input"""
+        for a in self.axes.keys():
+            self.pos_in[a].set("0")
 
     async def update(self):
         """Cyclical task to update UI with axis info"""

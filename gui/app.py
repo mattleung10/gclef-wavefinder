@@ -52,7 +52,7 @@ class App(tk.Tk):
 
         # special limits
         # limit detector z-axis to 15mm
-        z_axis = self.axes["focal_z"] if self.axes else None
+        z_axis = self.axes.get("focal_z", None)
         if z_axis:
             t = self.loop.create_task(z_axis.set_limits(None, 15.0))
             t.add_done_callback(self.tasks.discard)
@@ -91,9 +91,9 @@ class App(tk.Tk):
         
     def make_functions(self):
         """Make function units"""
-        z_axis = self.axes["focal_z"] if self.axes else None
-        x_axis = self.axes["focal_x"] if self.axes else None
-        y_axis = self.axes["focal_y"] if self.axes else None
+        z_axis = self.axes.get("focal_z", None)
+        x_axis = self.axes.get("focal_x", None)
+        y_axis = self.axes.get("focal_y", None)
 
         self.focuser = Focuser(self.camera, z_axis, steps=10, min_move=0.001)
         self.positioner = Positioner(self.camera, x_axis, y_axis, px_size=(3.75, 3.75))
@@ -141,6 +141,7 @@ class App(tk.Tk):
         """Close application"""
         for task in self.tasks:
             task.cancel()
+        self.galil_adapter.close()
         # stop all panel sub-tasks
         self.motion_panel.close()
         self.function_panel.close()

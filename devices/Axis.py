@@ -16,12 +16,8 @@ class Axis(ABC):
         self.is_homed = False
 
     @abstractmethod
-    async def home(self, force: bool = False):
-        """Home the axis if necessary
-        
-        Args:
-            force: perform homing even if not needed
-        """
+    async def home(self):
+        """Home the axis"""
         pass
 
     @abstractmethod
@@ -40,6 +36,11 @@ class Axis(ABC):
             Args:
                 distance: in millimeters or degrees
         """
+        pass
+
+    @abstractmethod
+    async def stop(self):
+        """Stop!"""
         pass
 
     @abstractmethod

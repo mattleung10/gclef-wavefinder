@@ -23,8 +23,7 @@ class GalilAdapter:
         try:
             self.g = gclib.py()
             # connect in direct mode, subscribe to all unsolicited
-            s = self.g.GOpen(f"{self.address} -d -s ALL")
-            print(s)
+            self.g.GOpen(f"{self.address} -d -s ALL")
         except gclib.GclibError as e:
             print(e)
             return
@@ -59,3 +58,6 @@ class GalilAdapter:
         """
         while True:
            await asyncio.gather(self.update(), asyncio.sleep(interval))
+
+    def close(self):
+        self.g.GClose()
