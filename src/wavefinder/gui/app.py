@@ -1,4 +1,5 @@
 import asyncio
+import ctypes
 import tkinter as tk
 
 from ..devices.Axis import Axis
@@ -20,6 +21,10 @@ class App(tk.Tk):
 
         run_now: True to start loop immediately
         """
+        
+        # For Windows, we need to set the DPI awareness so it looks right
+        ctypes.windll.shcore.SetProcessDpiAwareness(1)
+        
         super().__init__()
 
         # task variables
@@ -28,7 +33,7 @@ class App(tk.Tk):
         self.tasks: set[asyncio.Task] = set()
 
         # UI variables and setup
-        self.title("Red AIT Data Acquisition")
+        self.title("G-CLEF Wavefinder")
         self.grid()
         self.configure(padx=10, pady=10)
 

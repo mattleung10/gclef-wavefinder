@@ -30,7 +30,8 @@ This graphical software for G-CLEF camera AIT lab prototyping measures optical p
     - Alternatively, see `Mightex_SDK/Camera_Start_Guide.pdf` for a short version.
 * Galil API: https://www.galil.com/downloads/api
 
-## Install
+## Install & Run
+On Windows 10, Using Powershell
 1. Ensure prequisites are installed.
 1. Clone repository:
     ```
@@ -38,23 +39,28 @@ This graphical software for G-CLEF camera AIT lab prototyping measures optical p
     ```
 1. Make a Python virtual environment:
     ```
-    $ python3 -m venv .venv
+    > py -m venv .venv
     ```
 1. Activate environment:
     ```
-    $ source .venv/bin/activate
+    >  .\.venv\Scripts\activate
     ```
 1. Install Galil's `gclib`:
     ```
-    $ pip install --use-pep517 Galil_SDK/
+    > pip install --use-pep517 Galil_SDK/
     ```
 1. Install wavefinder:
     ```
-    pip install -e .
+    > pip install -e .
     ```
     * -e is for edit mode, omit if you won't edit the code
 
-## Additional Steps to Run in WSL
+**Run the application:**
+```
+> py main.py
+```
+
+### Additional Steps for WSL
 1. Follow installation instructions in previous section.
 1. Add user to `plugdev` and `dialout` groups:
     ```
@@ -89,7 +95,7 @@ This graphical software for G-CLEF camera AIT lab prototyping measures optical p
     ```
 1. Similarly, `usbipd wsl attach` the USB devices corresponding to `/dev/ttyUSB0` and `/dev/ttyUSB1`. These should be called something like "USB Serial Converter" in `usbipd wsl list`.
 
-### Notes
+#### Notes
 * `lsusb` should show something like:
     ```
     Bus 001 Device 002: ID 04b4:0528 Cypress Semiconductor Corp. USB-BUF-CCD-1
