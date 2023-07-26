@@ -1,9 +1,13 @@
 import asyncio
 import tkinter as tk
 from tkinter import ttk
+from typing import TYPE_CHECKING
 
 from ..devices.Axis import Axis
 from .utils import valid_float
+
+if TYPE_CHECKING:
+    from .app import App
 
 
 class MotionPanel(ttk.LabelFrame):
@@ -12,7 +16,7 @@ class MotionPanel(ttk.LabelFrame):
     # number of colors must match number of status codes
     COLORS = ["green", "yellow", "yellow", "red"]
 
-    def __init__(self, parent, axes: dict[str, Axis]):
+    def __init__(self, parent: 'App', axes: dict[str, Axis]):
         super().__init__(parent, text="Motion Control", labelanchor=tk.N)
 
         self.axes = axes
