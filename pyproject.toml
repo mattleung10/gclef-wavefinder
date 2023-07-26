@@ -12,7 +12,9 @@ authors = [
 description = "Measure optical performance at various wavelengths"
 readme = "README.md"
 requires-python = ">=3.11"
-
-# [project.urls]
-# "Homepage" = "https://github.com/pypa/sampleproject"
-# "Bug Tracker" = "https://github.com/pypa/sampleproject/issues"
+dependencies = [
+  "numpy",
+  "pyusb",
+  "Pillow",
+  "zaber-motion"
+]

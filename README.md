@@ -1,26 +1,41 @@
-# zaber-focus
-Control Software for Zaber XYZ Focus Stage with Mightex Camera
+# G-CLEF Wavefinder
+This graphical software for G-CLEF camera AIT lab prototyping measures optical performance at various wavelengths.
+
+## Features
+* Mightex Buffered USB Camera interface
+  - Configure all camera settings
+  - Video streaming and single-exposure trigger modes
+* Motion control of Zaber linear axes and Newmark rotating gimbals
+  - Absolute positioning
+  - Fine motion jog
+  - Homing functions
+  - Axis status and error detection
+* Region of Interest visualization
+* Image statistics
+  - background deletion
+  - centroid
+  - variance, covariance, std. dev., full-width half-max
+* Automatic image centering
+* Automatic focus
+* Save images in FITS format
+* Run from a table of scripted configurations
+
+<!-- TODO: screenshot -->
 
 ## Prequisites
-* Python 3.11
-* `python3-tk` package
-* numpy
+* Microsoft Windows 10 (also works in WSL)
+* Python 3.11 with Tcl/Tk
+* Mightex camera drivers, following *Software Installation* (page 7) instructions in `Mightex_SDK/Documents/Mightex Buffer USB CCD Camera User Manual.pdf`
+    - Driver files are in `Mightex_SDK/Driver/Windows7/` (works on Windows 10)
+    - Alternatively, see `Mightex_SDK/Camera_Start_Guide.pdf` for a short version.
+* Galil API: https://www.galil.com/downloads/api
 
-## Install (new)
+## Install
+1. Ensure prequisites are installed.
 1. Clone repository:
     ```
     $ git clone git@github.com:Smithsonian/zaber-focus.git
     ```
-1. `pip install Galil_SDK/`
-1. `pip install -e .`
-
-## Install & Setup (on WSL)
-1. Clone repository:
-    ```
-    $ git clone git@github.com:Smithsonian/zaber-focus.git
-    ```
-1. Install drivers, following *Software Installation* (page 7) instructions in `devices/Mightex_SDK/Documents/Mightex Buffer USB CCD Camera User Manual.pdf`
-    - Alternatively, see `devices/Mightex_SDK/Camera_Start_Guide.pdf` for a short version.
 1. Make a Python virtual environment:
     ```
     $ python3 -m venv .venv
@@ -29,14 +44,22 @@ Control Software for Zaber XYZ Focus Stage with Mightex Camera
     ```
     $ source .venv/bin/activate
     ```
-1. Install dependencies:
+1. Install Galil's `gclib`:
     ```
-    $ pip install pyusb numpy Pillow zaber-motion
+    $ pip install --use-pep517 Galil_SDK/
     ```
+1. Install wavefinder:
+    ```
+    pip install -e .
+    ```
+    * -e is for edit mode, omit if you won't edit the code
+
+## Additional Steps to Run in WSL
+1. Follow installation instructions in previous section.
 1. Add user to `plugdev` and `dialout` groups:
     ```
     $ sudo usermod -a -G plugdev <username>
-    $ sudo usermod -a -G plugdev <username>
+    $ sudo usermod -a -G dialout <username>
     ```
 1. Log out and log back in to set new group membership.
     ```
@@ -64,7 +87,7 @@ Control Software for Zaber XYZ Focus Stage with Mightex Camera
     $ dmesg
     $ ls -al /dev/bus/usb/001/
     ```
-1. Add `/dev/ttyUSB0` similarly, using `usbipd`
+1. Similarly, `usbipd wsl attach` the USB devices corresponding to `/dev/ttyUSB0` and `/dev/ttyUSB1`. These should be called something like "USB Serial Converter" in `usbipd wsl list`.
 
 ### Notes
 * `lsusb` should show something like:
@@ -82,10 +105,10 @@ Control Software for Zaber XYZ Focus Stage with Mightex Camera
     ```
 
 ## Mightex SDK and Documentation
-See folder `devices/Mightex_SDK` for Mightex SDK and documentation. Some key files:
-* `devices/Mightex_SDK/Camera_Start_Guide.pdf`: quick start guide
-* `devices/Mightex_SDK/Documents/Mightex Buffer USB CCD Camera User Manual.pdf`: how to install drivers and use the included example program
-* `devices/Mightex_SDK/SDK/Documents/Mightex Buffer USB CCD Camera USB Protocol.pdf`: USB protocol information (used to make this application)
+See folder `Mightex_SDK` for Mightex SDK and documentation. Some key files:
+* `Mightex_SDK/Camera_Start_Guide.pdf`: quick start guide
+* `Mightex_SDK/Documents/Mightex Buffer USB CCD Camera User Manual.pdf`: how to install drivers and use the included example program
+* `Mightex_SDK/SDK/Documents/Mightex Buffer USB CCD Camera USB Protocol.pdf`: USB protocol information (used to make this application)
 
 ### Data Structures from Mightex Camera
 ```
