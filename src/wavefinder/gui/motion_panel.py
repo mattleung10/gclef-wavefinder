@@ -2,8 +2,7 @@ import asyncio
 import tkinter as tk
 from tkinter import ttk
 
-from devices.Axis import Axis
-
+from ..devices.Axis import Axis
 from .utils import valid_float
 
 

@@ -1,13 +1,10 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.packages.find]
-include = ["wavefinder"] 
-
 [project]
-name = "GCLEF-Wavefinder"
-version = "0.0.1"
+name = "wavefinder"
+version = "0.7.0"
 authors = [
   { name="Cem Onyuksel", email="cem.onyuksel@cfa.harvard.edu" },
   { name="Colby Jergenson", email="colby.jurgenson@cfa.harvard.edu" }
@@ -15,14 +12,6 @@ authors = [
 description = "Measure optical performance at various wavelengths"
 readme = "README.md"
 requires-python = ">=3.11"
-# dependencies = [
-#     "numpy",
-#     "tkinter"
-# ]
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "Operating System :: OS Independent",
-]
 
 # [project.urls]
 # "Homepage" = "https://github.com/pypa/sampleproject"

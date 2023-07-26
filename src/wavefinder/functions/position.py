@@ -1,8 +1,8 @@
 from PIL import Image
 
-from devices.MightexBufCmos import Camera
-from devices.Axis import Axis
-from functions.image import get_centroid_and_variance
+from ..devices.MightexBufCmos import Camera
+from ..devices.Axis import Axis
+from .image import get_centroid_and_variance
 
 
 class Positioner:

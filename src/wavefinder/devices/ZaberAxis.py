@@ -1,7 +1,8 @@
+from zaber_motion import MotionLibException, Units
+from zaber_motion.ascii import Axis as ZAxis
+
 from .Axis import Axis
 
-from zaber_motion.ascii import Axis as ZAxis
-from zaber_motion import Units, MotionLibException
 
 class ZaberAxis(Axis):
     # Zaber implementation of Axis superclass

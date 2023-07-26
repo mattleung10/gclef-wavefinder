@@ -1,13 +1,12 @@
 import asyncio
 import tkinter as tk
 
-from devices.Axis import Axis
-from devices.GalilAdapter import GalilAdapter
-from devices.MightexBufCmos import Camera
-from devices.ZaberAdapter import ZaberAdapter
-from functions.focus import Focuser
-from functions.position import Positioner
-
+from ..devices.Axis import Axis
+from ..devices.GalilAdapter import GalilAdapter
+from ..devices.MightexBufCmos import Camera
+from ..devices.ZaberAdapter import ZaberAdapter
+from ..functions.focus import Focuser
+from ..functions.position import Positioner
 from .camera_panel import CameraPanel
 from .function_panel import FunctionPanel
 from .motion_panel import MotionPanel

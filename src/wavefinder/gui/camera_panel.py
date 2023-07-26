@@ -5,9 +5,8 @@ from tkinter import filedialog, ttk
 import numpy as np
 from PIL import Image, ImageColor, ImageDraw, ImageOps, ImageTk
 
-from devices.MightexBufCmos import Camera, Frame
-from functions.image import get_centroid_and_variance, variance_to_fwhm
-
+from ..devices.MightexBufCmos import Camera, Frame
+from ..functions.image import get_centroid_and_variance, variance_to_fwhm
 from .utils import valid_float, valid_int
 
 

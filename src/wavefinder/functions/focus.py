@@ -1,8 +1,8 @@
 import numpy as np
 
-from devices.MightexBufCmos import Camera
-from devices.Axis import Axis
-from functions.image import frame_to_img, get_centroid_and_variance
+from ..devices.MightexBufCmos import Camera
+from ..devices.Axis import Axis
+from .image import frame_to_img, get_centroid_and_variance
 
 
 class Focuser:

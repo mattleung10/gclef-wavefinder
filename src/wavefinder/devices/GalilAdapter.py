@@ -3,6 +3,7 @@ import asyncio
 from .Galil_SDK.gclib import GclibError, py
 from .GalilAxis import GalilAxis
 
+
 class GalilAdapter:
     """Interface adapter between application and galil"""
     def __init__(self, address: str,

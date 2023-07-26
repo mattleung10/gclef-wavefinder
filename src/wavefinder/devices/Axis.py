@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+
 class Axis(ABC):
     """Model holds information about genetic Axis"""
 

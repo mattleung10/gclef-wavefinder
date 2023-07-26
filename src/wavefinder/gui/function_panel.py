@@ -2,8 +2,8 @@ import asyncio
 import tkinter as tk
 from tkinter import ttk
 
-from functions.focus import Focuser
-from functions.position import Positioner
+from ..functions.focus import Focuser
+from ..functions.position import Positioner
 
 
 class FunctionPanel(ttk.LabelFrame):
