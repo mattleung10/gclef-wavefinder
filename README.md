@@ -2,7 +2,7 @@
 Control Software for Zaber XYZ Focus Stage with Mightex Camera
 
 ## Prequisites
-* Python 3.11 (Python 3.10 is probably enough)
+* Python 3.11
 * `python3-tk` package
 * numpy
 
@@ -11,8 +11,8 @@ Control Software for Zaber XYZ Focus Stage with Mightex Camera
     ```
     $ git clone git@github.com:Smithsonian/zaber-focus.git
     ```
-1. Install drivers, following *Software Installation* (page 7) instructions in `CCDBufCamera_CDROM_181227/Documents/Mightex Buffer USB CCD Camera User Manual.pdf`
-    - Alternatively, see `CCDBufCamera_CDROM_181227/Camera_Start_Guide.pdf` for a short version.
+1. Install drivers, following *Software Installation* (page 7) instructions in `devices/Mightex_SDK/Documents/Mightex Buffer USB CCD Camera User Manual.pdf`
+    - Alternatively, see `devices/Mightex_SDK/Camera_Start_Guide.pdf` for a short version.
 1. Make a Python virtual environment:
     ```
     $ python3 -m venv .venv
@@ -74,10 +74,10 @@ Control Software for Zaber XYZ Focus Stage with Mightex Camera
     ```
 
 ## Mightex SDK and Documentation
-See folder `CCDBufCamera_CDROM_181227` for Mightex SDK and documentation. Some key files:
-* `CCDBufCamera_CDROM_181227/Camera_Start_Guide.pdf`: quick start guide
-* `CCDBufCamera_CDROM_181227/Documents/Mightex Buffer USB CCD Camera User Manual.pdf`: how to install drivers and use the included example program
-* `CCDBufCamera_CDROM_181227/SDK/Documents/Mightex Buffer USB CCD Camera USB Protocol.pdf`: USB protocol information (used to make this application)
+See folder `devices/Mightex_SDK` for Mightex SDK and documentation. Some key files:
+* `devices/Mightex_SDK/Camera_Start_Guide.pdf`: quick start guide
+* `devices/Mightex_SDK/Documents/Mightex Buffer USB CCD Camera User Manual.pdf`: how to install drivers and use the included example program
+* `devices/Mightex_SDK/SDK/Documents/Mightex Buffer USB CCD Camera USB Protocol.pdf`: USB protocol information (used to make this application)
 
 ### Data Structures from Mightex Camera
 ```
