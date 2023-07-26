@@ -1,6 +1,6 @@
 import asyncio
 
-from .Galil_SDK.gclib import GclibError, py
+from gclib import GclibError, py
 from .GalilAxis import GalilAxis
 
 

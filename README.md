@@ -6,6 +6,14 @@ Control Software for Zaber XYZ Focus Stage with Mightex Camera
 * `python3-tk` package
 * numpy
 
+## Install (new)
+1. Clone repository:
+    ```
+    $ git clone git@github.com:Smithsonian/zaber-focus.git
+    ```
+1. `pip install Galil_SDK/`
+1. `pip install -e .`
+
 ## Install & Setup (on WSL)
 1. Clone repository:
     ```

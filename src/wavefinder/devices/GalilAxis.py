@@ -1,7 +1,7 @@
 import asyncio
 
 from .Axis import Axis
-from .Galil_SDK.gclib import GclibError, py
+from gclib import GclibError, py
 
 
 class GalilAxis(Axis):
