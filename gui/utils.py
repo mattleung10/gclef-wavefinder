@@ -1,4 +1,4 @@
-# UI utility functions
+"""UI utility functions"""
 
 def valid_int(i_str: str):
     """Check if a int value is valid"""

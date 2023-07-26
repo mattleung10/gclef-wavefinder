@@ -1,3 +1,6 @@
+# type: ignore
+# stops Pylance from linting this file
+
 """
 Python wrapper for Galil gclib.
 Contact softwaresupport@galil.com with questions, comments, and suggestions.

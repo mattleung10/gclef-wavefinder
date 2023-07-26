@@ -1,6 +1,6 @@
 import asyncio
 
-import gclib.gclib as gclib
+from .Galil_SDK.gclib import GclibError, py
 from .GalilAxis import GalilAxis
 
 class GalilAdapter:
@@ -21,10 +21,10 @@ class GalilAdapter:
         
         print(f"Connecting to Galil devices on {address}... ", end='')
         try:
-            self.g = gclib.py()
+            self.g = py()
             # connect in direct mode, subscribe to all unsolicited
             self.g.GOpen(f"{self.address} -d -s ALL")
-        except gclib.GclibError as e:
+        except GclibError as e:
             print(e)
             return
         else:
@@ -34,7 +34,7 @@ class GalilAdapter:
             print(f"Finding {a_nm} on channel {a_ch}... ", end='')
             try:
                 self.axes[a_nm] = GalilAxis(a_nm, a_ch, self.g)
-            except gclib.GclibError:
+            except GclibError:
                 print("not found.") # device not found
             except Exception as e:
                 print(e) # can't make Axis, other errors
@@ -42,7 +42,7 @@ class GalilAdapter:
                 print("OK.")
 
     @property
-    def connection(self) -> gclib.py:
+    def connection(self) -> py:
         return self.g
 
     async def update(self):

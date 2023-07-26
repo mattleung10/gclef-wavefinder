@@ -50,7 +50,7 @@ class MotionPanel(ttk.LabelFrame):
             self.pos[a.name] = tk.StringVar(value=str(a.position))
             l = ttk.Label(self, textvariable=self.pos[a.name], width=7)
             l.grid(column=1, row=row, padx=10, sticky=tk.E)
-            # position input TODO: validate not working
+            # position input
             self.pos_in[a.name] = tk.StringVar(value=str(0.0))
             e = ttk.Entry(self, textvariable=self.pos_in[a.name], validate='focus',
                           validatecommand=(self.register(valid_float), '%P'),

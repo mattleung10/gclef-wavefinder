@@ -1,6 +1,6 @@
 import sys
 import string
-import gclib.gclib as gclib
+import gclib
 
 
 def main():

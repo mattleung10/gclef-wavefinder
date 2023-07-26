@@ -1,5 +1,5 @@
 import asyncio
-from gclib.gclib import GclibError, py
+from .Galil_SDK.gclib import GclibError, py
 
 from .Axis import Axis
 
@@ -70,7 +70,6 @@ class GalilAxis(Axis):
             self.status = Axis.ERROR
     
     async def move_absolute(self, distance: float):
-        # TODO counts per degree
         try:
             self.status = Axis.MOVING
             counts = round(distance * self.drive_scale)

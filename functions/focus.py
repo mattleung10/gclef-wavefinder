@@ -1,5 +1,4 @@
 import numpy as np
-from zaber_motion import Units
 
 from devices.MightexBufCmos import Camera
 from devices.Axis import Axis
