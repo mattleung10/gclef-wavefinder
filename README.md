@@ -45,7 +45,22 @@ On Windows 10, Using Powershell
     ```
     >  .\.venv\Scripts\activate
     ```
-1. Install Galil's `gclib`:
+    * You may see a permissions error:
+        ```
+            > .\.venv\Scripts\activate
+            .\.venv\Scripts\activate : File C:\Users\A_COnyuksel\Software\gclef-wavefinder\.venv\Scripts\Activate.ps1 cannot be loaded because running scripts is disabled on this system.
+            + .\.venv\Scripts\activate
+            + ~~~~~~~~~~~~~~~~~~~~~~~~
+                + CategoryInfo          : SecurityError: (:) [], PSSecurityException
+                + FullyQualifiedErrorId : UnauthorizedAccess
+        ```
+    * To solve this permanently, give your user more access:
+        ```
+        > Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+        ```
+    * Read more about it: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies?view=powershell-7.3
+
+1. Install Galil's `gclib` Python module:
     ```
     > pip install --use-pep517 Galil_SDK/
     ```
