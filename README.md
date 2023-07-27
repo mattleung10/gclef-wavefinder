@@ -88,7 +88,7 @@ On Windows 10, Using Powershell
     ```
 1. Install udev rule:
     ```
-    $ sudo cp 10-local.rules /etc/udev/rules.d/
+    $ sudo cp sys/Linux/10-local.rules /etc/udev/rules.d/
     ```
 1. On host machine, install https://github.com/dorssel/usbipd-win
 

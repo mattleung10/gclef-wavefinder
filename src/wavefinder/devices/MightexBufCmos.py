@@ -1,4 +1,6 @@
 import array
+import os
+import platform
 
 import numpy as np
 import usb.core
@@ -20,9 +22,11 @@ class Frame:
         self.bGain      = frame_prop[14] + (frame_prop[15] << 0x8) # blue gain
         self.timestamp  = frame_prop[16] + (frame_prop[17] << 0x8) # timestamp in ms
         self.triggered  = frame_prop[18] + (frame_prop[19] << 0x8) # true if triggered
-        self.nTriggers  = frame_prop[20] + (frame_prop[21] << 0x8) # number of trigger events since trigger mode is set
+        self.nTriggers  = frame_prop[20] + (frame_prop[21] << 0x8) # number of trigger events \
+                                                                   # since trigger mode was set
         # reserved property "UserMark" in this space
-        self.frameTime  = frame_prop[24] + (frame_prop[25] << 0x8) # frame time relates to frames per second
+        self.frameTime  = frame_prop[24] + (frame_prop[25] << 0x8) # frame time relates \
+                                                                   # to frames per second
         self.freq       = frame_prop[26] + (frame_prop[27] << 0x8) # CCD frequency mode
         self.expTime    = 0.05 * ((frame_prop[28] << 0x00) +       # exposure time in ms
                                   (frame_prop[29] << 0x08) +
@@ -86,13 +90,19 @@ class Camera:
         self.app_buffer: list[Frame] = []
         self.buffer_max = 100 # max 100 frames
 
-        print("Connecting to camera... ", end='')
+        print("Connecting to Mightex camera... ", end='')
+
+        # For Windows, load in the included libusb-1.0.dll by adding it to the PATH,
+        # where pyusb will find it.
+        if "Windows".casefold() in platform.platform().casefold():
+            libpath = os.path.abspath(os.path.join(os.path.dirname(__file__), "lib"))
+            os.environ['PATH'] = os.environ['PATH'] + os.pathsep + libpath
 
         # find USB camera and set USB configuration
         self.dev: usb.core.Device = usb.core.find(idVendor=0x04b4,
-                                                   idProduct=0x0528) # type: ignore
+                                                  idProduct=0x0528) # type: ignore
         if self.dev is None:
-            raise ValueError("Mightex camera not found")
+            raise ValueError("not found.")
         self.dev.set_configuration() # type: ignore
 
         # get firmware version until connection works
@@ -114,8 +124,8 @@ class Camera:
         self.dev.write(0x01, [0x50, 1, 0x01])
 
     def read_reply(self) -> array.array:
-        """Read reply from camera,
-        check that it's good, and return data as an array.
+        """Read reply from camera, check that it's good,
+        and return data as an array.
 
         The first byte is supposed to return 0x01 for "ok,"
         but the 0x33 command returns 0x08 for "ok,"
@@ -247,7 +257,8 @@ class Camera:
 
         In most of the applications, the Minimum Gain
         recommended for CGX-B013-U/CGX-C013-U is as following:
-        - No Bin mode ( Bin = 0) , Gain = 15 (dB) for B013 module and 17(dB) for C013 module.
+        - No Bin mode ( Bin = 0),
+                Gain = 15 (dB) for B013 module and 17(dB) for C013 module.
         - 1:2 Bin mode ( Bin = 0x81), Gain = 8 (dB)
         - 1:3 Bin mode ( Bin = 0x82), Gain = 6 (dB)
         - 1:4 Bin mode ( Bin = 0x83), Gain = 6 (dB)
@@ -273,7 +284,8 @@ class Camera:
         self.dev.write(0x01, [0x36, 1, 0x00])
 
     def query_buffer(self) -> dict[str, int | tuple[int, int]]:
-        """Query camera's buffer for number of available frames and configuration.
+        """Query camera's buffer for number of available frames
+        and configuration.
 
         returns dict with keys "nFrames", "resolution", "bin_mode"
         """
@@ -295,8 +307,8 @@ class Camera:
     def acquire_frames(self) -> None:
         """Aquire camera image frames.
 
-        Downloads all available frames from the camera buffer and puts them in the
-        application buffer.
+        Downloads all available frames from the camera buffer and puts them
+        in the application buffer.
         """
         while True:
             # get frame buffer information
