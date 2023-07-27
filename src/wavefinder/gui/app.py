@@ -1,5 +1,6 @@
 import asyncio
 import ctypes
+import platform
 import tkinter as tk
 
 from ..devices.Axis import Axis
@@ -23,7 +24,8 @@ class App(tk.Tk):
         """
         
         # For Windows, we need to set the DPI awareness so it looks right
-        ctypes.windll.shcore.SetProcessDpiAwareness(1)
+        if "Windows".casefold() in platform.platform().casefold():
+            ctypes.windll.shcore.SetProcessDpiAwareness(1)
         
         super().__init__()
 
