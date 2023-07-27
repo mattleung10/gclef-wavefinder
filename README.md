@@ -1,6 +1,14 @@
 # G-CLEF Wavefinder
 This graphical software for G-CLEF camera AIT lab prototyping measures optical performance at various wavelengths.
 
+* [Features](#features)
+* [Prerequisites](#prequisites)
+* [Install & Run](#install--run)
+    * [Additional Steps for WSL](#additional-steps-for-wsl)
+* [Mightex Camera Information](#mightex-camera-information)
+    * [Drivers](#drivers)
+    * [Documentation](#mightex-sdk-and-documentation)
+
 ## Features
 * Mightex Buffered USB Camera interface
   - Configure all camera settings
@@ -23,11 +31,9 @@ This graphical software for G-CLEF camera AIT lab prototyping measures optical p
 <!-- TODO: screenshot -->
 
 ## Prequisites
-* Microsoft Windows 10 (also works in WSL)
-* Python 3.11 with Tcl/Tk
-* Mightex camera drivers, following *Software Installation* (page 7) instructions in `Mightex_SDK/Documents/Mightex Buffer USB CCD Camera User Manual.pdf`
-    - Driver files are in `Mightex_SDK/Driver/Windows7/` (works on Windows 10)
-    - Alternatively, see `Mightex_SDK/Camera_Start_Guide.pdf` for a short version.
+* Microsoft Windows 10  operating system (also works in WSL)
+* Python 3.11 with Tcl/Tk from https://www.python.org (not Windows Store)
+* WinUSB drivers for Mightex camera: [instructions](#drivers)
 * Galil API: https://www.galil.com/downloads/api
 
 ## Install & Run
@@ -125,11 +131,21 @@ On Windows 10, Using Powershell
     [ 8163.171905] usb 1-1: Manufacturer: Mightex
     ```
 
-## Mightex SDK and Documentation
+## Mightex Camera Information
+### Drivers
+The included Mightex drivers don't play nicely with `pyusb` and `libusb`, so we need to install the *WinUSB* driver.
+1. Download Zadig: https://zadig.akeo.ie/
+1. In Zadig, select Options -> List All Devices
+1. In the drop-down list, select "USB-BUF-CCD-1"
+    * Check that USB ID = (0484, 0528)
+1. Install the WinUSB driver to the device.
+
+### Mightex SDK and Documentation
 See folder `Mightex_SDK` for Mightex SDK and documentation. Some key files:
 * `Mightex_SDK/Camera_Start_Guide.pdf`: quick start guide
 * `Mightex_SDK/Documents/Mightex Buffer USB CCD Camera User Manual.pdf`: how to install drivers and use the included example program
 * `Mightex_SDK/SDK/Documents/Mightex Buffer USB CCD Camera USB Protocol.pdf`: USB protocol information (used to make this application)
+* `Mightex_SDK/Driver/Windows7/`: included driver files; DO NOT USE, see [Drivers](#drivers).
 
 ### Data Structures from Mightex Camera
 ```
