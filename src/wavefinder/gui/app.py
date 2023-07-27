@@ -88,16 +88,19 @@ class App(tk.Tk):
                             "cfm2_x" : (110098, 1),
                             "cfm2_y" : (113059, 1)}
         
-        zaber = ZaberAdapter(["/dev/ttyUSB0", "/dev/ttyUSB1"], zaber_axis_names)
+        zaber = ZaberAdapter(["COM1", "COM2", "COM3", "COM4", "COM5",
+                              "COM6", "COM7", "COM8", "COM9", "COM10",
+                              "/dev/ttyUSB0", "/dev/ttyUSB1",
+                              "/dev/ttyUSB2", "/dev/ttyUSB3"], zaber_axis_names)
         return zaber
     
     def init_galil(self) -> GalilAdapter:
         """Initialize connection to Galil stages"""
 
-        galil_axis_names = {"gimbal_1_el": "A",
-                            "gimbal_1_az": "B",
-                            "gimbal_2_el": "C",
-                            "gimbal_2_az": "D"}
+        galil_axis_names = {"cfm1_el": "A",
+                            "cfm1_az": "B",
+                            "cfm2_el": "C",
+                            "cfm2_az": "D"}
         
         galil = GalilAdapter("192.168.1.19", galil_axis_names)
         return galil
