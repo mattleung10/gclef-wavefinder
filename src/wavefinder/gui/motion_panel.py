@@ -116,6 +116,7 @@ class MotionPanel(ttk.LabelFrame):
                 t = asyncio.create_task(axis.home())
                 t.add_done_callback(self.tasks.discard)
                 self.tasks.add(t)
+                self.home_sel[name].set(0)
 
     def jog(self):
         """Jog when button is pressed"""

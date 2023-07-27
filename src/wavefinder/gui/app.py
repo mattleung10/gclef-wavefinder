@@ -88,10 +88,12 @@ class App(tk.Tk):
                             "cfm2_x" : (110098, 1),
                             "cfm2_y" : (113059, 1)}
         
-        zaber = ZaberAdapter(["COM1", "COM2", "COM3", "COM4", "COM5",
-                              "COM6", "COM7", "COM8", "COM9", "COM10",
-                              "/dev/ttyUSB0", "/dev/ttyUSB1",
-                              "/dev/ttyUSB2", "/dev/ttyUSB3"], zaber_axis_names)
+        # TODO: put full list back
+        # zaber = ZaberAdapter(["COM1", "COM2", "COM3", "COM4", "COM5",
+        #                       "COM6", "COM7", "COM8", "COM9", "COM10",
+        #                       "/dev/ttyUSB0", "/dev/ttyUSB1",
+        #                       "/dev/ttyUSB2", "/dev/ttyUSB3"], zaber_axis_names)
+        zaber = ZaberAdapter(["COM3", "COM6"], zaber_axis_names)
         return zaber
     
     def init_galil(self) -> GalilAdapter:
