@@ -135,6 +135,7 @@ class MotionPanel(ttk.LabelFrame):
             self.pos_in[a].set("0.0")
     
     def bad_input(self):
+        """Reset entries with bad inputs to zero"""
         for e in self.pos_in.values():
             if not valid_float(e.get()):
                 e.set("0.0")

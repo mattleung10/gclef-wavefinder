@@ -155,7 +155,8 @@ class App(tk.Tk):
         """
         make_task(self.update_loop(self.interval), self.tasks, self.loop)
         for u in self.updaters:
-            make_task(u.update_loop(self.interval), self.tasks, self.loop)
+            if u:
+                make_task(u.update_loop(self.interval), self.tasks, self.loop)
 
     def run(self):
         """Run the loop"""
@@ -175,7 +176,8 @@ class App(tk.Tk):
     def close(self):
         """Close application"""
         for u in self.updaters:
-            u.close()
+            if u:
+                u.close()
         for task in self.tasks:
             task.cancel()
         self.loop.stop()

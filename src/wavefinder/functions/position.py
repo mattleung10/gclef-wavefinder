@@ -1,7 +1,7 @@
 from PIL import Image
 
-from ..devices.MightexBufCmos import Camera
 from ..devices.Axis import Axis
+from ..devices.MightexBufCmos import Camera
 from .image import get_centroid_and_variance
 
 

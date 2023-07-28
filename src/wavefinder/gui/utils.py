@@ -1,6 +1,8 @@
 """UI utility functions"""
 
 import asyncio
+from collections.abc import Coroutine
+
 
 def valid_int(i_str: str):
     """Check if a int value is valid"""
@@ -20,7 +22,7 @@ def valid_float(f_str: str):
     else:
         return True
     
-def make_task(coroutine: asyncio._CoroutineLike,
+def make_task(coroutine: Coroutine,
               task_set: set[asyncio.Task],
               loop: asyncio.AbstractEventLoop | None = None
               )-> tuple[asyncio.Task, set[asyncio.Task]]:

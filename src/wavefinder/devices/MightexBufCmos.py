@@ -1,4 +1,5 @@
 import array
+import asyncio
 import os
 import platform
 
@@ -75,7 +76,10 @@ class Camera:
                  fps: float = 10,
                  gain: int = 15) -> None:
 
-        # set configuration
+        # flag to run extra initialization on first async loop
+        self.extra_init = True
+
+        # camera configuration
         self.run_mode = run_mode
         self.bits = bits
         self.freq_mode = freq_mode
@@ -105,25 +109,27 @@ class Camera:
             raise ValueError("not found.")
         self.dev.set_configuration() # type: ignore
 
-        # get firmware version until connection works
+        self.establish_connection()
+        print("connected.")
+
+    def establish_connection(self):
+        """Write to and read from the camera until connection is established
+        
+        Not async, will block.
+        """
         while True:
             try:
-                self.get_firmware_version()
+                self.dev.write(0x01, [0x01, 1, 0x01])
+                self.dev.read(0x81, 0xff)
                 break
             except usb.core.USBTimeoutError:
                 continue
-        print("connected.")
 
-        # write config to camera
-        print("Writing configuration to camera... ", end='', flush=True)
-        self.write_configuration()
-        print("OK.")
-
-    def reset(self) -> None:
+    async def reset(self) -> None:
         """Reset the camera; not recommended for normal use."""
         self.dev.write(0x01, [0x50, 1, 0x01])
 
-    def read_reply(self) -> array.array:
+    async def read_reply(self) -> array.array:
         """Read reply from camera, check that it's good,
         and return data as an array.
 
@@ -137,20 +143,20 @@ class Camera:
         # Strip out first two bytes (status & len)
         return reply[2:]
 
-    def get_firmware_version(self) -> list[int]:
+    async def get_firmware_version(self) -> list[int]:
         """Get camera firmware version as
         [Major, Minor, Revision].
         """
         self.dev.write(0x01, [0x01, 1, 0x01])
-        return list(self.read_reply())
+        return list(await self.read_reply())
 
-    def get_camera_info(self) -> dict[str, str | int]:
+    async def get_camera_info(self) -> dict[str, str | int]:
         """Get camera information.
 
         returns a dict with keys "ConfigRev", "ModuleNo", "SerialNo", "MftrDate"
         """
         self.dev.write(0x01, [0x21, 1, 0x00])
-        reply = self.read_reply()
+        reply = await self.read_reply()
         info: dict[str, str | int] = {}
         info["ConfigRv"] = int(reply[0])                    # configuration version
         info["ModuleNo"] = reply[1:15].tobytes().decode()   # camera model
@@ -158,14 +164,14 @@ class Camera:
         info["MftrDate"] = reply[29:43].tobytes().decode()  # manufacture date (not set)
         return info
 
-    def print_introduction(self) -> None:
+    async def print_introduction(self) -> None:
         """Print camera information."""
-        for item in self.get_camera_info().items():
+        for item in (await self.get_camera_info()).items():
             print(item[0] + ": " + str(item[1]))
-        print("Firmware: " + '.'.join(map(str, self.get_firmware_version())))
+        print("Firmware: " + '.'.join(map(str, await self.get_firmware_version())))
 
-    def set_mode(self, run_mode: int = NORMAL,
-                 bits: int = 8, write_now: bool = False) -> None:
+    async def set_mode(self, run_mode: int = NORMAL,
+                       bits: int = 8, write_now: bool = False) -> None:
         """Set camera work mode and bitrate.
 
         run_mode:   NORMAL (default) or TRIGGER
@@ -177,7 +183,7 @@ class Camera:
         if write_now:
             self.dev.write(0x01, [0x30, 2, self.run_mode, self.bits])
 
-    def set_frequency(self, freq_mode: int = 0, write_now: bool = False) -> None:
+    async def set_frequency(self, freq_mode: int = 0, write_now: bool = False) -> None:
         """Set CCD frequency divider.
 
         freq_mode: frequency divider; freq = full / (2^freq_mode)
@@ -189,9 +195,9 @@ class Camera:
         if write_now:
             self.dev.write(0x01, [0x32, 1, self.freq_mode])
 
-    def set_resolution(self, resolution: tuple[int, int] = (1280, 960),
-                       bin_mode: int = NO_BIN, nBuffer: int = 24,
-                       write_now: bool = False) -> None:
+    async def set_resolution(self, resolution: tuple[int, int] = (1280, 960),
+                             bin_mode: int = NO_BIN, nBuffer: int = 24,
+                             write_now: bool = False) -> None:
         """Set camera resolution, bin mode, and buffer size.
 
         resolution: tuple of (rows, columns)
@@ -215,8 +221,8 @@ class Camera:
                                   self.resolution[1] >> 8, self.resolution[1] & 0xff,
                                   self.bin_mode, self.nBuffer, 0])
 
-    def set_exposure_time(self, exposure_time: float = 50,
-                          write_now: bool = False) -> None:
+    async def set_exposure_time(self, exposure_time: float = 50,
+                                write_now: bool = False) -> None:
         """Set exposure time.
 
         exposure_time:  time in milliseconds, in increments of 0.05ms
@@ -233,7 +239,7 @@ class Camera:
                                   (set_val >>  8) & 0xff,
                                   (set_val >>  0) & 0xff])
 
-    def set_fps(self, fps: float = 10, write_now: bool = False) -> None:
+    async def set_fps(self, fps: float = 10, write_now: bool = False) -> None:
         """Set frames per second.
 
         fps:        frames per second
@@ -249,7 +255,7 @@ class Camera:
             set_val = int(frame_time * 10000)
             self.dev.write(0x01, [0x64, 2, set_val >> 8, set_val & 0xff])
 
-    def set_gain(self, gain: int = 15, write_now: bool = False) -> None:
+    async def set_gain(self, gain: int = 15, write_now: bool = False) -> None:
         """Set camera gain.
 
         gain:       6 to 41 db, inclusive
@@ -267,30 +273,30 @@ class Camera:
         if write_now:
             self.dev.write(0x01, [0x62, 3, self.gain, self.gain, self.gain])
 
-    def write_configuration(self) -> None:
+    async def write_configuration(self) -> None:
         """Write all configuration settings to camera."""
-        self.set_mode(self.run_mode, self.bits, write_now=True)
-        self.set_frequency(self.freq_mode, write_now=True)
-        self.set_resolution(self.resolution, self.bin_mode, self.nBuffer, write_now=True)
-        self.set_exposure_time(self.exposure_time, write_now=True)
-        self.set_fps(self.fps, write_now=True)
-        self.set_gain(self.gain, write_now=True)
+        await self.set_mode(self.run_mode, self.bits, write_now=True)
+        await self.set_frequency(self.freq_mode, write_now=True)
+        await self.set_resolution(self.resolution, self.bin_mode, self.nBuffer, write_now=True)
+        await self.set_exposure_time(self.exposure_time, write_now=True)
+        await self.set_fps(self.fps, write_now=True)
+        await self.set_gain(self.gain, write_now=True)
 
-    def trigger(self) -> None:
+    async def trigger(self) -> None:
         """Simulate a trigger.
 
         Only works in TRIGGER mode.
         """
         self.dev.write(0x01, [0x36, 1, 0x00])
 
-    def query_buffer(self) -> dict[str, int | tuple[int, int]]:
+    async def query_buffer(self) -> dict[str, int | tuple[int, int]]:
         """Query camera's buffer for number of available frames
         and configuration.
 
         returns dict with keys "nFrames", "resolution", "bin_mode"
         """
         self.dev.write(0x01, [0x33, 1, 0x00])
-        reply = self.read_reply()
+        reply = await self.read_reply()
         buffer_info: dict[str, int | tuple[int, int]] = {}
         buffer_info["nFrames"] = reply[0]
         buffer_info["resolution"] = ((reply[1] << 8) + reply[2],
@@ -298,13 +304,13 @@ class Camera:
         buffer_info["bin_mode"] = reply[5]
         return buffer_info
 
-    def clear_buffer(self) -> None:
+    async def clear_buffer(self) -> None:
         """Clear camera and application buffer."""
-        nFrames = self.query_buffer()["nFrames"]
+        nFrames = (await self.query_buffer())["nFrames"]
         self.dev.write(0x01, [0x35, 1, nFrames])
         self.app_buffer.clear()
 
-    def acquire_frames(self) -> None:
+    async def acquire_frames(self) -> None:
         """Aquire camera image frames.
 
         Downloads all available frames from the camera buffer and puts them
@@ -312,7 +318,7 @@ class Camera:
         """
         while True:
             # get frame buffer information
-            buffer_info = self.query_buffer()
+            buffer_info = await self.query_buffer()
             nFrames: int = buffer_info["nFrames"] # type: ignore
             resolution: tuple[int, int] = buffer_info["resolution"] # type: ignore
 
@@ -357,3 +363,20 @@ class Camera:
             return self.app_buffer[0]
         else:
             raise IndexError("no frames in app buffer")
+
+    async def update(self):
+        """Update application with new data from camera"""
+        if self.extra_init:
+            print("Writing configuration to camera... ", end='', flush=True)
+            await self.write_configuration()
+            print("OK.")
+
+        await self.acquire_frames()
+
+    async def update_loop(self, interval: float = 1):
+        """Update self in a loop
+                
+        interval: time in seconds between updates
+        """
+        while True:
+           await asyncio.gather(self.update(), asyncio.sleep(interval))

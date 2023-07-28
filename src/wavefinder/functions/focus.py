@@ -1,7 +1,7 @@
 import numpy as np
 
-from ..devices.MightexBufCmos import Camera
 from ..devices.Axis import Axis
+from ..devices.MightexBufCmos import Camera
 from .image import frame_to_img, get_centroid_and_variance
 
 
@@ -31,7 +31,7 @@ class Focuser:
         focus_pos = 0.0
         if self.camera and self.f_axis:
             # set camera to trigger mode
-            self.camera.set_mode(run_mode=Camera.TRIGGER, write_now=True)
+            await self.camera.set_mode(run_mode=Camera.TRIGGER, write_now=True)
 
             # set up for first pass
             limit_min, limit_max = await self.f_axis.get_limits()
@@ -47,14 +47,12 @@ class Focuser:
                 for i in range(self.steps):
                     pos = travel_min + i * step_dist
                     await self.f_axis.move_absolute(pos)
-                    self.camera.trigger()
+                    await self.camera.trigger()
 
                     # if this frame isn't the right trigger, wait
                     nT = 0
                     exp_nTriggers = (i+1) + self.steps*n_pass
                     while nT < exp_nTriggers:
-                        # NOTE camera_panel loop is also acquiring frames, may conflict
-                        self.camera.acquire_frames()
                         frame = self.camera.get_newest_frame()
                         nT = frame.nTriggers
 
@@ -77,7 +75,7 @@ class Focuser:
             await self.f_axis.move_absolute(focus_pos)
             
             # set camera to stream mode
-            self.camera.set_mode(run_mode=Camera.NORMAL, write_now=True)
+            await self.camera.set_mode(run_mode=Camera.NORMAL, write_now=True)
 
         # return minimum position
         return focus_pos

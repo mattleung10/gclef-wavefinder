@@ -227,24 +227,24 @@ class CameraPanel():
     def set_cam_ctrl(self):
         """Set camera to new settings"""
         if self.camera:
-            self.camera.set_mode(run_mode=self.camera_run_mode.get(),
-                                 # TODO bits=self.camera_bits.get())
-                                )
-            resolution = ((int(self.camera_res_x.get()),
-                           int(self.camera_res_y.get())))
-            self.camera.set_resolution(resolution=resolution,
-                                       bin_mode=self.camera_bin_mode.get())
-            self.camera.set_exposure_time(exposure_time=float(self.camera_exp_t.get()))
-            self.camera.set_fps(fps=float(self.camera_fps.get()))
-            self.camera.set_gain(gain=int(self.camera_gain.get()))
+            make_task(self.camera.set_mode(run_mode=self.camera_run_mode.get(),
+                                           # TODO bits=self.camera_bits.get())
+                                           ), self.tasks)
+            resolution = ((int(self.camera_res_x.get()), int(self.camera_res_y.get())))
+            make_task(self.camera.set_resolution(resolution=resolution,
+                                                 bin_mode=self.camera_bin_mode.get()), self.tasks)
+            make_task(self.camera.set_exposure_time(exposure_time=float(self.camera_exp_t.get())),
+                      self.tasks)
+            make_task(self.camera.set_fps(fps=float(self.camera_fps.get())), self.tasks)
+            make_task(self.camera.set_gain(gain=int(self.camera_gain.get())), self.tasks)
             freq_div = (int.bit_length(32 // int(self.camera_freq.get())) - 1)
-            self.camera.set_frequency(freq_mode=freq_div)
+            make_task(self.camera.set_frequency(freq_mode=freq_div), self.tasks)
 
-            # do the IO as a task
+            # write to camera
             make_task(self.camera.write_configuration(), self.tasks)
 
             # throw out old frames
-            self.camera.clear_buffer()
+            make_task(self.camera.clear_buffer(), self.tasks)
 
             # update UI to match camera
             self.restore_camera_entries()
@@ -297,7 +297,7 @@ class CameraPanel():
 
     def reset_camera(self):
         if self.camera:
-            self.camera.reset()
+            make_task(self.camera.reset(), self.tasks)
 
     def set_roi(self):
         """Set the region of interest"""
@@ -427,8 +427,6 @@ class CameraPanel():
     async def update(self):
         """Update preview image in viewer"""
         if self.camera:
-            # TODO inspect why this fails in a thread
-            self.camera.acquire_frames()
             if self.freeze_txt.get() == "Freeze":
                 try:
                     camera_frame = self.camera.get_newest_frame()
