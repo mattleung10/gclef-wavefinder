@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from ..functions.focus import Focuser
 from ..functions.position import Positioner
+from .utils import make_task
 
 if TYPE_CHECKING:
     from .app import App
@@ -48,16 +49,12 @@ class FunctionPanel(ttk.LabelFrame):
 
     def focus(self):
         """Start focus routine"""
-        t = asyncio.create_task(self.focuser.focus())
-        t.add_done_callback(self.tasks.discard)
-        self.tasks.add(t)
+        make_task(self.focuser.focus(), self.tasks)
         self.focus_button.configure(state=tk.DISABLED)
 
     def center(self):
         """Center the image"""
-        t = asyncio.create_task(self.positioner.center())
-        t.add_done_callback(self.tasks.discard)
-        self.tasks.add(t)
+        make_task(self.positioner.center(), self.tasks)
 
     async def update(self):
         """Update UI"""

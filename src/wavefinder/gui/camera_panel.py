@@ -8,7 +8,7 @@ from PIL import Image, ImageColor, ImageDraw, ImageOps, ImageTk
 
 from ..devices.MightexBufCmos import Camera, Frame
 from ..functions.image import get_centroid_and_variance, variance_to_fwhm
-from .utils import valid_float, valid_int
+from .utils import make_task, valid_float, valid_int
 
 if TYPE_CHECKING:
     from .app import App
@@ -240,10 +240,8 @@ class CameraPanel():
             freq_div = (int.bit_length(32 // int(self.camera_freq.get())) - 1)
             self.camera.set_frequency(freq_mode=freq_div)
 
-            # do the IO task in a thread
-            loop = asyncio.get_event_loop()
-            t = asyncio.to_thread(self.camera.write_configuration)
-            loop.create_task(t)
+            # do the IO as a task
+            make_task(self.camera.write_configuration(), self.tasks)
 
             # throw out old frames
             self.camera.clear_buffer()
@@ -254,9 +252,7 @@ class CameraPanel():
     def snap_img(self):
         """Snap an image"""
         if self.camera:
-            loop = asyncio.get_event_loop()
-            t = asyncio.to_thread(self.camera.trigger)
-            loop.create_task(t)
+            make_task(self.camera.trigger(), self.tasks)
 
     def restore_camera_entries(self):
         """Restore camera entry boxes from camera
@@ -265,9 +261,8 @@ class CameraPanel():
         needs current frame information
         """
         if self.camera:
-            loop = asyncio.get_event_loop()
-            t = asyncio.to_thread(self.camera.get_camera_info)
-            loop.create_task(t).add_done_callback(self.set_camera_info)
+            t, _ = make_task(self.camera.get_camera_info(), self.tasks)
+            t.add_done_callback(self.set_camera_info)
             self.camera_exp_t.set(str(self.camera.exposure_time))
             self.camera_fps.set(str(self.camera.fps))
             self.camera_gain.set(str(self.camera.gain))

@@ -12,6 +12,7 @@ from ..functions.position import Positioner
 from .camera_panel import CameraPanel
 from .function_panel import FunctionPanel
 from .motion_panel import MotionPanel
+from .utils import make_task
 
 
 class App(tk.Tk):
@@ -25,7 +26,7 @@ class App(tk.Tk):
         
         # For Windows, we need to set the DPI awareness so it looks right
         if "Windows".casefold() in platform.platform().casefold():
-            ctypes.windll.shcore.SetProcessDpiAwareness(1)
+            ctypes.windll.shcore.SetProcessDpiAwareness(1) # type: ignore
         
         super().__init__()
 
@@ -33,6 +34,7 @@ class App(tk.Tk):
         self.loop = asyncio.get_event_loop()
         self.interval = 1/60 # in seconds
         self.tasks: set[asyncio.Task] = set()
+        self.updaters: set = set()
 
         # UI variables and setup
         self.title("G-CLEF Wavefinder")
@@ -50,8 +52,14 @@ class App(tk.Tk):
     def create_devices(self):
         """Create device handles"""
         self.camera = self.init_camera()
+        self.updaters.add(self.camera)
+
         self.zaber_adapter = self.init_zaber()
+        self.updaters.add(self.zaber_adapter)
+
         self.galil_adapter = self.init_galil()
+        self.updaters.add(self.galil_adapter)
+
         self.axes: dict[str, Axis] = {}
         self.axes.update(self.zaber_adapter.axes)
         self.axes.update(self.galil_adapter.axes)
@@ -109,9 +117,7 @@ class App(tk.Tk):
         for axis_name, limits in limit_map.items():
             axis = self.axes.get(axis_name, None)
             if axis:
-                t = self.loop.create_task(axis.set_limits(*limits))
-                t.add_done_callback(self.tasks.discard)
-                self.tasks.add(t)
+                make_task(axis.set_limits(*limits), self.tasks)
 
     def make_functions(self):
         """Make function units"""
@@ -126,13 +132,16 @@ class App(tk.Tk):
         """Make UI panels"""
         self.camera_panel = CameraPanel(self, self.camera)
         # internal frames of camera panel manage their own grid
+        self.updaters.add(self.camera_panel)
 
         self.motion_panel = MotionPanel(self, self.axes)
         self.motion_panel.grid(column=0, row=1, sticky=tk.NSEW)
+        self.updaters.add(self.motion_panel)
         
         self.function_panel = FunctionPanel(self, focuser=self.focuser,
                                             positioner=self.positioner)
         self.function_panel.grid(column=1, row=1, sticky=tk.NSEW)
+        self.updaters.add(self.function_panel)
 
         # pad them all
         for f in self.winfo_children():
@@ -144,15 +153,14 @@ class App(tk.Tk):
         
         These will run forever.
         """
-        self.protocol("WM_DELETE_WINDOW", self.close) # bind close
-        for panel in [self, self.camera_panel, self.motion_panel, self.function_panel]:
-            self.tasks.add(self.loop.create_task(panel.update_loop(self.interval)))
-        for interface in [self.zaber_adapter, self.galil_adapter]:
-            self.tasks.add(self.loop.create_task(interface.update_loop(self.interval)))
+        make_task(self.update_loop(self.interval), self.tasks, self.loop)
+        for u in self.updaters:
+            make_task(u.update_loop(self.interval), self.tasks, self.loop)
 
     def run(self):
         """Run the loop"""
         print("--- Starting Application ---")
+        self.protocol("WM_DELETE_WINDOW", self.close) # bind close
         try:
             self.loop.run_forever()
         except KeyboardInterrupt:
@@ -166,10 +174,8 @@ class App(tk.Tk):
 
     def close(self):
         """Close application"""
-        for interface in [self.zaber_adapter, self.galil_adapter]:
-            interface.close()
-        for panel in [self.camera_panel, self.motion_panel, self.function_panel]:
-            panel.close()
+        for u in self.updaters:
+            u.close()
         for task in self.tasks:
             task.cancel()
         self.loop.stop()

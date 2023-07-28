@@ -4,7 +4,7 @@ from tkinter import ttk
 from typing import TYPE_CHECKING
 
 from ..devices.Axis import Axis
-from .utils import valid_float
+from .utils import make_task, valid_float
 
 if TYPE_CHECKING:
     from .app import App
@@ -96,26 +96,20 @@ class MotionPanel(ttk.LabelFrame):
     def stop_stages(self):
         "Stop all stages"
         for a in self.axes.values():
-            t= asyncio.create_task(a.stop())
-            t.add_done_callback(self.tasks.discard)
-            self.tasks.add(t)
+            make_task(a.stop(), self.tasks)
 
     def move_stages(self):
         """Move all stages"""
         for a in self.axes.values():
             p = float(self.pos_in[a.name].get())
             if p != float(self.pos[a.name].get()):
-                t = asyncio.create_task(a.move_absolute(p))
-                t.add_done_callback(self.tasks.discard)
-                self.tasks.add(t)
+                make_task(a.move_absolute(p), self.tasks)
 
     def home_stages(self):
         """Home all stages"""
         for name, axis in self.axes.items():
             if self.home_sel[name].get() == 1:
-                t = asyncio.create_task(axis.home())
-                t.add_done_callback(self.tasks.discard)
-                self.tasks.add(t)
+                make_task(axis.home(), self.tasks)
                 self.home_sel[name].set(0)
 
     def jog(self):
@@ -126,13 +120,9 @@ class MotionPanel(ttk.LabelFrame):
             return
 
         if self.jog_less.instate(["active"]):
-            t = asyncio.create_task(a.move_relative(-0.1))
-            t.add_done_callback(self.tasks.discard)
-            self.tasks.add(t)
+            make_task(a.move_relative(-0.1), self.tasks)
         elif self.jog_more.instate(["active"]):
-            t = asyncio.create_task(a.move_relative(+0.1))
-            t.add_done_callback(self.tasks.discard)
-            self.tasks.add(t)
+            make_task(a.move_relative(+0.1), self.tasks)
 
     def copy_position(self):
         """Copy position to input"""
