@@ -65,6 +65,7 @@ class Camera:
     SKIP   = 0x03
     BIN_MODES = [NO_BIN, BIN1X2, BIN1X3, BIN1X4, SKIP]
 
+    # TODO add to config area
     def __init__(self,
                  run_mode: int = NORMAL,
                  bits: int = 8,

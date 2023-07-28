@@ -22,6 +22,7 @@ class CameraPanel():
         # Task variables
         self.tasks: set[asyncio.Task] = set()
 
+        # TODO add to config area (get from camera)
         # UI variables
         self.camera_info1 = tk.StringVar(value="")
         self.camera_info2 = tk.StringVar(value="")
@@ -262,6 +263,7 @@ class CameraPanel():
         needs current frame information
         """
         if self.camera:
+            # TODO have the camera grab the moduleno and serialno during its extra_init step
             t, _ = make_task(self.camera.get_camera_info(), self.tasks)
             t.add_done_callback(self.set_camera_info)
             self.camera_exp_t.set(str(self.camera.exposure_time))

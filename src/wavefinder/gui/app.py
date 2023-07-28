@@ -65,6 +65,7 @@ class App(tk.Tk):
         self.axes.update(self.galil_adapter.axes)
 
         # motion limits
+        # TODO add to config area
         limit_map = {"focal_z": (None, 15.0),
                      "cfm1_az": (-10.0, 10.0),
                      "cfm1_el": (-10.0, 10.0),
@@ -83,6 +84,7 @@ class App(tk.Tk):
     def init_zaber(self) -> ZaberAdapter:
         """Initialize connection to Zaber stages"""
 
+        # TODO add to config area
         zaber_axis_names = {"focal_x": (33938, 1),
                             "focal_y": (33937, 1),
                             "focal_z": (33939, 1),
@@ -90,6 +92,7 @@ class App(tk.Tk):
                             "cfm2_y" : (113059, 1)}
         
         # TODO: put full list back
+        # TODO add to config area
         # zaber = ZaberAdapter(["COM1", "COM2", "COM3", "COM4", "COM5",
         #                       "COM6", "COM7", "COM8", "COM9", "COM10",
         #                       "/dev/ttyUSB0", "/dev/ttyUSB1",
@@ -100,11 +103,13 @@ class App(tk.Tk):
     def init_galil(self) -> GalilAdapter:
         """Initialize connection to Galil stages"""
 
+        # TODO add to config area
         galil_axis_names = {"cfm1_az": "A",
                             "cfm1_el": "B",
                             "cfm2_az": "C",
                             "cfm2_el": "D"}
         
+        # TODO add to config area
         galil = GalilAdapter("192.168.1.19", galil_axis_names)
         return galil
 
@@ -121,11 +126,16 @@ class App(tk.Tk):
 
     def make_functions(self):
         """Make function units"""
+
+        # TODO add to config area
         z_axis = self.axes.get("focal_z", None)
         x_axis = self.axes.get("focal_x", None)
         y_axis = self.axes.get("focal_y", None)
 
+        # TODO add to config area
         self.focuser = Focuser(self.camera, z_axis, steps=10, min_move=0.001)
+
+        # TODO add to config area
         self.positioner = Positioner(self.camera, x_axis, y_axis, px_size=(3.75, 3.75))
 
     def make_panels(self):
