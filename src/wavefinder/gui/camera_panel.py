@@ -4,6 +4,7 @@ from tkinter import filedialog, ttk
 from typing import TYPE_CHECKING
 
 import numpy as np
+from astropy.io import fits
 from PIL import Image, ImageColor, ImageDraw, ImageOps, ImageTk
 
 from ..devices.MightexBufCmos import Camera, Frame
@@ -286,14 +287,16 @@ class CameraPanel():
 
     def save_img(self):
         """Save image dialog"""
-        # TODO: FITS format
         f = filedialog.asksaveasfilename(initialdir="images/",
-                                            initialfile="img.png",
-                                            filetypes = (("image files",["*.jpg","*.png"]),
-                                                        ("all files","*.*")),
-                                            defaultextension=".png")
+                                         initialfile="new.fits",
+                                         filetypes = (("FITS files",["*.fits","*.fts"]),
+                                                      ("all files","*.*")),
+                                         defaultextension=".fits")
         if f:
-            self.full_img.save(f)
+            hdu = fits.PrimaryHDU(np.array(self.full_img))
+            # TODO: add FITS headers
+            hdu.header['camera'] = self.camera_info1.get()
+            hdu.writeto(f, overwrite=True, output_verify='fix')
 
     def reset_camera(self):
         if self.camera:

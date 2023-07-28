@@ -13,8 +13,9 @@ description = "Measure optical performance at various wavelengths"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+  "astropy",
   "numpy",
-  "pyusb",
   "Pillow",
+  "pyusb",
   "zaber-motion"
 ]
