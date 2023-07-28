@@ -90,7 +90,7 @@ class Camera:
         self.app_buffer: list[Frame] = []
         self.buffer_max = 100 # max 100 frames
 
-        print("Connecting to Mightex camera... ", end='')
+        print("Connecting to Mightex camera... ", end='', flush=True)
 
         # For Windows, load in the included libusb-1.0.dll by adding it to the PATH,
         # where pyusb will find it.
@@ -115,7 +115,7 @@ class Camera:
         print("connected.")
 
         # write config to camera
-        print("Writing configuration to camera... ", end='')
+        print("Writing configuration to camera... ", end='', flush=True)
         self.write_configuration()
         print("OK.")
 

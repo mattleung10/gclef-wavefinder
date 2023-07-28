@@ -20,7 +20,7 @@ class GalilAdapter:
         self.axis_names = axis_names
         self.axes: dict[str, GalilAxis] = {}
         
-        print(f"Connecting to Galil devices on {address}... ", end='')
+        print(f"Connecting to Galil devices on {address}... ", end='', flush=True)
         try:
             self.g = py()
             # connect in direct mode, subscribe to all unsolicited
@@ -32,7 +32,7 @@ class GalilAdapter:
             print("connected.")
         
         for a_nm, a_ch in self.axis_names.items():
-            print(f"Finding {a_nm} on channel {a_ch}... ", end='')
+            print(f"Finding {a_nm} on channel {a_ch}... ", end='', flush=True)
             try:
                 self.axes[a_nm] = GalilAxis(a_nm, a_ch, self.g)
             except GclibError:
@@ -61,4 +61,5 @@ class GalilAdapter:
            await asyncio.gather(self.update(), asyncio.sleep(interval))
 
     def close(self):
+        """Close adapter"""
         self.g.GClose()

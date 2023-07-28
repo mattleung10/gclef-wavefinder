@@ -26,7 +26,7 @@ class ZaberAdapter:
         self.axes: dict[str, ZaberAxis] = {}
 
         for p in self.port_names:
-            print(f"Connecting to Zaber devices on {p}... ", end='')
+            print(f"Connecting to Zaber devices on {p}... ", end='', flush=True)
             try:
                 c = Connection.open_serial_port(p)
                 c.enable_alerts()
@@ -37,11 +37,14 @@ class ZaberAdapter:
                 continue
             else:
                 print("connected.")
+        
+        if len(self.device_list) == 0:
+            return
 
         for a in self.axis_names.keys():
             sn = self.axis_names[a][0] # serial number
             an = self.axis_names[a][1] # axis number
-            print(f"Finding {a} {(sn,an)}...", end='')
+            print(f"Finding {a} {(sn,an)}...", end='', flush=True)
             try:
                 device: Device = next(filter(lambda d: d.serial_number == sn,
                                              self.device_list))
@@ -71,3 +74,8 @@ class ZaberAdapter:
         """
         while True:
            await asyncio.gather(self.update(), asyncio.sleep(interval))
+    
+    def close(self):
+        """Close adapter"""
+        for con in self.connections:
+            con.close()

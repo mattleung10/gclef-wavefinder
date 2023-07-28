@@ -56,20 +56,13 @@ class App(tk.Tk):
         self.axes.update(self.zaber_adapter.axes)
         self.axes.update(self.galil_adapter.axes)
 
-        # special limits
-        # TODO add all limits
-        # limit detector z-axis to 15mm
-        z_axis = self.axes.get("focal_z", None)
-        if z_axis:
-            t = self.loop.create_task(z_axis.set_limits(None, 15.0))
-            t.add_done_callback(self.tasks.discard)
-            self.tasks.add(t)
-        # limit gimbal_1_el to (-10, 10)
-        gimbal_1_el = self.axes.get("gimbal_1_el", None)
-        if gimbal_1_el:
-            t = self.loop.create_task(gimbal_1_el.set_limits(-10, 10))
-            t.add_done_callback(self.tasks.discard)
-            self.tasks.add(t)
+        # motion limits
+        limit_map = {"focal_z": (None, 15.0),
+                     "cfm1_az": (-10.0, 10.0),
+                     "cfm1_el": (-10.0, 10.0),
+                     "cfm2_az": (-10.0, 10.0),
+                     "cfm2_el": (-10.0, 10.0)}
+        self.set_motion_limits(limit_map)
         
     def init_camera(self) -> Camera | None:
         """Initialize connection to camera"""
@@ -99,14 +92,27 @@ class App(tk.Tk):
     def init_galil(self) -> GalilAdapter:
         """Initialize connection to Galil stages"""
 
-        galil_axis_names = {"cfm1_el": "A",
-                            "cfm1_az": "B",
-                            "cfm2_el": "C",
-                            "cfm2_az": "D"}
+        galil_axis_names = {"cfm1_az": "A",
+                            "cfm1_el": "B",
+                            "cfm2_az": "C",
+                            "cfm2_el": "D"}
         
         galil = GalilAdapter("192.168.1.19", galil_axis_names)
         return galil
+
+    def set_motion_limits(self, limit_map: dict[str, tuple[float|None, float|None]]):
+        """Set motion limits for all axes
         
+        Args:
+            limit_map: map of axis name to limit tuple, e.g. {"cfm1_az": (-10.0, 10.0)}
+        """
+        for axis_name, limits in limit_map.items():
+            axis = self.axes.get(axis_name, None)
+            if axis:
+                t = self.loop.create_task(axis.set_limits(*limits))
+                t.add_done_callback(self.tasks.discard)
+                self.tasks.add(t)
+
     def make_functions(self):
         """Make function units"""
         z_axis = self.axes.get("focal_z", None)
@@ -147,7 +153,10 @@ class App(tk.Tk):
     def run(self):
         """Run the loop"""
         print("--- Starting Application ---")
-        self.loop.run_forever()
+        try:
+            self.loop.run_forever()
+        except KeyboardInterrupt:
+            self.close()
 
     async def update_loop(self, interval):
         """Update self in a loop"""
@@ -157,11 +166,11 @@ class App(tk.Tk):
 
     def close(self):
         """Close application"""
+        for interface in [self.zaber_adapter, self.galil_adapter]:
+            interface.close()
+        for panel in [self.camera_panel, self.motion_panel, self.function_panel]:
+            panel.close()
         for task in self.tasks:
             task.cancel()
-        self.galil_adapter.close()
-        # stop all panel sub-tasks
-        self.motion_panel.close()
-        self.function_panel.close()
         self.loop.stop()
         self.destroy()

@@ -18,6 +18,9 @@ class CameraPanel():
     """Camera UI Panel is made of 3 LabelFrames"""
 
     def __init__(self, parent: 'App', camera: Camera | None):
+        # Task variables
+        self.tasks: set[asyncio.Task] = set()
+
         # UI variables
         self.camera_info1 = tk.StringVar(value="")
         self.camera_info2 = tk.StringVar(value="")
@@ -464,3 +467,8 @@ class CameraPanel():
         """
         while True:
             await asyncio.gather(self.update(), asyncio.sleep(interval))
+
+    def close(self):
+        """Close out all tasks"""
+        for t in self.tasks:
+            t.cancel()
