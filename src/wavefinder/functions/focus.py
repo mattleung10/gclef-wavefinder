@@ -61,6 +61,7 @@ class Focuser:
                         nT = frame.nTriggers
 
                     # compute focus
+                    # TODO average of multiple frames at this position
                     stats = get_centroid_and_variance(frame_to_img(frame.img))
                     # sqrt(var_x) * sqrt(var_y)
                     v = np.sqrt(stats[2]) * np.sqrt(stats[3])
