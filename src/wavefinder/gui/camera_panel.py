@@ -422,9 +422,9 @@ class CameraPanel():
         self.full_frame_preview.img = disp_img # type: ignore # protect from garbage collect
         self.full_frame_preview.configure(image=disp_img)
 
-    def update_resolution(self):
+    async def update_resolution(self):
         """Update resolution from camera, matching newest frame """
-        resolution: tuple[int, int] = self.camera.query_buffer()["resolution"] # type: ignore
+        resolution: tuple[int, int] = (await self.camera.query_buffer())["resolution"] # type: ignore
         self.camera_res_x.set(str(resolution[0]))
         self.camera_res_y.set(str(resolution[1]))
         self.update_resolution_flag = False
@@ -438,10 +438,9 @@ class CameraPanel():
                     self.full_img = Image.fromarray(camera_frame.img)
                     self.update_img_props(camera_frame)
                     if self.update_resolution_flag:
-                        self.update_resolution()
+                        make_task(self.update_resolution(), self.tasks)
                 except IndexError:
                     pass
-
         else: # no camera, testing purposes
             if self.freeze_txt.get() == "Freeze":
                 # image components

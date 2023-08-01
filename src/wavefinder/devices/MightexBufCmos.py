@@ -371,6 +371,7 @@ class Camera:
             print("Writing configuration to camera... ", end='', flush=True)
             await self.write_configuration()
             print("OK.")
+            self.extra_init = False
 
         await self.acquire_frames()
 
@@ -381,3 +382,10 @@ class Camera:
         """
         while True:
            await asyncio.gather(self.update(), asyncio.sleep(interval))
+
+    def close(self):
+        """Close connection to camera
+        
+        Don't need to do anything.
+        """
+        pass
