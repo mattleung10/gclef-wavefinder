@@ -1,7 +1,9 @@
 import asyncio
 import ctypes
 import platform
+import sys
 import tkinter as tk
+import traceback
 
 from ..devices.Axis import Axis
 from ..devices.GalilAdapter import GalilAdapter
@@ -176,6 +178,7 @@ class App(tk.Tk):
             self.loop.run_forever()
         except KeyboardInterrupt:
             self.close()
+            traceback.print_exc(file=sys.stdout)
 
     async def update_loop(self, interval):
         """Update self in a loop"""

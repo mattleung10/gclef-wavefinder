@@ -1,3 +1,4 @@
+import asyncio
 import numpy as np
 
 from ..devices.Axis import Axis
@@ -50,16 +51,21 @@ class Focuser:
                     await self.camera.trigger()
 
                     # if this frame isn't the right trigger, wait
-                    nT = 0
                     exp_nTriggers = (i+1) + self.steps*n_pass
+                    frame = self.camera.get_newest_frame()
+                    nT = frame.nTriggers
                     while nT < exp_nTriggers:
+                        # sleep is necessary to give other tasks time to process
+                        await asyncio.sleep(0.1)
                         frame = self.camera.get_newest_frame()
                         nT = frame.nTriggers
 
-                        stats = get_centroid_and_variance(frame_to_img(frame.img))
-                        # sqrt(var_x) * sqrt(var_y)
-                        v = np.sqrt(stats[2]) * np.sqrt(stats[3])
-                        focus_curve[pos] = v
+                    # compute focus
+                    stats = get_centroid_and_variance(frame_to_img(frame.img))
+                    # sqrt(var_x) * sqrt(var_y)
+                    v = np.sqrt(stats[2]) * np.sqrt(stats[3])
+                    focus_curve[pos] = v
+                    print(pos, v)
 
                 # find minimum along focus_curve
                 focus_pos = min(focus_curve, key=focus_curve.get) # type: ignore
