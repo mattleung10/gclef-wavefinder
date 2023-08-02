@@ -23,6 +23,11 @@ class Positioner:
         self.y_axis = y_axis
         self.px_size = px_size
 
+        if not self.x_axis:
+            print("Camera positioner x-axis not found.")
+        if not self.y_axis:
+            print("Camera positioner y-axis not found.")
+
     async def center(self):
         """Move the x and y axes to center the centroid
         

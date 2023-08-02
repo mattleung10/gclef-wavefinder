@@ -10,19 +10,21 @@ class Focuser:
     def __init__(self,
                  camera: Camera | None,
                  f_axis: Axis | None,
-                 steps : int = 10,
-                 min_move: float = 0.001) -> None:
+                 focus_points_per_pass: int = 10,
+                 focus_frames_per_point: int = 3,
+                 minimum_move: float = 0.001) -> None:
         """Focuser class
         
         camera: MightexBufCmos Camera device
-        f_axis: focal axis AxisModel
-        steps: number of focus steps per pass
-        min_move: minimum movement in mm
+        f_axis: focal axis handle
+        focus_points_per_pass: number of focus steps per pass
+        focus_frames_per_point: number of frames to average per focus point
+        minimum_move: minimum movement in mm
         """
         self.camera = camera
         self.f_axis = f_axis
-        self.steps = steps
-        self.min_move = min_move
+        self.steps = focus_points_per_pass
+        self.min_move = minimum_move
 
     async def focus(self) -> float:
         """Start the automatic focus routine

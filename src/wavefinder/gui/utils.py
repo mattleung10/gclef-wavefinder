@@ -1,5 +1,6 @@
 """UI utility functions"""
 
+from abc import abstractmethod
 import asyncio
 from collections.abc import Coroutine
 
@@ -42,3 +43,22 @@ def make_task(coroutine: Coroutine,
     t.add_done_callback(task_set.discard)
     task_set.add(t)
     return t, task_set
+
+class Cyclic:
+    """Cyclic Task Mixin"""
+
+    @abstractmethod
+    async def update(self):
+        pass
+
+    async def update_loop(self, interval: float = 1/60):
+        """Update self in a loop
+                
+        interval: time in seconds between updates
+        """
+        while True:
+            await asyncio.gather(self.update(), asyncio.sleep(interval))
+
+    @abstractmethod
+    def close(self):
+        pass

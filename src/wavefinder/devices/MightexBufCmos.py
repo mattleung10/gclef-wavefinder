@@ -6,6 +6,8 @@ import platform
 import numpy as np
 import usb.core
 
+from ..gui.utils import Cyclic
+
 
 class Frame:
     """Image frame object for Mightex camera"""
@@ -42,15 +44,13 @@ class Frame:
         # store image; for some reason the rows and cols are switched in the buffer
         self.img = np.reshape(frame[0 : self.rows*self.cols], (self.cols, self.rows))
 
-class Camera:
+class Camera(Cyclic):
     """Interface for Mightex Buffer USB CMOS Camera
 
     Implemented from "Mightex Buffer USB Camera USB Protocol", v1.0.6;
     Defaults are for camera model CGN-B013-U
 
-    Not implemented: ROI, GPIO
-
-    app_buffer is a list of the most recent frames; app_buffer[0] is newest
+    Not implemented: on-chip ROI, GPIO
     """
 
     # run modes; see function set_mode for description
@@ -65,7 +65,6 @@ class Camera:
     SKIP   = 0x03
     BIN_MODES = [NO_BIN, BIN1X2, BIN1X3, BIN1X4, SKIP]
 
-    # TODO add to config area
     def __init__(self,
                  run_mode: int = NORMAL,
                  bits: int = 8,
@@ -76,6 +75,19 @@ class Camera:
                  exposure_time: float = 50,
                  fps: float = 10,
                  gain: int = 15) -> None:
+        """Mightex Buffer USB CMOS Camera
+
+        Args:
+            run_mode: NORMAL (streaming video) or TRIGGER (single exposure)
+            bits: 8 or 12
+            freq_mode: frequency divider, see function set_frequency
+            resolution: tuple[rows, columns]
+            bin_mode: binning mode, see function set_resolution
+            nBuffer: size of camera buffer, defaults to maximum of 24
+            exposure_time: exposure time in milliseconds, in increments of 0.05ms
+            fps: NORMAL/streaming mode target frames per second
+            gain: 6 to 41 db, inclusive, see function set_gain
+        """
 
         # flag to run extra initialization on first async loop
         self.extra_init = True
@@ -354,7 +366,7 @@ class Camera:
                 self.app_buffer.pop()
 
     def get_frames(self, nFrames: int = 1) -> list[Frame]:
-        """Get most recent nFrames frames."""
+        """Get most recent nFrames frames, from newest to oldest"""
         nFrames = np.clip(nFrames, 0, len(self.app_buffer))
         return self.app_buffer[0:nFrames]
 
@@ -372,16 +384,7 @@ class Camera:
             await self.write_configuration()
             print("OK.")
             self.extra_init = False
-
         await self.acquire_frames()
-
-    async def update_loop(self, interval: float = 1):
-        """Update self in a loop
-                
-        interval: time in seconds between updates
-        """
-        while True:
-           await asyncio.gather(self.update(), asyncio.sleep(interval))
 
     def close(self):
         """Close connection to camera

@@ -5,13 +5,14 @@ from typing import TYPE_CHECKING
 
 from ..functions.focus import Focuser
 from ..functions.position import Positioner
+from ..gui.utils import Cyclic
 from .utils import make_task
 
 if TYPE_CHECKING:
     from .app import App
 
 
-class FunctionPanel(ttk.LabelFrame):
+class FunctionPanel(Cyclic, ttk.LabelFrame):
     """Advanced Function Panel"""
 
     def __init__(self, parent: 'App', focuser: Focuser, positioner: Positioner):
@@ -38,6 +39,7 @@ class FunctionPanel(ttk.LabelFrame):
         #           save images and a table of data
 
     def make_focus_slice(self):
+        # TODO add output of best focus position
         ttk.Label(self, text="Auto Focus").grid(column=0, row=0, sticky=tk.E)
         self.focus_button = ttk.Button(self, text="Focus", command=self.focus)
         self.focus_button.grid(column=1, row=0, pady=(10, 0), padx=10)
@@ -61,13 +63,6 @@ class FunctionPanel(ttk.LabelFrame):
         if len(self.tasks) == 0:
             self.focus_button.configure(state=tk.NORMAL)
 
-    async def update_loop(self, interval: float = 1):
-        """Update self in a loop
-                
-        interval: time in seconds between updates
-        """
-        while True:
-            await asyncio.gather(self.update(), asyncio.sleep(interval))
 
     def close(self):
         """Close out all tasks"""

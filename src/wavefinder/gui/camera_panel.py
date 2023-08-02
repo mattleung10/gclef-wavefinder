@@ -9,23 +9,24 @@ from PIL import Image, ImageColor, ImageDraw, ImageOps, ImageTk
 
 from ..devices.MightexBufCmos import Camera, Frame
 from ..functions.image import get_centroid_and_variance, variance_to_fwhm
+from ..gui.utils import Cyclic
 from .utils import make_task, valid_float, valid_int
 
 if TYPE_CHECKING:
     from .app import App
 
 
-class CameraPanel():
+class CameraPanel(Cyclic):
     """Camera UI Panel is made of 3 LabelFrames"""
 
     def __init__(self, parent: 'App', camera: Camera | None):
         # Task variables
         self.tasks: set[asyncio.Task] = set()
+        self.extra_init = True
 
-        # TODO add to config area (get from camera)
         # UI variables
-        self.camera_info1 = tk.StringVar(value="")
-        self.camera_info2 = tk.StringVar(value="")
+        self.camera_model = tk.StringVar(value="")
+        self.camera_serial = tk.StringVar(value="")
         self.camera_run_mode = tk.IntVar(value=Camera.NORMAL)
         self.camera_bits = tk.IntVar(value=8)
         self.camera_res_x = tk.StringVar(value="1280")
@@ -76,7 +77,7 @@ class CameraPanel():
         roi_frame = ttk.LabelFrame(parent, text="Region of Interest", labelanchor=tk.N)
         self.make_roi_zoom_slice(roi_frame)
         self.make_roi_preview_slice(roi_frame)
-        roi_frame.grid(column=2, row=0, sticky=tk.NSEW)
+        roi_frame.grid(column=2, row=0, rowspan=2, sticky=tk.NSEW)
 
         # write default settings to camera and update UI to match camera
         self.set_cam_ctrl()
@@ -84,11 +85,11 @@ class CameraPanel():
     ### Camera Settings Slices ###
     def make_camera_info_slice(self, parent):
         ttk.Label(parent, text="Model").grid(column=0, row=0, sticky=tk.E, padx=10)
-        ttk.Label(parent, textvariable=self.camera_info1).grid(column=1, row=0,
-                                                             columnspan=2, sticky=tk.W)
-        ttk.Label(parent, text="S/N").grid(column=0, row=1, sticky=tk.E, padx=10)
-        ttk.Label(parent, textvariable=self.camera_info2).grid(column=1, row=1,
-                                                             columnspan=2, sticky=tk.W)
+        ttk.Label(parent, textvariable=self.camera_model).grid(column=1, row=0,
+                                                               columnspan=2, sticky=tk.W)
+        ttk.Label(parent, text="Serial").grid(column=0, row=1, sticky=tk.E, padx=10)
+        ttk.Label(parent, textvariable=self.camera_serial).grid(column=1, row=1,
+                                                                columnspan=2, sticky=tk.W)
         
     def make_camera_mode_slice(self, parent):
         ttk.Label(parent, text="Mode").grid(column=0, row=2, sticky=tk.E, padx=10)
@@ -263,9 +264,6 @@ class CameraPanel():
         needs current frame information
         """
         if self.camera:
-            # TODO have the camera grab the moduleno and serialno during its extra_init step
-            t, _ = make_task(self.camera.get_camera_info(), self.tasks)
-            t.add_done_callback(self.set_camera_info)
             self.camera_exp_t.set(str(self.camera.exposure_time))
             self.camera_fps.set(str(self.camera.fps))
             self.camera_gain.set(str(self.camera.gain))
@@ -274,11 +272,10 @@ class CameraPanel():
             # update resolution
             self.update_resolution_flag = True
 
-    def set_camera_info(self, future: asyncio.Future):
+    def set_camera_info(self, info: dict[str, str | int]):
         """Update the GUI with the camera info"""
-        info = future.result()
-        self.camera_info1.set(info["ModuleNo"].strip('\0')) # type: ignore
-        self.camera_info2.set(info["SerialNo"].strip('\0')) # type: ignore
+        self.camera_model.set(info["ModuleNo"].strip('\0')) # type: ignore
+        self.camera_serial.set(info["SerialNo"].strip('\0')) # type: ignore
 
     def freeze_preview(self):
         """Freeze preview"""
@@ -297,7 +294,7 @@ class CameraPanel():
         if f:
             hdu = fits.PrimaryHDU(np.array(self.full_img))
             # TODO: add FITS headers
-            hdu.header['camera'] = self.camera_info1.get()
+            hdu.header['camera'] = self.camera_model.get()
             hdu.writeto(f, overwrite=True, output_verify='fix')
 
     def reset_camera(self):
@@ -432,6 +429,11 @@ class CameraPanel():
     async def update(self):
         """Update preview image in viewer"""
         if self.camera:
+            if self.extra_init:
+                # set camera info on first pass
+                self.set_camera_info(await self.camera.get_camera_info())
+                self.extra_init = False
+
             if self.freeze_txt.get() == "Freeze":
                 try:
                     camera_frame = self.camera.get_newest_frame()
@@ -456,14 +458,6 @@ class CameraPanel():
         self.update_img_stats()
         self.update_full_frame_preview()
         self.update_roi_img()
-
-    async def update_loop(self, interval: float = 1):
-        """Update self in a loop
-                
-        interval: time in seconds between updates
-        """
-        while True:
-            await asyncio.gather(self.update(), asyncio.sleep(interval))
 
     def close(self):
         """Close out all tasks"""

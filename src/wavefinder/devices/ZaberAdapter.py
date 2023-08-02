@@ -3,20 +3,21 @@ import asyncio
 from zaber_motion import ConnectionFailedException, MotionLibException
 from zaber_motion.ascii import Connection, Device
 
+from ..gui.utils import Cyclic
 from .ZaberAxis import ZaberAxis
 
 
-class ZaberAdapter:
+class ZaberAdapter(Cyclic):
     """Interface adapter between application and zaber library"""
 
     def __init__(self, port_names: list[str],
-                 axis_names: dict[str, tuple[int, int]]) -> None:
+                 axis_names: dict[str, int]) -> None:
         """Set up adapter with all devices' axes visible from port
 
         Args:
             port_names: list of ports, e.g. ['/dev/ttyUSB0', '/dev/ttyUSB1']
-            axis_names: mapping of name to axis (device serial number, axis number)
-                e.g. {"x": (33938, 1), "y": (33937, 1)}
+            axis_names: mapping of name to axis device serial number,
+                        e.g. {"x": 33938, "y": 33937}
         """
 
         self.port_names = port_names
@@ -42,13 +43,14 @@ class ZaberAdapter:
             return
 
         for a in self.axis_names.keys():
-            sn = self.axis_names[a][0] # serial number
-            an = self.axis_names[a][1] # axis number
-            print(f"Finding {a} {(sn,an)}...", end='', flush=True)
+            sn = self.axis_names[a] # serial number
+            print(f"Finding {a} ({sn})...", end='', flush=True)
             try:
                 device: Device = next(filter(lambda d: d.serial_number == sn,
                                              self.device_list))
-                axis = device.get_axis(an)
+                # NOTE: we always use axis #1 because all our devices have only one axis,
+                #       but if you want to change that, do that here.
+                axis = device.get_axis(1)
                 self.axes[a] = ZaberAxis(a, axis)
             except StopIteration:
                 print("not found.") # device not found
@@ -67,14 +69,6 @@ class ZaberAdapter:
             await a.update_position()
             await a.update_status()
 
-    async def update_loop(self, interval: float = 1):
-        """Update self in a loop
-                
-        interval: time in seconds between updates
-        """
-        while True:
-           await asyncio.gather(self.update(), asyncio.sleep(interval))
-    
     def close(self):
         """Close adapter"""
         for con in self.connections:

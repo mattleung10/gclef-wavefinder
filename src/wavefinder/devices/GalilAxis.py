@@ -9,7 +9,6 @@ class GalilAxis(Axis):
     # Galil implementation of Axis superclass
     # See Axis for abstract function descriptions.
 
-    # TODO add to config area
     def __init__(self, name: str, channel: str, connection: py, accel: int = 2000000,
                  decel: int = 2000000, speed: int = 100000, homing_speed: int = 5000,
                  encoder_counts_per_degree: int = 800,
@@ -20,6 +19,12 @@ class GalilAxis(Axis):
             name: human-readable name of axis
             channel: axis channel (A, B, C, D)
             connection: gclib py object with open connection
+            accel: acceleration
+            decel: deceleration
+            speed: move speed
+            homing_speed: homing speed
+            encoder_counts_per_degree: encoder counts per degree
+            encoder_counts_per_degree: drive counts per degree
         """
         super().__init__(name)
         self.ch = channel

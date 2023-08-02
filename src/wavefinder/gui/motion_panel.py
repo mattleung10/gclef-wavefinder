@@ -4,13 +4,14 @@ from tkinter import ttk
 from typing import TYPE_CHECKING
 
 from ..devices.Axis import Axis
+from ..gui.utils import Cyclic
 from .utils import make_task, valid_float
 
 if TYPE_CHECKING:
     from .app import App
 
 
-class MotionPanel(ttk.LabelFrame):
+class MotionPanel(Cyclic, ttk.LabelFrame):
     """Dector 3D Motion UI Panel"""
 
     # number of colors must match number of status codes
@@ -151,14 +152,6 @@ class MotionPanel(ttk.LabelFrame):
             self.pos[a.name].set(str(round(a.position, 3)))
             self.lights[a.name].configure(background=MotionPanel.COLORS[a.status])
         self.extra_init = False
-
-    async def update_loop(self, interval: float = 1):
-        """Update self in a loop
-                
-        interval: time in seconds between updates
-        """
-        while True:
-           await asyncio.gather(self.update(), asyncio.sleep(interval))
 
     def close(self):
         """Close out all tasks"""
