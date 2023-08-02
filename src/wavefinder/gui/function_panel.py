@@ -40,7 +40,6 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         #           save images and a table of data
 
     def make_focus_slice(self):
-        # TODO add output of best focus position
         ttk.Label(self, text="Auto Focus").grid(column=0, row=0, sticky=tk.E)
         self.focus_button = ttk.Button(self, text="Focus", command=self.focus)
         self.focus_button.grid(column=1, row=0, pady=(10, 0), padx=10)

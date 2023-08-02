@@ -85,8 +85,8 @@ class Camera(Cyclic):
             bin_mode: binning mode, see function set_resolution
             nBuffer: size of camera buffer, defaults to maximum of 24
             exposure_time: exposure time in milliseconds, in increments of 0.05ms
-            fps: NORMAL/streaming mode target frames per second
-            gain: 6 to 41 db, inclusive, see function set_gain
+            fps: NORMAL mode target frames per second
+            gain: 6 to 41 dB, inclusive, see function set_gain
         """
 
         # flag to run extra initialization on first async loop
@@ -271,7 +271,7 @@ class Camera(Cyclic):
     async def set_gain(self, gain: int = 15, write_now: bool = False) -> None:
         """Set camera gain.
 
-        gain:       6 to 41 db, inclusive
+        gain:       6 to 41 dB, inclusive
         write_now:  write to camera immediately
 
         In most of the applications, the Minimum Gain
