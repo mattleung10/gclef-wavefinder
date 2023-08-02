@@ -27,6 +27,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         # position variables
         self.positioner = positioner
 
+
         self.make_focus_slice()
         self.make_positioner_slice()
 
@@ -43,26 +44,43 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         ttk.Label(self, text="Auto Focus").grid(column=0, row=0, sticky=tk.E)
         self.focus_button = ttk.Button(self, text="Focus", command=self.focus)
         self.focus_button.grid(column=1, row=0, pady=(10, 0), padx=10)
-
+        self.focus_position = tk.StringVar(value="Not Yet Found")
+        focus_readout = ttk.Label(self, textvariable=self.focus_position)
+        focus_readout.grid(column=2, row=0)
+        
     def make_positioner_slice(self):
         ttk.Label(self, text="Auto Position").grid(column=0, row=1, sticky=tk.E)
         self.center_button = ttk.Button(self, text="Center", command=self.center)
         self.center_button.grid(column=1, row=1, pady=(10, 0), padx=10)
+        self.center_position = tk.StringVar(value="Not Yet Found")
+        center_readout = ttk.Label(self, textvariable=self.center_position)
+        center_readout.grid(column=2, row=1)
 
     def focus(self):
         """Start focus routine"""
-        make_task(self.focuser.focus(), self.tasks)
+        t, _ = make_task(self.focuser.focus(), self.tasks)
+        t.add_done_callback(self.after_focus)
         self.focus_button.configure(state=tk.DISABLED)
+
+    def after_focus(self, future: asyncio.Future):
+        """Callback for after focus completes"""
+        self.focus_position.set(str(future.result()))
+        self.focus_button.configure(state=tk.NORMAL)
 
     def center(self):
         """Center the image"""
-        make_task(self.positioner.center(), self.tasks)
+        t, _ = make_task(self.positioner.center(), self.tasks)
+        t.add_done_callback(self.after_center)
+        self.center_button.configure(state=tk.DISABLED)
+
+    def after_center(self, future: asyncio.Future):
+        """Callback for after center completes"""
+        self.center_position.set(str(future.result()))
+        self.center_button.configure(state=tk.NORMAL)
 
     async def update(self):
         """Update UI"""
-        if len(self.tasks) == 0:
-            self.focus_button.configure(state=tk.NORMAL)
-
+        pass
 
     def close(self):
         """Close out all tasks"""

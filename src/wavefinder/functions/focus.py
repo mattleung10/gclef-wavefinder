@@ -27,6 +27,8 @@ class Focuser:
         self.frames_per_point = focus_frames_per_point
         self.min_move = minimum_move
 
+        self.best_focus = 0
+
         if not self.f_axis:
             print("Camera focuser z-axis not found.")
 
@@ -92,7 +94,8 @@ class Focuser:
             # set camera to stream mode
             await self.camera.set_mode(run_mode=Camera.NORMAL, write_now=True)
 
-        # return minimum position
+        # return best position
+        self.best_focus = focus_pos
         return focus_pos
 
         

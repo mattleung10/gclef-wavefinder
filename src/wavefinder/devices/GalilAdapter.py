@@ -1,5 +1,3 @@
-import asyncio
-
 from gclib import GclibError, py
 
 from ..gui.utils import Cyclic

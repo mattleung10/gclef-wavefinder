@@ -37,7 +37,7 @@ class GalilAxis(Axis):
         self.drive_scale = drive_counts_per_degree
 
         # enable axis with "Servo Here"
-        s = self.g.GCommand(f"SH{self.ch}")
+        self.g.GCommand(f"SH{self.ch}")
         # set acceleration, decleration, slew speed
         self.g.GCommand(f"AC{self.ch}={self.accel}")
         self.g.GCommand(f"DC{self.ch}={self.decel}")

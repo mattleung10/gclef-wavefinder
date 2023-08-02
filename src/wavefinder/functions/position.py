@@ -28,12 +28,15 @@ class Positioner:
         if not self.y_axis:
             print("Camera positioner y-axis not found.")
 
-    async def center(self):
+    async def center(self) -> tuple[float, float]:
         """Move the x and y axes to center the centroid
         
         X is mirrored.
+
+        Returns center position
         """
 
+        center = (0, 0)
         if self.camera and self.x_axis and self.y_axis:
             img = Image.fromarray(self.camera.get_newest_frame().img)
             stats = get_centroid_and_variance(img)
@@ -43,3 +46,6 @@ class Positioner:
 
             await self.x_axis.move_relative((move_x_px * self.px_size[0]) / 1000)
             await self.y_axis.move_relative((move_y_px * self.px_size[1]) / 1000)
+
+            center = (self.x_axis.position, self.y_axis.position)
+        return center

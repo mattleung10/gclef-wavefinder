@@ -1,5 +1,3 @@
-import asyncio
-
 from zaber_motion import ConnectionFailedException, MotionLibException
 from zaber_motion.ascii import Connection, Device
 
