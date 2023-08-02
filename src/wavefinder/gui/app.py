@@ -49,6 +49,7 @@ class App(tk.Tk):
         self.make_functions()
         self.make_panels()
         self.create_tasks()
+        self.run()
 
     def set_config(self, config_file: str):
         """Set config"""

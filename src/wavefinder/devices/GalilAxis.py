@@ -55,25 +55,6 @@ class GalilAxis(Axis):
             # home function
             self.g.GCommand(f"HM{self.ch};BG{self.ch}")
             await self.wait_for_motion_complete(self.ch)
-
-            # TODO: consider adding extra FI at the end to reduce position error when
-            #       moving in the positive direction
-            # NOTE: seems to undershoot by 50 drive counts when moving in the positive direction
-            #       takes 10050 counts to get to 10.0mm; but only -10000 to get to -10.0mm, from zero
-            ## EXTRA
-            # # move one step
-            # self.g.GCommand(f"SP{self.ch}={self.hspeed}")
-            # self.g.GCommand(f"PR{self.ch}=1;BG{self.ch}")
-            # await self.wait_for_motion_complete(self.ch)
-            # # find index
-            # self.g.GCommand(f"FI{self.ch};BG{self.ch}")
-            # await self.wait_for_motion_complete(self.ch)
-            # # reset speed
-            # self.g.GCommand(f"SP{self.ch}={self.speed}")
-            # # wait 500ms
-            # await asyncio.sleep(0.5)
-            ## END EXTRA
-
             # zero position
             self.g.GCommand(f"DE{self.ch}=0")
             # update
@@ -94,6 +75,9 @@ class GalilAxis(Axis):
             self.status = Axis.ERROR
     
     async def move_absolute(self, distance: float):
+        # NOTE: seems to undershoot by 50 drive counts when moving in the positive direction
+        #       takes 10050 counts to get to 10.0mm; but only -10000 to get to -10.0mm, from zero
+        # TODO: use "YR" command to correct this error after each move
         try:
             self.status = Axis.MOVING
             counts = round(distance * self.drive_scale)
