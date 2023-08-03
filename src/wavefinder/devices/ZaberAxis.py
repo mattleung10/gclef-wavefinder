@@ -92,9 +92,9 @@ class ZaberAxis(Axis):
     
     async def set_limits(self, low_limit: float | None = None, high_limit: float | None = None):
         try:
-            if low_limit:
+            if low_limit is not None:
                 await self.axis.settings.set_async('limit.min', low_limit,  Units.LENGTH_MILLIMETRES)
-            if high_limit:
+            if high_limit is not None:
                 await self.axis.settings.set_async('limit.max', high_limit, Units.LENGTH_MILLIMETRES)
         except MotionLibException:
             self.status = Axis.ERROR

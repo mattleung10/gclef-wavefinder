@@ -140,9 +140,9 @@ class GalilAxis(Axis):
     
     async def set_limits(self, low_limit: float | None = None, high_limit: float | None = None):
         try:
-            if low_limit:
+            if low_limit is not None:
                 self.g.GCommand(f"BL{self.ch}={low_limit * self.drive_scale}")
-            if high_limit:
+            if high_limit is not None:
                 self.g.GCommand(f"FL{self.ch}={high_limit * self.drive_scale}")
         except GclibError:
             self.status = Axis.ERROR
@@ -151,8 +151,8 @@ class GalilAxis(Axis):
         l = 0.
         h = 0.
         try:
-            l = float(self.g.GCommand(f"BL{self.ch}=?")) * self.drive_scale
-            h = float(self.g.GCommand(f"FL{self.ch}=?")) * self.drive_scale
+            l = float(self.g.GCommand(f"BL{self.ch}=?")) / self.drive_scale
+            h = float(self.g.GCommand(f"FL{self.ch}=?")) / self.drive_scale
         except GclibError:
             self.status = Axis.ERROR
         return (l, h)
