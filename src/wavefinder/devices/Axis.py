@@ -57,7 +57,6 @@ class Axis(ABC):
     @abstractmethod
     async def set_limits(self, low_limit: float | None = None, high_limit: float | None = None):
         """Set axis low and high movement limits
-        TODO - verify this still works
         
         Args:
             low_limit: minimum movement limit in mm or degrees or None to not set

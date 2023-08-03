@@ -221,8 +221,7 @@ class CameraPanel(Cyclic):
     def make_roi_preview_slice(self, parent):
         self.roi_preview = ttk.Label(parent)
         self.roi_preview.grid(column=1, row=0)
-
-        # TODO test adding cross-cuts
+        # cross-cuts
         self.cc_x = ttk.Label(parent)
         self.cc_x.grid(column=1, row=1)
         self.cc_y = ttk.Label(parent)
