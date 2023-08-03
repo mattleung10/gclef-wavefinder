@@ -79,7 +79,9 @@ class CameraPanel(Cyclic):
         self.make_roi_preview_slice(roi_frame)
         roi_frame.grid(column=2, row=0, rowspan=2, sticky=tk.NSEW)
 
-        # write default settings to camera and update UI to match camera
+        # update UI to match camera object
+        self.restore_camera_entries()
+        # write settings to camera and then update UI to match camera object
         self.set_cam_ctrl()
 
     ### Camera Settings Slices ###
@@ -230,6 +232,7 @@ class CameraPanel(Cyclic):
     def set_cam_ctrl(self):
         """Set camera to new settings"""
         if self.camera:
+            # set up camera object
             make_task(self.camera.set_mode(run_mode=self.camera_run_mode.get(),
                                            # TODO bits=self.camera_bits.get())
                                            ), self.tasks)
@@ -243,27 +246,26 @@ class CameraPanel(Cyclic):
             freq_div = (int.bit_length(32 // int(self.camera_freq.get())) - 1)
             make_task(self.camera.set_frequency(freq_mode=freq_div), self.tasks)
 
-            # write to camera
-            make_task(self.camera.write_configuration(), self.tasks)
-
-            # throw out old frames
-            make_task(self.camera.clear_buffer(), self.tasks)
-
-            # update UI to match camera
-            self.restore_camera_entries()
+            # after all tasks complete, write to camera, clear buffer, update UI
+            t, _ = make_task(asyncio.wait(self.tasks))
+            t.add_done_callback(self.camera.write_configuration)
+            t.add_done_callback(self.camera.clear_buffer)
+            t.add_done_callback(self.restore_camera_entries)
 
     def snap_img(self):
         """Snap an image"""
         if self.camera:
             make_task(self.camera.trigger(), self.tasks)
 
-    def restore_camera_entries(self):
+    def restore_camera_entries(self, fut=None):
         """Restore camera entry boxes from camera
         
         except resolution which is set from update because it
         needs current frame information
         """
         if self.camera:
+            self.camera_run_mode.set(self.camera.run_mode)
+            self.camera_bin_mode.set(self.camera.bin_mode)
             self.camera_exp_t.set(str(self.camera.exposure_time))
             self.camera_fps.set(str(self.camera.fps))
             self.camera_gain.set(str(self.camera.gain))

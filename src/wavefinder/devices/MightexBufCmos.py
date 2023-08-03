@@ -286,7 +286,7 @@ class Camera(Cyclic):
         if write_now:
             self.dev.write(0x01, [0x62, 3, self.gain, self.gain, self.gain])
 
-    async def write_configuration(self) -> None:
+    async def write_configuration(self, fut=None) -> None:
         """Write all configuration settings to camera."""
         await self.set_mode(self.run_mode, self.bits, write_now=True)
         await self.set_frequency(self.freq_mode, write_now=True)
@@ -317,7 +317,7 @@ class Camera(Cyclic):
         buffer_info["bin_mode"] = reply[5]
         return buffer_info
 
-    async def clear_buffer(self) -> None:
+    async def clear_buffer(self, fut=None) -> None:
         """Clear camera and application buffer."""
         nFrames = (await self.query_buffer())["nFrames"]
         self.dev.write(0x01, [0x35, 1, nFrames])
