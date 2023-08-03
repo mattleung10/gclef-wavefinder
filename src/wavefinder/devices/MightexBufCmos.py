@@ -286,7 +286,7 @@ class Camera(Cyclic):
         if write_now:
             self.dev.write(0x01, [0x62, 3, self.gain, self.gain, self.gain])
 
-    async def write_configuration(self, fut=None) -> None:
+    async def write_configuration(self) -> None:
         """Write all configuration settings to camera."""
         await self.set_mode(self.run_mode, self.bits, write_now=True)
         await self.set_frequency(self.freq_mode, write_now=True)

@@ -232,32 +232,34 @@ class CameraPanel(Cyclic):
     def set_cam_ctrl(self):
         """Set camera to new settings"""
         if self.camera:
+            make_task(self.set_cam_ctrl_async(), self.tasks)
+    
+    async def set_cam_ctrl_async(self):
+        if self.camera:
             # set up camera object
-            make_task(self.camera.set_mode(run_mode=self.camera_run_mode.get(),
+            await self.camera.set_mode(run_mode=self.camera_run_mode.get(),
                                            # TODO bits=self.camera_bits.get())
-                                           ), self.tasks)
+                                       )
             resolution = ((int(self.camera_res_x.get()), int(self.camera_res_y.get())))
-            make_task(self.camera.set_resolution(resolution=resolution,
-                                                 bin_mode=self.camera_bin_mode.get()), self.tasks)
-            make_task(self.camera.set_exposure_time(exposure_time=float(self.camera_exp_t.get())),
-                      self.tasks)
-            make_task(self.camera.set_fps(fps=float(self.camera_fps.get())), self.tasks)
-            make_task(self.camera.set_gain(gain=int(self.camera_gain.get())), self.tasks)
+            await self.camera.set_resolution(resolution=resolution,
+                                             bin_mode=self.camera_bin_mode.get())
+            await self.camera.set_exposure_time(exposure_time=float(self.camera_exp_t.get()))
+            await self.camera.set_fps(fps=float(self.camera_fps.get()))
+            await self.camera.set_gain(gain=int(self.camera_gain.get()))
             freq_div = (int.bit_length(32 // int(self.camera_freq.get())) - 1)
-            make_task(self.camera.set_frequency(freq_mode=freq_div), self.tasks)
+            await self.camera.set_frequency(freq_mode=freq_div)
 
-            # after all tasks complete, write to camera, clear buffer, update UI
-            t, _ = make_task(asyncio.wait(self.tasks))
-            t.add_done_callback(self.camera.write_configuration)
-            t.add_done_callback(self.camera.clear_buffer)
-            t.add_done_callback(self.restore_camera_entries)
+            # write to camera, clear buffer, update UI
+            await self.camera.write_configuration()
+            await self.camera.clear_buffer()
+            self.restore_camera_entries()
 
     def snap_img(self):
         """Snap an image"""
         if self.camera:
             make_task(self.camera.trigger(), self.tasks)
 
-    def restore_camera_entries(self, fut=None):
+    def restore_camera_entries(self):
         """Restore camera entry boxes from camera
         
         except resolution which is set from update because it

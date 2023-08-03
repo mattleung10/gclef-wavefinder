@@ -24,9 +24,9 @@ def valid_float(f_str: str):
         return True
     
 def make_task(coroutine: Coroutine,
-              task_set: set[asyncio.Task] | None = None,
+              task_set: set[asyncio.Task],
               loop: asyncio.AbstractEventLoop | None = None
-              )-> tuple[asyncio.Task, set[asyncio.Task] | None]:
+              )-> tuple[asyncio.Task, set[asyncio.Task]]:
     """Make a task and assign it to the given loop.
     
     Args:
@@ -40,9 +40,8 @@ def make_task(coroutine: Coroutine,
     if not loop:
         loop = asyncio.get_event_loop()
     t = loop.create_task(coroutine)
-    if task_set:
-        t.add_done_callback(task_set.discard)
-        task_set.add(t)
+    t.add_done_callback(task_set.discard)
+    task_set.add(t)
     return t, task_set
 
 class Cyclic:
