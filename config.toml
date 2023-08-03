@@ -8,7 +8,7 @@ update_rate = 0.016667
 [camera]
 run_mode    = "NORMAL"
 bits        = 8
-freq_mode   = 6
+freq_mode   = 0
 resolution  = {rows = 1280, columns = 960}
 bin_mode    = "NO_BIN"
 nBuffer     = 24
