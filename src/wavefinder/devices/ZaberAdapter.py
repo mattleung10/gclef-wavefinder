@@ -8,7 +8,7 @@ from .ZaberAxis import ZaberAxis
 class ZaberAdapter(Cyclic):
     """Interface adapter between application and zaber library"""
 
-    def __init__(self, port_names: list[str],
+    def __init__(self, port_names: list[str] | str,
                  axis_names: dict[str, int]) -> None:
         """Set up adapter with all devices' axes visible from port
 
@@ -18,7 +18,7 @@ class ZaberAdapter(Cyclic):
                         e.g. {"x": 33938, "y": 33937}
         """
 
-        self.port_names = port_names
+        self.port_names = port_names if isinstance(port_names, list) else [port_names]
         self.axis_names = axis_names
         self.connections: list[Connection] = []
         self.device_list: list[Device] = []
