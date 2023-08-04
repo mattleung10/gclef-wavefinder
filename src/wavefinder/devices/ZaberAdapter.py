@@ -27,7 +27,7 @@ class ZaberAdapter(Cyclic):
         for p in self.port_names:
             print(f"Connecting to Zaber devices on {p}... ", end='', flush=True)
             try:
-                c = Connection.open_serial_port(p)
+                c = Connection.open_serial_port(p, direct=True)
                 c.enable_alerts()
                 self.connections.append(c)
                 self.device_list.extend(c.detect_devices())
