@@ -4,17 +4,19 @@
 exposure    = 0.10
 
 [motion.zaber]
-ports       = ["COM3", "COM6"]
+ports       = ["COM1", "COM2", "COM3", "COM4",
+               "COM5", "COM6", "COM7", "COM8",
+               "COM9", "COM10"]
 
 [motion.galil]
 address     = "192.168.1.19"
 
 [motion.limits]
 "focal_z"   = {min =   0.0, max = 15.0}
-"cfm1_az"   = {min = -10.0, max = 10.0}
-"cfm1_el"   = {min = -10.0, max = 10.0}
-"cfm2_az"   = {min = -10.0, max = 10.0}
-"cfm2_el"   = {min = -10.0, max = 10.0}
+"cfm1_az"   = {min = -30.0, max = 30.0}
+"cfm1_el"   = {min = -30.0, max = 30.0}
+"cfm2_az"   = {min = -30.0, max = 30.0}
+"cfm2_el"   = {min = -30.0, max = 30.0}
 
 [focuser]
 points_per_pass     = 10

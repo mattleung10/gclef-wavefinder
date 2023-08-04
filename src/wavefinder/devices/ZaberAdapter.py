@@ -1,4 +1,4 @@
-from zaber_motion import ConnectionFailedException, MotionLibException
+from zaber_motion import MotionLibException
 from zaber_motion.ascii import Connection, Device
 
 from ..gui.utils import Cyclic
@@ -31,7 +31,7 @@ class ZaberAdapter(Cyclic):
                 c.enable_alerts()
                 self.connections.append(c)
                 self.device_list.extend(c.detect_devices())
-            except ConnectionFailedException as e:
+            except MotionLibException as e:
                 print(e.message)
                 continue
             else:
