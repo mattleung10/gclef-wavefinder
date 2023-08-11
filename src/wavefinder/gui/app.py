@@ -4,7 +4,6 @@ import platform
 import sys
 import tkinter as tk
 import traceback
-import tomllib
 
 from .config import Configurable
 
@@ -14,6 +13,7 @@ from ..devices.MightexBufCmos import Camera
 from ..devices.ZaberAdapter import ZaberAdapter
 from ..functions.focus import Focuser
 from ..functions.position import Positioner
+from ..functions.writer import DataWriter
 from .camera_panel import CameraPanel
 from .function_panel import FunctionPanel
 from .motion_panel import MotionPanel
@@ -107,10 +107,11 @@ class App(tk.Tk, Configurable):
         self.positioner = Positioner(self.camera, x_axis, y_axis, px_size=self.pixel_size)
         self.focuser = Focuser(self.camera, z_axis, self.focus_points_per_pass,
                                self.focus_frames_per_point, self.focus_minimum_move)
+        self.writer = DataWriter(self.camera, self.axes, self.positioner, self.focuser)
 
     def make_panels(self):
         """Make UI panels"""
-        self.camera_panel = CameraPanel(self, self.camera)
+        self.camera_panel = CameraPanel(self, self.camera, self.writer)
         # internal frames of camera panel manage their own grid
 
         self.motion_panel = MotionPanel(self, self.axes)

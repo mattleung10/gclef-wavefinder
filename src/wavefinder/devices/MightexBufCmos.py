@@ -103,6 +103,10 @@ class Camera(Cyclic):
         self.fps = fps
         self.gain = gain
 
+        # camera information (read from camera)
+        self.modelno: str = ""
+        self.serialno: str = ""
+
         # data structures
         self.app_buffer: list[Frame] = []
         self.buffer_max = 100 # max 100 frames
@@ -163,24 +167,26 @@ class Camera(Cyclic):
         self.dev.write(0x01, [0x01, 1, 0x01])
         return list(await self.read_reply())
 
-    async def get_camera_info(self) -> dict[str, str | int]:
+    async def get_camera_info(self) -> dict[str, str]:
         """Get camera information.
 
         returns a dict with keys "ConfigRev", "ModuleNo", "SerialNo", "MftrDate"
         """
         self.dev.write(0x01, [0x21, 1, 0x00])
         reply = await self.read_reply()
-        info: dict[str, str | int] = {}
-        info["ConfigRv"] = int(reply[0])                    # configuration version
-        info["ModuleNo"] = reply[1:15].tobytes().decode()   # camera model
-        info["SerialNo"] = reply[15:29].tobytes().decode()  # serial number
-        info["MftrDate"] = reply[29:43].tobytes().decode()  # manufacture date (not set)
+        info: dict[str, str] = {}
+        info["ConfigRv"] = str(int(reply[0]))                           # configuration version
+        info["ModuleNo"] = reply[1:15].tobytes().decode().strip('\0')   # camera model
+        self.modelno = info["ModuleNo"]
+        info["SerialNo"] = reply[15:29].tobytes().decode().strip('\0')  # serial number
+        self.serialno = info["SerialNo"]
+        info["MftrDate"] = reply[29:43].tobytes().decode().strip('\0')  # manufacture date (not set)
         return info
 
     async def print_introduction(self) -> None:
         """Print camera information."""
         for item in (await self.get_camera_info()).items():
-            print(item[0] + ": " + str(item[1]))
+            print(item[0] + ": " + item[1])
         print("Firmware: " + '.'.join(map(str, await self.get_firmware_version())))
 
     async def set_mode(self, run_mode: int = NORMAL,
