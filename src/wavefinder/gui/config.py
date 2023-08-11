@@ -27,25 +27,25 @@ class Configurable:
                             "/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2", "/dev/ttyUSB3"]
         self.galil_address = "192.168.1.19"
         self.zaber_axis_names = {"focal_x": 33938,
-                                    "focal_y": 33937,
-                                    "focal_z": 33939,
-                                    "cfm2_x" : 110098,
-                                    "cfm2_y" : 113059}
+                                 "focal_y": 33937,
+                                 "focal_z": 33939,
+                                 "cfm2_x" : 110098,
+                                 "cfm2_y" : 113059}
         self.galil_axis_names = {"cfm1_az": "A",
-                                    "cfm1_el": "B",
-                                    "cfm2_az": "C",
-                                    "cfm2_el": "D"}
+                                 "cfm1_el": "B",
+                                 "cfm2_az": "C",
+                                 "cfm2_el": "D"}
         self.galil_acceleration = 2000000
         self.galil_deceleration = 2000000
-        self.galil_move_speed = 100000
-        self.galil_home_speed = 5000
+        self.galil_move_speed   =  100000
+        self.galil_home_speed   =    5000
         self.galil_encoder_counts_per_degree = 800
         self.galil_drive_counts_per_degree = 10000
         self.motion_limits = {"focal_z": {"min":   0.0, "max": 15.0},
-                                "cfm1_az": {"min": -10.0, "max": 10.0},
-                                "cfm1_el": {"min": -10.0, "max": 10.0},
-                                "cfm2_az": {"min": -10.0, "max": 10.0},
-                                "cfm2_el": {"min": -10.0, "max": 10.0}}
+                              "cfm1_az": {"min": -10.0, "max": 10.0},
+                              "cfm1_el": {"min": -10.0, "max": 10.0},
+                              "cfm2_az": {"min": -10.0, "max": 10.0},
+                              "cfm2_el": {"min": -10.0, "max": 10.0}}
 
         # positioner defaults
         self.camera_x_axis = "focal_x"
