@@ -4,9 +4,7 @@
 exposure    = 0.10
 
 [motion.zaber]
-ports       = ["COM1", "COM2", "COM3", "COM4",
-               "COM5", "COM6", "COM7", "COM8",
-               "COM9", "COM10"]
+ports       = ["COM3", "COM6"]
 
 [motion.galil]
 address     = "192.168.1.19"

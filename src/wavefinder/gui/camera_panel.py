@@ -47,6 +47,7 @@ class CameraPanel(Cyclic):
         # camera variables
         self.camera = camera
         res = (int(self.camera_res_x.get()), int(self.camera_res_y.get()))
+        self.camera_frame = None
         self.full_img = Image.new(mode='L', size=res, color=0)
         self.roi_size_x = int(self.roi_x_entry.get())
         self.roi_size_y = int(self.roi_y_entry.get())
@@ -298,7 +299,10 @@ class CameraPanel(Cyclic):
                                                       ("all files","*.*")),
                                          defaultextension=".fits")
         if f:
-            self.data_writer.write_fits_file(f, np.array(self.full_img))
+            if self.camera_frame:
+                self.data_writer.write_fits_file(f, frame=self.camera_frame)
+            else:
+                self.data_writer.write_fits_file(f, image=self.full_img)
 
     def reset_camera(self):
         if self.camera:
@@ -439,9 +443,9 @@ class CameraPanel(Cyclic):
 
             if self.freeze_txt.get() == "Freeze": # means not frozen
                 try:
-                    camera_frame = self.camera.get_newest_frame()
-                    self.full_img = Image.fromarray(camera_frame.img)
-                    self.update_img_props(camera_frame)
+                    self.camera_frame = self.camera.get_newest_frame()
+                    self.full_img = Image.fromarray(self.camera_frame.img_array)
+                    self.update_img_props(self.camera_frame)
                     if self.update_resolution_flag:
                         make_task(self.update_resolution(), self.tasks)
                 except IndexError:

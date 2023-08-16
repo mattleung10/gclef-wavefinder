@@ -38,7 +38,7 @@ class Positioner:
 
         center = (0, 0)
         if self.camera and self.x_axis and self.y_axis:
-            img = Image.fromarray(self.camera.get_newest_frame().img)
+            img = Image.fromarray(self.camera.get_newest_frame().img_array)
             stats = get_centroid_and_variance(img)
             img_center = ((img.size[0] - 1) / 2, (img.size[1] - 1) / 2)
             move_x_px = -(stats[0] - img_center[0])

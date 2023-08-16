@@ -1,9 +1,11 @@
 import asyncio
+
 import numpy as np
+from PIL import Image
 
 from ..devices.Axis import Axis
 from ..devices.MightexBufCmos import Camera
-from .image import frame_to_img, get_centroid_and_variance
+from .image import get_centroid_and_variance
 
 
 class Focuser:
@@ -72,7 +74,7 @@ class Focuser:
                             nT = frame.nTriggers
 
                         # compute focus
-                        stats = get_centroid_and_variance(frame_to_img(frame.img))
+                        stats = get_centroid_and_variance(Image.fromarray(frame.img_array))
                         # sqrt(var_x) * sqrt(var_y)
                         v = np.sqrt(stats[2]) * np.sqrt(stats[3])
                         sum += v

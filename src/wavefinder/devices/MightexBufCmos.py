@@ -46,7 +46,7 @@ class Frame:
         if (len(frame) != self.rows*self.cols + 512):
             raise BufferError("got bad frame from camera")
         # store image; for some reason the rows and cols are switched in the buffer
-        self.img = np.reshape(frame[0 : self.rows*self.cols], (self.cols, self.rows))
+        self.img_array = np.reshape(frame[0 : self.rows*self.cols], (self.cols, self.rows))
         self.time = time
 
 class Camera(Cyclic):

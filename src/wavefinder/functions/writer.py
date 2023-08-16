@@ -4,9 +4,10 @@ from astropy.time import Time
 from PIL import Image
 
 from ..devices.Axis import Axis
-from ..devices.MightexBufCmos import Camera
+from ..devices.MightexBufCmos import Camera, Frame
 from ..functions.focus import Focuser
 from ..functions.position import Positioner
+from ..functions.image import get_centroid_and_variance, variance_to_fwhm
 
 
 class DataWriter:
@@ -17,65 +18,79 @@ class DataWriter:
 
     def write_fits_file(self,
                         filename: str,
-                        img: np.ndarray | None = None):
+                        frame: Frame | None = None,
+                        image: Image.Image | None = None):
         """Write a FITS file using most recent image and telemetry
         
         Args:
             filename: name of fits file to be written
-            img: write the given image if not None
+            frame: write the given frame if not None, takes precedence over img
+            image: write the given image if not None
         """
 
         hdu = fits.PrimaryHDU()
-
         hdu.header.update(self.make_general_headers())
-        if self.camera:
-            # get the img if not provided
-            if img is None:
-                img = np.array(self.camera.get_newest_frame())
-            hdu.header.update(self.make_camera_frame_headers())            
+        # use frame if provided, otherwise try img, otherwise make an img
+        if frame:
+            hdu.header.update(self.make_camera_frame_headers(frame))
+            hdu.data = frame.img_array
         else:
-            # No camera, write dummy file
-            if img is None:
-                img = np.array(Image.effect_noise(size=(1280, 960), sigma=100))
-            hdu.header.update(self.make_dummy_frame_headers())
-        
+            if image is None:
+                image = Image.effect_noise(size=(1280, 960), sigma=100)
+            hdu.header.update(self.make_dummy_frame_headers(image))
+            hdu.data = np.array(image)
         for c in self.make_axis_headers():
             hdu.header['comment'] = c
-        hdu.header.update(self.make_axis_headers())
         hdu.header.update(self.make_science_headers())
-        hdu.data = img
         hdu.add_checksum()
         hdu.writeto(filename, overwrite=True, output_verify='fix')
 
-    def make_camera_frame_headers(self) -> dict[str, tuple[str, str]]:
+    def make_camera_frame_headers(self, frame: Frame) -> dict[str, tuple[float | int | str, str]]:
         """Make headers related to the camera image acquisition"""
-        headers: dict[str, tuple[str, str]] = {}
+        headers: dict[str, tuple[float | int | str, str]] = {}
         if self.camera:
-            frame = self.camera.get_newest_frame()
             headers['detector'] = (self.camera.modelno, "detector name")
-            headers['date-obs'] = (frame.time.fits,     "observation date")
-            headers['xposure']  = (frame.expTime,       "[ms] exposure time")
-            headers['gain']     = (frame.gGain,         "[dB] detector gain")
+        else:
+            headers['detector'] = ("not_found",         "detector name")
+        headers['date-obs'] = (frame.time.fits,     "observation date")
+        headers['xposure']  = (frame.expTime,       "[ms] exposure time")
+        headers['gain']     = (frame.gGain,         "[dB] detector gain")
+        img = Image.fromarray(frame.img_array)
+        headers.update(self.make_img_headers(img))
         return headers
 
-    def make_dummy_frame_headers(self) -> dict[str, tuple[str, str]]:
+    def make_dummy_frame_headers(self, img: Image.Image)-> dict[str, tuple[float | int | str, str]]:
         """Make fake camera headers"""
-        headers: dict[str, tuple[str, str]] = {}
+        headers: dict[str, tuple[float | int | str, str]] = {}
         headers['detector'] = ("simulated", "detector name")
+        headers.update(self.make_img_headers(img))
+        return headers
+    
+    def make_img_headers(self, img: Image.Image) -> dict[str, tuple[float | int | str, str]]:
+        """Make headers from image"""
+        headers: dict[str, tuple[float | int | str, str]]= {}
+        stats = get_centroid_and_variance(img)
+        headers['cenx'] = (stats[0], "[px] centroid along x axis")
+        headers['ceny'] = (stats[1], "[px] centroid along y axis")
+        headers['fwhmx'] = (variance_to_fwhm(stats[2]), "[px] full width half maximum along x axis")
+        headers['fwhmy'] = (variance_to_fwhm(stats[3]), "[px] full width half maximum along y axis")
         return headers
 
     def make_axis_headers(self) -> list[str]:
-        """Make headers related to the motion axes"""
+        """Make headers related to the motion axes, write as comments"""
         comments: list[str] = list()
         for axis in self.axes.values():
             comments.append((f"{axis.name} position: {axis.position}"))
         return comments
     
-    def make_science_headers(self):
+    def make_science_headers(self) -> dict[str, tuple[float | int | str, str]]:
         """Make headers related to this specific experiment"""
         headers: dict[str, tuple[float | int | str, str]] = {}
-        headers['fcspnt']   = (self.focuser.best_focus, "focus position")
-        headers['dfcspnt']  = (0,                       "distance to focus position")
+        headers['wavelen'] = (0, "[nm] wavelength being measured")
+        if self.focuser.f_axis:
+            headers['fcspnt']   = (self.focuser.best_focus, "[mm] focus position")
+            dfcspnt = self.focuser.f_axis.position - self.focuser.best_focus
+            headers['dfcspnt']  = (dfcspnt,                 "[mm] focal axis position minus focus position")
         return headers
 
     def make_general_headers(self) -> dict[str, tuple[str, str]]:
