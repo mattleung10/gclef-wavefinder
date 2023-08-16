@@ -9,6 +9,7 @@ from PIL import Image, ImageColor, ImageDraw, ImageOps, ImageTk
 
 from ..devices.MightexBufCmos import Camera, Frame
 from ..functions.image import get_centroid_and_variance, variance_to_fwhm
+from ..functions.writer import DataWriter
 from ..gui.utils import Cyclic
 from .utils import make_task, valid_float, valid_int
 
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
 class CameraPanel(Cyclic):
     """Camera UI Panel is made of 3 LabelFrames"""
 
-    def __init__(self, parent: 'App', camera: Camera | None):
+    def __init__(self, parent: 'App', camera: Camera | None, data_writer: DataWriter):
         # Task variables
         self.tasks: set[asyncio.Task] = set()
         self.extra_init = True
@@ -52,6 +53,8 @@ class CameraPanel(Cyclic):
         self.roi_zoom = int(self.roi_zoom_entry.get())
         self.img_stats = (0.0, 0.0, 0.0, 0.0, 0.0)
         self.update_resolution_flag = False
+
+        self.data_writer = data_writer
 
         # make panel slices
         settings_frame = ttk.LabelFrame(parent, text="Camera Settings", labelanchor=tk.N)
@@ -275,10 +278,10 @@ class CameraPanel(Cyclic):
             # update resolution
             self.update_resolution_flag = True
 
-    def set_camera_info(self, info: dict[str, str | int]):
+    def set_camera_info(self, info: dict[str, str]):
         """Update the GUI with the camera info"""
-        self.camera_model.set(info["ModuleNo"].strip('\0')) # type: ignore
-        self.camera_serial.set(info["SerialNo"].strip('\0')) # type: ignore
+        self.camera_model.set(info["ModuleNo"])
+        self.camera_serial.set(info["SerialNo"])
 
     def freeze_preview(self):
         """Freeze preview"""
@@ -295,10 +298,7 @@ class CameraPanel(Cyclic):
                                                       ("all files","*.*")),
                                          defaultextension=".fits")
         if f:
-            hdu = fits.PrimaryHDU(np.array(self.full_img))
-            # TODO: add FITS headers
-            hdu.header['camera'] = self.camera_model.get()
-            hdu.writeto(f, overwrite=True, output_verify='fix')
+            self.data_writer.write_fits_file(f, np.array(self.full_img))
 
     def reset_camera(self):
         if self.camera:
@@ -432,12 +432,12 @@ class CameraPanel(Cyclic):
     async def update(self):
         """Update preview image in viewer"""
         if self.camera:
+            # set camera info on first pass
             if self.extra_init:
-                # set camera info on first pass
                 self.set_camera_info(await self.camera.get_camera_info())
                 self.extra_init = False
 
-            if self.freeze_txt.get() == "Freeze":
+            if self.freeze_txt.get() == "Freeze": # means not frozen
                 try:
                     camera_frame = self.camera.get_newest_frame()
                     self.full_img = Image.fromarray(camera_frame.img)
@@ -447,7 +447,7 @@ class CameraPanel(Cyclic):
                 except IndexError:
                     pass
         else: # no camera, testing purposes
-            if self.freeze_txt.get() == "Freeze":
+            if self.freeze_txt.get() == "Freeze":  # means not frozen
                 # image components
                 res = (int(self.camera_res_x.get()), int(self.camera_res_y.get()))
                 black = Image.new(mode='L', size=res, color=0)

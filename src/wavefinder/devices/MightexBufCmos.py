@@ -1,18 +1,22 @@
 import array
-import asyncio
 import os
 import platform
 
 import numpy as np
 import usb.core
+from astropy.time import Time
 
 from ..gui.utils import Cyclic
 
 
 class Frame:
-    """Image frame object for Mightex camera"""
-
-    def __init__(self, frame: array.array) -> None:
+    def __init__(self, frame: array.array, time: Time) -> None:
+        """Image frame object for Mightex camera
+        
+        Args
+            frame: frame data
+            time: time frame was captured
+        """
         # store properties (little endian format)
         frame_prop = frame[-512:] # last 512 bytes
         self.rows       = frame_prop[0]  + (frame_prop[1]  << 0x8) # number of rows
@@ -43,6 +47,7 @@ class Frame:
             raise BufferError("got bad frame from camera")
         # store image; for some reason the rows and cols are switched in the buffer
         self.img = np.reshape(frame[0 : self.rows*self.cols], (self.cols, self.rows))
+        self.time = time
 
 class Camera(Cyclic):
     """Interface for Mightex Buffer USB CMOS Camera
@@ -103,9 +108,14 @@ class Camera(Cyclic):
         self.fps = fps
         self.gain = gain
 
+        # camera information (read from camera)
+        self.modelno: str = ""
+        self.serialno: str = ""
+
         # data structures
-        self.app_buffer: list[Frame] = []
+        self.frame_buffer: list[Frame] = []
         self.buffer_max = 100 # max 100 frames
+        self.last_trigger_time: Time = Time.now()
 
         print("Connecting to Mightex camera... ", end='', flush=True)
 
@@ -163,24 +173,26 @@ class Camera(Cyclic):
         self.dev.write(0x01, [0x01, 1, 0x01])
         return list(await self.read_reply())
 
-    async def get_camera_info(self) -> dict[str, str | int]:
+    async def get_camera_info(self) -> dict[str, str]:
         """Get camera information.
 
         returns a dict with keys "ConfigRev", "ModuleNo", "SerialNo", "MftrDate"
         """
         self.dev.write(0x01, [0x21, 1, 0x00])
         reply = await self.read_reply()
-        info: dict[str, str | int] = {}
-        info["ConfigRv"] = int(reply[0])                    # configuration version
-        info["ModuleNo"] = reply[1:15].tobytes().decode()   # camera model
-        info["SerialNo"] = reply[15:29].tobytes().decode()  # serial number
-        info["MftrDate"] = reply[29:43].tobytes().decode()  # manufacture date (not set)
+        info: dict[str, str] = {}
+        info["ConfigRv"] = str(int(reply[0]))                           # configuration version
+        info["ModuleNo"] = reply[1:15].tobytes().decode().strip('\0')   # camera model
+        self.modelno = info["ModuleNo"]
+        info["SerialNo"] = reply[15:29].tobytes().decode().strip('\0')  # serial number
+        self.serialno = info["SerialNo"]
+        info["MftrDate"] = reply[29:43].tobytes().decode().strip('\0')  # manufacture date (not set)
         return info
 
     async def print_introduction(self) -> None:
         """Print camera information."""
         for item in (await self.get_camera_info()).items():
-            print(item[0] + ": " + str(item[1]))
+            print(item[0] + ": " + item[1])
         print("Firmware: " + '.'.join(map(str, await self.get_firmware_version())))
 
     async def set_mode(self, run_mode: int = NORMAL,
@@ -296,11 +308,12 @@ class Camera(Cyclic):
         await self.set_gain(self.gain, write_now=True)
 
     async def trigger(self) -> None:
-        """Simulate a trigger.
+        """Simulate a trigger and timestamp it
 
         Only works in TRIGGER mode.
         """
         self.dev.write(0x01, [0x36, 1, 0x00])
+        self.last_trigger_time = Time.now()
 
     async def query_buffer(self) -> dict[str, int | tuple[int, int]]:
         """Query camera's buffer for number of available frames
@@ -321,7 +334,7 @@ class Camera(Cyclic):
         """Clear camera and application buffer."""
         nFrames = (await self.query_buffer())["nFrames"]
         self.dev.write(0x01, [0x35, 1, nFrames])
-        self.app_buffer.clear()
+        self.frame_buffer.clear()
 
     async def acquire_frames(self) -> None:
         """Aquire camera image frames.
@@ -357,23 +370,23 @@ class Camera(Cyclic):
             except usb.core.USBTimeoutError:
                 break
             try:
-                frame = Frame(data)
+                frame = Frame(data, Time.now())
             except BufferError:
                 break
-            self.app_buffer.insert(0, frame)
+            self.frame_buffer.insert(0, frame)
             # trim buffer
-            while len(self.app_buffer) > self.buffer_max:
-                self.app_buffer.pop()
+            while len(self.frame_buffer) > self.buffer_max:
+                self.frame_buffer.pop()
 
     def get_frames(self, nFrames: int = 1) -> list[Frame]:
         """Get most recent nFrames frames, from newest to oldest"""
-        nFrames = np.clip(nFrames, 0, len(self.app_buffer))
-        return self.app_buffer[0:nFrames]
+        nFrames = np.clip(nFrames, 0, len(self.frame_buffer))
+        return self.frame_buffer[0:nFrames]
 
     def get_newest_frame(self) -> Frame:
         """Get most recent frame."""
-        if len(self.app_buffer) > 0:
-            return self.app_buffer[0]
+        if len(self.frame_buffer) > 0:
+            return self.frame_buffer[0]
         else:
             raise IndexError("no frames in app buffer")
 
