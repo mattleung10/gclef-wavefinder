@@ -26,33 +26,33 @@ class Configurable:
                             "COM6", "COM7", "COM8", "COM9", "COM10",
                             "/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2", "/dev/ttyUSB3"]
         self.galil_address = "192.168.1.19"
-        self.zaber_axis_names = {"focal_x": 33938,
-                                 "focal_y": 33937,
-                                 "focal_z": 33939,
-                                 "cfm2_x" : 110098,
-                                 "cfm2_y" : 113059}
-        self.galil_axis_names = {"cfm1_az": "A",
-                                 "cfm1_el": "B",
-                                 "cfm2_az": "C",
-                                 "cfm2_el": "D"}
+        self.zaber_axis_names = {"detector x":  {"sn": 33938,  "keyword": "detxpos"},
+                                 "detector y":  {"sn": 33937,  "keyword": "detypos"},
+                                 "detector z":  {"sn": 33939,  "keyword": "detzpos"},
+                                 "cfm2 x":      {"sn": 110098, "keyword": "cfm2xpos"},
+                                 "cfm2 y":      {"sn": 113059, "keyword": "cfm2ypos"}}
+        self.galil_axis_names = {"cfm1 azimuth":    {"ch": "A", "keyword": "cfm1az"},
+                                 "cfm1 elevation":  {"ch": "B", "keyword": "cfm1el"},
+                                 "cfm2 azimuth":    {"ch": "C", "keyword": "cfm2az"},
+                                 "cfm2 elevation":  {"ch": "D", "keyword": "cfm2el"}}
         self.galil_acceleration = 2000000
         self.galil_deceleration = 2000000
         self.galil_move_speed   =  100000
         self.galil_home_speed   =    5000
         self.galil_encoder_counts_per_degree = 800
         self.galil_drive_counts_per_degree = 10000
-        self.motion_limits = {"focal_z": {"min":   0.0, "max": 15.0},
-                              "cfm1_az": {"min": -10.0, "max": 10.0},
-                              "cfm1_el": {"min": -10.0, "max": 10.0},
-                              "cfm2_az": {"min": -10.0, "max": 10.0},
-                              "cfm2_el": {"min": -10.0, "max": 10.0}}
+        self.motion_limits = {"detector z":     {"min":   0.0, "max": 15.0},
+                              "cfm1 azimuth":   {"min": -30.0, "max": 30.0},
+                              "cfm1 elevation": {"min": -30.0, "max": 30.0},
+                              "cfm2 azimuth":   {"min": -30.0, "max": 30.0},
+                              "cfm2 elevation": {"min": -30.0, "max": 30.0}}
 
         # positioner defaults
-        self.camera_x_axis = "focal_x"
-        self.camera_y_axis = "focal_y"
+        self.camera_x_axis = "detector x"
+        self.camera_y_axis = "detector y"
 
         # focuser defaults
-        self.focus_axis = "focal_z"
+        self.focus_axis = "detector z"
         self.focus_points_per_pass = 10
         self.focus_frames_per_point = 3
         self.focus_minimum_move = 0.001
@@ -186,7 +186,7 @@ class Configurable:
         """Print all the config vars"""
         print(f"interval = {self.interval}")
 
-        # camera defaults
+        # camera
         print(f"camera_run_mode = {self.camera_run_mode}")
         print(f"camera_bits = {self.camera_bits}")
         print(f"camera_freq_mode = {self.camera_freq_mode}")
@@ -198,7 +198,7 @@ class Configurable:
         print(f"camera_gain = {self.camera_gain}")
         print(f"pixel_size = {self.pixel_size}")
 
-        # motion defaults
+        # motion
         print(f"zaber_ports = {self.zaber_ports}")
         print(f"galil_address = {self.galil_address}")
         print(f"zaber_axis_names = {self.zaber_axis_names}")
@@ -211,11 +211,11 @@ class Configurable:
         print(f"galil_drive_counts_per_degree = {self.galil_drive_counts_per_degree}")
         print(f"motion_limits = {self.motion_limits}")
 
-        # positioner defaults
+        # positioner
         print(f"camera_x_axis = {self.camera_x_axis}")
         print(f"camera_y_axis = {self.camera_y_axis}")
 
-        # focuser defaults
+        # focuser
         print(f"focus_axis = {self.focus_axis}")
         print(f"focus_points_per_pass = {self.focus_points_per_pass}")
         print(f"focus_frames_per_point = {self.focus_frames_per_point}")

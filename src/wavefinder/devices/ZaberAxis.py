@@ -8,15 +8,17 @@ class ZaberAxis(Axis):
     # Zaber implementation of Axis superclass
     # See Axis for abstract function descriptions.
 
-    def __init__(self, name: str, axis_handle: ZAxis) -> None:
+    def __init__(self, name: str, keyword: str, axis_handle: ZAxis) -> None:
         """Zaber motion control axis
         
         Args:
             name: human-readable name of axis
+            keyword: FITS keyword
             axis_handle: zaber_motion Axis object
         """
-        super().__init__(name)
+        super().__init__(name, keyword)
         self.axis = axis_handle
+        self.units = ("mm", "millimeters") # NOTE: hardcoded units
 
         # check that this axis is working
         self.axis.get_position()

@@ -10,11 +10,13 @@ class Axis(ABC):
     ERROR   = 3
     STATES = [READY, MOVING, BUSY, ERROR]
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, keyword: str) -> None:
         self.name = name
+        self.keyword = keyword[:8] # limit to 8 chars
         self.position = 0.
         self.status = Axis.BUSY
         self.is_homed = False
+        self.units: tuple[str, str] = ("", "")
 
     @abstractmethod
     async def home(self):

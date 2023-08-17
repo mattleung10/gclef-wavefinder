@@ -7,7 +7,7 @@ from .GalilAxis import GalilAxis
 class GalilAdapter(Cyclic):
     """Interface adapter between application and galil"""
 
-    def __init__(self, address: str, axis_names: dict[str, str],
+    def __init__(self, address: str, axis_names: dict[str, dict[str, str]],
                  accel: int = 2000000, decel: int = 2000000,
                  speed: int = 100000, homing_speed: int = 5000,
                  encoder_counts_per_degree: int = 800,
@@ -16,8 +16,8 @@ class GalilAdapter(Cyclic):
 
         Args:
             address: IP address of controller as string, e.g. "192.168.1.19"
-            axis_names: mapping of name to axis channel identifier
-                e.g. {"gimbal 1 elevation": "A", "gimbal 2 azimuth": "D"}
+            axis_names: mapping of name to axis channel identifier and keyword
+                e.g. {"cfm1 azimuth": {"ch": "A", "keyword": "cfm1az"}}
             accel: acceleration
             decel: deceleration
             speed: move speed
@@ -41,10 +41,12 @@ class GalilAdapter(Cyclic):
         else:
             print("connected.")
         
-        for a_nm, a_ch in self.axis_names.items():
-            print(f"Finding {a_nm} on channel {a_ch}... ", end='', flush=True)
+        for name in self.axis_names.keys():
+            ch = self.axis_names[name]["ch"] # channel
+            kw = self.axis_names[name]["keyword"]
+            print(f"Finding {name} on channel {ch}... ", end='', flush=True)
             try:
-                self.axes[a_nm] = GalilAxis(a_nm, a_ch, self.connection)
+                self.axes[name] = GalilAxis(name, kw, ch, self.connection)
             except GclibError:
                 print("not found.") # device not found
             except Exception as e:

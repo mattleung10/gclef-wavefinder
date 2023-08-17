@@ -9,13 +9,13 @@ class ZaberAdapter(Cyclic):
     """Interface adapter between application and zaber library"""
 
     def __init__(self, port_names: list[str] | str,
-                 axis_names: dict[str, int]) -> None:
+                 axis_names: dict[str, dict[str, int | str]]) -> None:
         """Set up adapter with all devices' axes visible from port
 
         Args:
             port_names: list of ports, e.g. ['/dev/ttyUSB0', '/dev/ttyUSB1']
-            axis_names: mapping of name to axis device serial number,
-                        e.g. {"x": 33938, "y": 33937}
+            axis_names: "name" = {sn = serial_number, keyword = "kw"}
+                        e.g. {"detector x": {"sn": 33938, "keyword": "detxpos"}}
         """
 
         self.port_names = port_names if isinstance(port_names, list) else [port_names]
@@ -40,16 +40,17 @@ class ZaberAdapter(Cyclic):
         if len(self.device_list) == 0:
             return
 
-        for a in self.axis_names.keys():
-            sn = self.axis_names[a] # serial number
-            print(f"Finding {a} ({sn})...", end='', flush=True)
+        for name in self.axis_names.keys():
+            sn = int(self.axis_names[name]["sn"]) # serial number
+            kw = str(self.axis_names[name]["keyword"])
+            print(f"Finding {name} ({sn})...", end='', flush=True)
             try:
                 device: Device = next(filter(lambda d: d.serial_number == sn,
                                              self.device_list))
                 # NOTE: we always use axis #1 because all our devices have only one axis,
                 #       but if you want to change that, do that here.
                 axis = device.get_axis(1)
-                self.axes[a] = ZaberAxis(a, axis)
+                self.axes[name] = ZaberAxis(name, kw, axis)
             except StopIteration:
                 print("not found.") # device not found
             except ValueError:

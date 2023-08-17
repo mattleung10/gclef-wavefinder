@@ -9,7 +9,7 @@ class GalilAxis(Axis):
     # Galil implementation of Axis superclass
     # See Axis for abstract function descriptions.
 
-    def __init__(self, name: str, channel: str, connection: py, accel: int = 2000000,
+    def __init__(self, name: str, keyword: str, channel: str, connection: py, accel: int = 2000000,
                  decel: int = 2000000, speed: int = 100000, homing_speed: int = 5000,
                  encoder_counts_per_degree: int = 800,
                  drive_counts_per_degree: int = 10000) -> None:
@@ -17,6 +17,7 @@ class GalilAxis(Axis):
         
         Args:
             name: human-readable name of axis
+            keyword: FITS keyword
             channel: axis channel (A, B, C, D)
             connection: gclib py object with open connection
             accel: acceleration
@@ -26,7 +27,7 @@ class GalilAxis(Axis):
             encoder_counts_per_degree: encoder counts per degree
             encoder_counts_per_degree: drive counts per degree
         """
-        super().__init__(name)
+        super().__init__(name, keyword)
         self.ch = channel
         self.g = connection
         self.accel = accel
@@ -35,6 +36,7 @@ class GalilAxis(Axis):
         self.hspeed = homing_speed
         self.encoder_scale = encoder_counts_per_degree
         self.drive_scale = drive_counts_per_degree
+        self.units = ("deg", "arc degrees") # NOTE: hardcoded units
 
         # enable axis with "Servo Here"
         self.g.GCommand(f"SH{self.ch}")

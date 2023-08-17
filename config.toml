@@ -20,11 +20,11 @@ gain        = 15
 ports = ["COM3", "COM6"]
 
 [motion.zaber.axis_names]
-"focal_x"   =  33938
-"focal_y"   =  33937
-"focal_z"   =  33939
-"cfm2_x"    = 110098
-"cfm2_y"    = 113059
+"detector x"    = {sn = 33938,  keyword = "detxpos"}
+"detector y"    = {sn = 33937,  keyword = "detypos"}
+"detector z"    = {sn = 33939,  keyword = "detzpos"}
+"cfm2 x"        = {sn = 110098, keyword = "cfm2xpos"}
+"cfm2 y"        = {sn = 113059, keyword = "cfm2ypos"}
 
 [motion.galil]
 address         = "192.168.1.19"
@@ -36,24 +36,24 @@ encdr_cnts_deg  =     800
 drive_cnts_deg  =   10000
 
 [motion.galil.axis_names]
-"cfm1_az"   = "A"
-"cfm1_el"   = "B"
-"cfm2_az"   = "C"
-"cfm2_el"   = "D"
+"cfm1 azimuth"      = {ch = "A", keyword = "cfm1az"}
+"cfm1 elevation"    = {ch = "B", keyword = "cfm1el"}
+"cfm2 azimuth"      = {ch = "C", keyword = "cfm2az"}
+"cfm2 elevation"    = {ch = "D", keyword = "cfm2el"}
 
 [motion.limits]
-"focal_z"   = {min =   0.0, max = 15.0}
-"cfm1_az"   = {min = -10.0, max = 10.0}
-"cfm1_el"   = {min = -10.0, max = 10.0}
-"cfm2_az"   = {min = -10.0, max = 10.0}
-"cfm2_el"   = {min = -10.0, max = 10.0}
+"detector z"        = {min =   0.0, max = 15.0}
+"cfm1 azimuth"      = {min = -30.0, max = 30.0}
+"cfm1 elevation"    = {min = -30.0, max = 30.0}
+"cfm2 azimuth"      = {min = -30.0, max = 30.0}
+"cfm2 elevation"    = {min = -30.0, max = 30.0}
 
 [positioner]
-x_axis      = "focal_x"
-y_axis      = "focal_y"
+x_axis      = "detector x"
+y_axis      = "detector y"
 
 [focuser]
-focus_axis          = "focal_z"
+focus_axis          = "detector z"
 points_per_pass     = 10
 frames_per_point    =  3
 minimum_move        =  0.001
@@ -82,8 +82,8 @@ minimum_move        =  0.001
 # ports:        list of serial ports to scan [all]
 #
 # [motion.zaber.axis_names]
-# list all zaber axes as "name" = serial_number, e.g.
-# "focal_x" = 33938
+# list all zaber axes as "name" = {sn = serial_number, keyword = "kw"}, e.g.
+# "detector x" = {sn = 33938,  keyword = "detxpos"}
 #
 # [motion.galil]
 # address:      IP address of Newmark controller ["192.168.1.19"]
@@ -95,8 +95,8 @@ minimum_move        =  0.001
 # drive_cnts_deg:   drive counts per degree [10000]
 #
 # [motion.galil.axis_names]
-# list all galil/newmark axes as "name" = "channel letter", e.g.
-# "cfm1_az" = "A"
+# list all galil/newmark axes as "name" = {ch = "channel letter", keyword = "kw"}, e.g.
+# "cfm1 azimuth" = {ch = "A", keyword = "cfm1az"}
 #
 # [motion.limits]
 # list all motion limits (both zaber & galil) as "name" = {min = XX, max = XX}
