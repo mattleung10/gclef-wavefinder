@@ -76,17 +76,18 @@ class DataWriter:
         headers['fwhmy'] = (variance_to_fwhm(stats[3]), "[px] full width half maximum along y axis")
         return headers
 
-    def make_axis_headers(self) -> list[str]:
-        """Make headers related to the motion axes, write as comments"""
-        comments: list[str] = list()
+    def make_axis_headers(self) -> dict[str, tuple[float | int | str, str]]:
+        """Make headers related to the motion axes"""
+        headers: dict[str, tuple[float | int | str, str]]= {}
         for axis in self.axes.values():
-            comments.append((f"{axis.name} position: {axis.position}"))
-        return comments
+            headers[axis.keyword] = (axis.position, f"[{axis.units[0]}] {axis.name} position")
+        return headers
     
     def make_science_headers(self) -> dict[str, tuple[float | int | str, str]]:
         """Make headers related to this specific experiment"""
         headers: dict[str, tuple[float | int | str, str]] = {}
-        headers['wavelen'] = (0, "[nm] wavelength being measured")
+        headers['wavelen']  = (0, "[nm] wavelength being measured")
+        headers['order']    = (0, "diffraction order")
         if self.focuser.f_axis:
             headers['fcspnt']   = (self.focuser.best_focus, "[mm] focus position")
             dfcspnt = self.focuser.f_axis.position - self.focuser.best_focus
@@ -96,8 +97,8 @@ class DataWriter:
     def make_general_headers(self) -> dict[str, tuple[str, str]]:
         """Make general, standard headers"""
         headers: dict[str, tuple[str, str]] = {}
-        headers['date']     = (Time.now().fits,     "time in UTC")
-        headers['origin']   = ("CfA",               "instituion which created this file")
+        headers['date']     = (Time.now().fits,     "time this file was created, in UTC")
+        headers['origin']   = ("CfA",               "institution which created this file")
         headers['creator']  = ("gclef-wavefinder",  "software which created this file")
         headers['instrume'] = ("G-CLEF_AIT",        "instrument name")
         headers['timesys']  = ("UTC",               "time coordinate system")

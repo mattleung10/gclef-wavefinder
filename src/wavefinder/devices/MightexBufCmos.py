@@ -181,12 +181,12 @@ class Camera(Cyclic):
         self.dev.write(0x01, [0x21, 1, 0x00])
         reply = await self.read_reply()
         info: dict[str, str] = {}
-        info["ConfigRv"] = str(int(reply[0]))                           # configuration version
-        info["ModuleNo"] = reply[1:15].tobytes().decode().strip('\0')   # camera model
+        info["ConfigRv"] = str(int(reply[0]))                               # configuration version
+        info["ModuleNo"] = reply[1:15].tobytes().decode().strip('\0 \t')    # camera model
         self.modelno = info["ModuleNo"]
-        info["SerialNo"] = reply[15:29].tobytes().decode().strip('\0')  # serial number
+        info["SerialNo"] = reply[15:29].tobytes().decode().strip('\0 \t')   # serial number
         self.serialno = info["SerialNo"]
-        info["MftrDate"] = reply[29:43].tobytes().decode().strip('\0')  # manufacture date (not set)
+        info["MftrDate"] = reply[29:43].tobytes().decode().strip('\0 \t')   # manufacture date (not set)
         return info
 
     async def print_introduction(self) -> None:
