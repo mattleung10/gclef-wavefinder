@@ -5,8 +5,6 @@ import sys
 import tkinter as tk
 import traceback
 
-from .config import Configurable
-
 from ..devices.Axis import Axis
 from ..devices.GalilAdapter import GalilAdapter
 from ..devices.MightexBufCmos import Camera
@@ -15,6 +13,7 @@ from ..functions.focus import Focuser
 from ..functions.position import Positioner
 from ..functions.writer import DataWriter
 from .camera_panel import CameraPanel
+from .config import Configurable
 from .function_panel import FunctionPanel
 from .motion_panel import MotionPanel
 from .utils import Cyclic, make_task

@@ -4,7 +4,6 @@ from tkinter import filedialog, ttk
 from typing import TYPE_CHECKING
 
 import numpy as np
-from astropy.io import fits
 from PIL import Image, ImageColor, ImageDraw, ImageOps, ImageTk
 
 from ..devices.MightexBufCmos import Camera, Frame

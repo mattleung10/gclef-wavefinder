@@ -6,8 +6,8 @@ from PIL import Image
 from ..devices.Axis import Axis
 from ..devices.MightexBufCmos import Camera, Frame
 from ..functions.focus import Focuser
-from ..functions.position import Positioner
 from ..functions.image import get_centroid_and_variance, variance_to_fwhm
+from ..functions.position import Positioner
 
 
 class DataWriter:
@@ -25,7 +25,7 @@ class DataWriter:
         
         Args:
             filename: name of fits file to be written
-            frame: write the given frame if not None, takes precedence over img
+            frame: write the given frame if not None, takes precedence over image
             image: write the given image if not None
         """
 
@@ -52,7 +52,7 @@ class DataWriter:
             headers['detector'] = ("Mightex " + self.camera.modelno, "detector name")
         else:
             headers['detector'] = ("not_found",         "detector name")
-        headers['date-obs'] = (frame.time.fits,         "observation date")
+        headers['date-obs'] = (frame.time.fits,         "observation date and time")
         headers['xposure']  = (frame.expTime / 1000,    "[s] exposure time")
         headers['gain']     = (frame.gGain,             "[dB] detector gain")
         pxsizex, pxsizey = self.positioner.px_size
