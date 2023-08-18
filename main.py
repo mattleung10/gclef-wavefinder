@@ -11,7 +11,6 @@ if __name__ == "__main__":
 
 
 ### TODO list
-# save in FITS format
 # read in input configuration and table of wavelengths
 # alpha shapes, better image masking
 # 12-bit imaging
