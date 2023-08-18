@@ -28,7 +28,7 @@ This graphical software for G-CLEF camera AIT lab prototyping measures optical p
 * Save images in FITS format
 * Run from a table of scripted configurations
 
-<!-- TODO: screenshot -->
+<img src="screenshot.png" width="80%">
 
 ## Prequisites
 * Microsoft Windows 10  operating system (also works in WSL)
