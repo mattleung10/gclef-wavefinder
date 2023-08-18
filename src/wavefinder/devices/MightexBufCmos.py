@@ -41,13 +41,18 @@ class Frame:
                                   (frame_prop[31] << 0x24))
         # last 480 bytes are reserved, not used
 
-        # TODO: support 12-bit
-
-        if (len(frame) != self.rows*self.cols + 512):
-            raise BufferError("got bad frame from camera")
-        # store image; for some reason the rows and cols are switched in the buffer
-        self.img_array = np.reshape(frame[0 : self.rows*self.cols], (self.cols, self.rows))
         self.time = time
+
+        # get image frame data
+        if len(frame) == self.rows*self.cols + 512:
+            # 8 bit mode
+            self.img_array = np.reshape(frame[0 : self.rows*self.cols], (self.cols, self.rows)).astype('uint16')
+        elif len(frame) == 2*self.rows*self.cols + 512:
+            # 12 bit mode
+            bits = np.reshape(frame[0 : 2*self.rows*self.cols], (self.cols, self.rows, 2)).astype('uint16')
+            self.img_array = np.add(bits[:,:,0] << 4, bits[:,:,1], dtype='uint16')
+        else:
+            raise BufferError("got bad frame from camera")
 
 class Camera(Cyclic):
     """Interface for Mightex Buffer USB CMOS Camera

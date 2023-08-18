@@ -105,8 +105,7 @@ class CameraPanel(Cyclic):
         ttk.Radiobutton(parent, text="8 bit", value=8,
                         variable=self.camera_bits).grid(column=1, row=3, sticky=tk.W)
         ttk.Radiobutton(parent, text="12 bit", value=12,
-                        variable=self.camera_bits, # TODO add 12-bit
-                        state=tk.DISABLED).grid(column=2, row=3, sticky=tk.W)
+                        variable=self.camera_bits).grid(column=2, row=3, sticky=tk.W)
         
     def make_camera_resolution_slice(self, parent):
         ttk.Label(parent, text="Resolution").grid(column=0, row=4, sticky=tk.E, padx=10)
@@ -240,8 +239,7 @@ class CameraPanel(Cyclic):
         if self.camera:
             # set up camera object
             await self.camera.set_mode(run_mode=self.camera_run_mode.get(),
-                                           # TODO bits=self.camera_bits.get())
-                                       )
+                                       bits=self.camera_bits.get())
             resolution = ((int(self.camera_res_x.get()), int(self.camera_res_y.get())))
             await self.camera.set_resolution(resolution=resolution,
                                              bin_mode=self.camera_bin_mode.get())
@@ -443,7 +441,7 @@ class CameraPanel(Cyclic):
             if self.freeze_txt.get() == "Freeze": # means not frozen
                 try:
                     self.camera_frame = self.camera.get_newest_frame()
-                    self.full_img = Image.fromarray(self.camera_frame.img_array)
+                    self.full_img = Image.fromarray(self.camera_frame.img_array, mode='I;16')
                     self.update_img_props(self.camera_frame)
                     if self.update_resolution_flag:
                         make_task(self.update_resolution(), self.tasks)
