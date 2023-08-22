@@ -47,13 +47,13 @@ class Frame:
         if len(frame) == self.rows*self.cols + 512:
             # 8 bit mode
             unshaped = np.array(frame[0 : self.rows*self.cols], dtype=np.uint16)
-            shaped = np.reshape(unshaped, (self.cols, self.rows))
+            shaped = unshaped.reshape((self.cols, self.rows))
             normalized = shaped << 8
             self.img_array = normalized
         elif len(frame) == 2*self.rows*self.cols + 512:
             # 12 bit mode
             unshaped = np.array(frame[0 : 2*self.rows*self.cols], dtype=np.uint16)
-            shaped = np.reshape(unshaped, (self.cols, self.rows, 2))
+            shaped = unshaped.reshape((self.cols, self.rows, 2))
             normalized = np.add(shaped[:,:,0] << 4, shaped[:,:,1]) << 4
             self.img_array = normalized
         else:
