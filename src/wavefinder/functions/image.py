@@ -9,7 +9,7 @@ def get_centroid_and_variance(img_array: np.ndarray)-> tuple[float, float, float
     x_avg, y_avg, x_var, y_var, covar = 0.0, 0.0, 0.0, 0.0, 0.0
 
     # TODO fix stats, so we don't need this line
-    img_array[img_array < 100] = 0
+    img_array[img_array < 30000] = 0
 
     # make a grid of pixel coordinates in the x and y dimensions, e.g.:
     #   xx, yy = np.meshgrid(np.arange(2), np.arange(3))

@@ -1,6 +1,7 @@
 import array
 import os
 import platform
+import time
 
 import numpy as np
 import usb.core
@@ -352,18 +353,17 @@ class Camera(Cyclic):
         Downloads all available frames from the camera buffer and puts them
         in the application buffer.
         """
-        while True:
-            # get frame buffer information
-            buffer_info = await self.query_buffer()
-            nFrames: int = buffer_info["nFrames"] # type: ignore
-            resolution: tuple[int, int] = buffer_info["resolution"] # type: ignore
+        print(f"acquire {time.time()}")
 
-            # check camera buffer size
-            if nFrames == 0:
-                break
-            elif nFrames == self.nBuffer:
-                print("camera buffer full")
+        # get frame buffer information
+        buffer_info = await self.query_buffer()
+        nFrames: int = buffer_info["nFrames"] # type: ignore
+        resolution: tuple[int, int] = buffer_info["resolution"] # type: ignore
 
+        if nFrames == self.nBuffer:
+            print("camera buffer full")
+
+        while nFrames > 0:
             # tell camera to send one frame
             self.dev.write(0x01, [0x34, 1, 1])
 
@@ -375,8 +375,10 @@ class Camera(Cyclic):
             frame_size = nPixels * bytes_per_px + padding + 512
 
             # read one frame and insert into app buffer
+            # TODO read all the frames from the buffer at once
             try:
                 data = self.dev.read(0x82, frame_size)
+                nFrames -= 1
             except usb.core.USBTimeoutError:
                 break
             try:
