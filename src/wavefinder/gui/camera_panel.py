@@ -394,7 +394,10 @@ class CameraPanel(Cyclic):
     def update_img_stats(self):
         """Update image statistics"""
         stats_txt = ""
-        self.img_stats = get_centroid_and_variance(self.full_img)
+        if self.camera_frame:
+            self.img_stats = get_centroid_and_variance(self.camera_frame.img_array)
+        else:
+            self.img_stats = get_centroid_and_variance(np.array(self.full_img))
         stats_txt += "Centroid: " + str(tuple(map(lambda v: round(v, 3),
                                                   self.img_stats[0:2])))
         stats_txt += "\nVariance: " + str(tuple(map(lambda v: round(v, 3),

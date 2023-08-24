@@ -4,13 +4,9 @@ import numpy as np
 from PIL import Image
 
 
-def get_centroid_and_variance(img: Image.Image)-> tuple[float, float, float, float, float]:
+def get_centroid_and_variance(img_array: np.ndarray)-> tuple[float, float, float, float, float]:
     """Get image centroid and variance/covariance as (u_x, u_y, var_x, var_y, covar)"""
     x_avg, y_avg, x_var, y_var, covar = 0.0, 0.0, 0.0, 0.0, 0.0
-
-    # make image array
-    # NOTE that np arrays have x and y transposed from image
-    img_array = np.array(img)
 
     # TODO fix stats, so we don't need this line
     img_array[img_array < 100] = 0
