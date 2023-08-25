@@ -1,7 +1,6 @@
 import array
 import os
 import platform
-import time
 
 import numpy as np
 import usb.core
@@ -353,8 +352,6 @@ class Camera(Cyclic):
         Downloads all available frames from the camera buffer and puts them
         in the application buffer.
         """
-        print(f"acquire {time.time()}")
-
         # get frame buffer information
         buffer_info = await self.query_buffer()
         nFrames: int = buffer_info["nFrames"] # type: ignore
@@ -375,7 +372,6 @@ class Camera(Cyclic):
             frame_size = nPixels * bytes_per_px + padding + 512
 
             # read one frame and insert into app buffer
-            # TODO read all the frames from the buffer at once
             try:
                 data = self.dev.read(0x82, frame_size)
                 nFrames -= 1
@@ -386,9 +382,10 @@ class Camera(Cyclic):
             except BufferError:
                 break
             self.frame_buffer.insert(0, frame)
-            # trim buffer
-            while len(self.frame_buffer) > self.buffer_max:
-                self.frame_buffer.pop()
+
+        # trim buffer
+        while len(self.frame_buffer) > self.buffer_max:
+            self.frame_buffer.pop()
 
     def get_frames(self, nFrames: int = 1) -> list[Frame]:
         """Get most recent nFrames frames, from newest to oldest"""
