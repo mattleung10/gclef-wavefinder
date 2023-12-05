@@ -445,8 +445,10 @@ class CameraPanel(Cyclic):
                 try:
                     self.camera_frame = self.camera.get_newest_frame()
                     # convert to 8-bit for display
-                    downsampled = (self.camera_frame.img_array >> 8).astype(np.uint8)
-                    self.full_img = Image.fromarray(downsampled)
+                    if self.camera_frame.img_array.dtype == np.uint16:
+                        self.full_img = Image.fromarray(self.camera_frame.img_array.astype(np.uint8))
+                    else:
+                        self.full_img = Image.fromarray(self.camera_frame.img_array)
                     self.update_img_props(self.camera_frame)
                     if self.update_resolution_flag:
                         make_task(self.update_resolution(), self.tasks)

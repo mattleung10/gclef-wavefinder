@@ -46,16 +46,12 @@ class Frame:
         # get image frame data
         if len(frame) == self.rows*self.cols + 512:
             # 8 bit mode
-            unshaped = np.array(frame[0 : self.rows*self.cols], dtype=np.uint16)
-            shaped = unshaped.reshape((self.cols, self.rows))
-            normalized = shaped << 8
-            self.img_array = normalized
+            unshaped = np.frombuffer(frame[0 : self.rows*self.cols], dtype=np.uint8)
+            self.img_array = np.reshape(unshaped, (self.cols, self.rows))
         elif len(frame) == 2*self.rows*self.cols + 512:
             # 12 bit mode
-            unshaped = np.array(frame[0 : 2*self.rows*self.cols], dtype=np.uint16)
-            shaped = unshaped.reshape((self.cols, self.rows, 2))
-            normalized = np.add(shaped[:,:,0] << 4, shaped[:,:,1]) << 4
-            self.img_array = normalized
+            unshaped = np.frombuffer(frame[0 : 2*self.rows*self.cols], dtype=np.uint16)
+            self.img_array = np.reshape(unshaped, (self.cols, self.rows))
         else:
             raise BufferError("got bad frame from camera")
 
