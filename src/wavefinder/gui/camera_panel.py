@@ -308,12 +308,11 @@ class CameraPanel(Cyclic):
     def set_roi(self):
         """Set the region of interest"""
 
-        # get inputs and clip to valid,
-        # then write back valid values
+        # get inputs and clip to valid, then write back valid values
         size_x = int(self.roi_x_entry.get())
         size_y = int(self.roi_y_entry.get())
-        size_x = int(np.clip(size_x, 1, int(self.camera_res_x.get())))
-        size_y = int(np.clip(size_y, 1, int(self.camera_res_y.get())))
+        size_x = min(max(size_x, 1), int(self.camera_res_x.get()))
+        size_y = min(max(size_y, 1), int(self.camera_res_y.get()))
         self.roi_size_x = size_x
         self.roi_size_y = size_y
         self.roi_x_entry.set(str(size_x))

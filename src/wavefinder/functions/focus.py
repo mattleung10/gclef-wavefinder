@@ -84,8 +84,8 @@ class Focuser:
                 focus_pos = min(focus_curve, key=focus_curve.get) # type: ignore
 
                 # set up for next pass
-                travel_min = np.clip(focus_pos - step_dist, limit_min, limit_max)
-                travel_max = np.clip(focus_pos + step_dist, limit_min, limit_max)
+                travel_min = min(max(focus_pos - step_dist, limit_min), limit_max)
+                travel_max = min(max(focus_pos + step_dist, limit_min), limit_max)
                 travel_dist = travel_max - travel_min
                 step_dist = travel_dist / (self.points_per_pass - 1)
                 pass_i += 1

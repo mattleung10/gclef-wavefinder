@@ -242,9 +242,10 @@ class Camera(Cyclic):
         BIN1X4 = 0x83   # 1:4 Bin mode, it's pre-defined as: 1280 x 240
         SKIP   = 0x03   # 1:4 Bin mode2, it's pre-defined as: 1280 x 240
         """
-        self.resolution = tuple(np.clip(resolution, 8, 1280))
+        self.resolution = (min(max(resolution[0], 8), 1280),
+                           min(max(resolution[1], 8),  960))
         self.bin_mode   = bin_mode if bin_mode in Camera.BIN_MODES else Camera.NO_BIN
-        self.nBuffer    = np.clip(nBuffer, 1, 24)
+        self.nBuffer    = min(max(nBuffer, 1), 24)
         if write_now:
             # last parameter "buffer option" should always be zero
             self.dev.write(0x01, [0x60, 7,
@@ -261,7 +262,7 @@ class Camera(Cyclic):
 
         maximum exposure time is 200s
         """
-        self.exposure_time = np.clip(exposure_time, 0.05, 200000)
+        self.exposure_time = min(max(exposure_time, 0.05), 200000)
         if write_now:
             set_val = int(self.exposure_time / 0.05)
             self.dev.write(0x01, [0x63, 4,
@@ -280,7 +281,7 @@ class Camera(Cyclic):
         maximum fps is 10000 (0.1ms frame time)
         mimumum fps is 10000/65535 ~= 0.153
         """
-        self.fps = np.clip(fps, 0.153, 10000)
+        self.fps = min(max(fps, 0.153), 10000)
         if write_now:
             frame_time = 1/self.fps
             set_val = int(frame_time * 10000)
@@ -300,7 +301,7 @@ class Camera(Cyclic):
         - 1:3 Bin mode ( Bin = 0x82), Gain = 6 (dB)
         - 1:4 Bin mode ( Bin = 0x83), Gain = 6 (dB)
         """
-        self.gain = np.clip(gain, 6, 41)
+        self.gain = min(max(gain, 6), 41)
         if write_now:
             self.dev.write(0x01, [0x62, 3, self.gain, self.gain, self.gain])
 
@@ -385,7 +386,7 @@ class Camera(Cyclic):
 
     def get_frames(self, nFrames: int = 1) -> list[Frame]:
         """Get most recent nFrames frames, from newest to oldest"""
-        nFrames = np.clip(nFrames, 0, len(self.frame_buffer))
+        nFrames = min(max(nFrames, 1), len(self.frame_buffer))
         return self.frame_buffer[0:nFrames]
 
     def get_newest_frame(self) -> Frame:
