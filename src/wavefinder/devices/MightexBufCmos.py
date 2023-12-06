@@ -48,6 +48,7 @@ class Frame:
             # 8 bit mode
             unshaped = np.frombuffer(frame[0 : self.rows*self.cols], dtype=np.uint8)
             self.img_array = np.reshape(unshaped, (self.cols, self.rows))
+            self.display_array = self.img_array
         elif len(frame) == 2*self.rows*self.cols + 512:
             # 12 bit mode
             # PixelData[][][0] contains the 8bit MSB of 12bit pixel data,
@@ -56,6 +57,7 @@ class Frame:
             lsb = np.frombuffer(frame[1 : 2*self.rows*self.cols : 2], dtype=np.uint8)
             combined = np.array((msb.astype(np.uint16) << 4) + lsb, dtype=np.uint16)
             self.img_array = np.reshape(combined, (self.cols, self.rows))
+            self.display_array = np.reshape(msb, (self.cols, self.rows))
         else:
             raise BufferError("got bad frame from camera")
 

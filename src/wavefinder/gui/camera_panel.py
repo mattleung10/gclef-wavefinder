@@ -443,13 +443,7 @@ class CameraPanel(Cyclic):
             if self.freeze_txt.get() == "Freeze": # means not frozen
                 try:
                     self.camera_frame = self.camera.get_newest_frame()
-                    # convert to 8-bit for display
-                    if self.camera_frame.img_array.dtype == np.uint16:
-                        self.full_img = Image.fromarray(
-                            (self.camera_frame.img_array >> 4).astype(np.uint8)
-                        )
-                    else:
-                        self.full_img = Image.fromarray(self.camera_frame.img_array)
+                    self.full_img = Image.fromarray(self.camera_frame.display_array)
                     self.update_img_props(self.camera_frame)
                     if self.update_resolution_flag:
                         make_task(self.update_resolution(), self.tasks)
