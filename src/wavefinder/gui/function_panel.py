@@ -63,7 +63,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
 
     def after_focus(self, future: asyncio.Future):
         """Callback for after focus completes"""
-        self.focus_position.set(str(future.result()))
+        self.focus_position.set(str(round(future.result(), 3)))
         self.focus_button.configure(state=tk.NORMAL)
 
     def center(self):
@@ -74,7 +74,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
 
     def after_center(self, future: asyncio.Future):
         """Callback for after center completes"""
-        self.center_position.set(str(future.result()))
+        self.center_position.set(str(tuple(map(lambda v: round(v, 3), future.result()))))
         self.center_button.configure(state=tk.NORMAL)
 
     async def update(self):
