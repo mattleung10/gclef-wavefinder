@@ -405,6 +405,17 @@ class CameraPanel(Cyclic):
                                                    self.img_stats[2:4])))
         stats_txt += "\nFWHM: " + str(tuple(map(lambda v: round(variance_to_fwhm(v), 3),
                                                 self.img_stats[2:4])))
+        
+        if self.camera_frame:
+            maxpixelval = np.max(self.camera_frame.img_array) #max pixel value
+            stats_txt += "\nMax Pixel Value: " + str(maxpixelval)
+            if self.camera_frame.img_array.dtype == np.uint8:
+                if maxpixelval >= 2**8-1:
+                    stats_txt += "\nOVERSATURATED 8-BIT IMAGE!"
+            else:
+                if maxpixelval >= 2**12-1:
+                    stats_txt += "\nOVERSATURATED 12-BIT IMAGE!"
+        
         self.img_stats_txt.set(stats_txt)
 
     def update_full_frame_preview(self):
