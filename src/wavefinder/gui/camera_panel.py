@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 class CameraPanel(Cyclic):
     """Camera UI Panel is made of 3 LabelFrames"""
 
-    def __init__(self, parent: 'App', camera: Camera | None, data_writer: DataWriter):
+    def __init__(self, parent: "App", camera: Camera | None, data_writer: DataWriter):
         # Task variables
         self.tasks: set[asyncio.Task] = set()
         self.extra_init = True
@@ -47,7 +47,7 @@ class CameraPanel(Cyclic):
         self.camera = camera
         res = (int(self.camera_res_x.get()), int(self.camera_res_y.get()))
         self.camera_frame = None
-        self.full_img = Image.new(mode='L', size=res, color=0)
+        self.full_img = Image.new(mode="L", size=res, color=0)
         self.roi_size_x = int(self.roi_x_entry.get())
         self.roi_size_y = int(self.roi_y_entry.get())
         self.roi_zoom = int(self.roi_zoom_entry.get())
@@ -57,7 +57,9 @@ class CameraPanel(Cyclic):
         self.data_writer = data_writer
 
         # make panel slices
-        settings_frame = ttk.LabelFrame(parent, text="Camera Settings", labelanchor=tk.N)
+        settings_frame = ttk.LabelFrame(
+            parent, text="Camera Settings", labelanchor=tk.N
+        )
         self.make_camera_info_slice(settings_frame)
         self.make_camera_mode_slice(settings_frame)
         self.make_camera_resolution_slice(settings_frame)
@@ -75,6 +77,7 @@ class CameraPanel(Cyclic):
         self.make_roi_input_slice(full_frame)
         self.make_full_frame_buttons(full_frame)
         self.make_image_stats_slice(full_frame)
+        self.make_histogram(full_frame)
         full_frame.grid(column=1, row=0, sticky=tk.NSEW)
 
         roi_frame = ttk.LabelFrame(parent, text="Region of Interest", labelanchor=tk.N)
@@ -90,78 +93,115 @@ class CameraPanel(Cyclic):
     ### Camera Settings Slices ###
     def make_camera_info_slice(self, parent):
         ttk.Label(parent, text="Model").grid(column=0, row=0, sticky=tk.E, padx=10)
-        ttk.Label(parent, textvariable=self.camera_model).grid(column=1, row=0,
-                                                               columnspan=2, sticky=tk.W)
+        ttk.Label(parent, textvariable=self.camera_model).grid(
+            column=1, row=0, columnspan=2, sticky=tk.W
+        )
         ttk.Label(parent, text="Serial").grid(column=0, row=1, sticky=tk.E, padx=10)
-        ttk.Label(parent, textvariable=self.camera_serial).grid(column=1, row=1,
-                                                                columnspan=2, sticky=tk.W)
-        
+        ttk.Label(parent, textvariable=self.camera_serial).grid(
+            column=1, row=1, columnspan=2, sticky=tk.W
+        )
+
     def make_camera_mode_slice(self, parent):
         ttk.Label(parent, text="Mode").grid(column=0, row=2, sticky=tk.E, padx=10)
-        ttk.Radiobutton(parent, text="Stream", value=Camera.NORMAL,
-                        variable=self.camera_run_mode).grid(column=1, row=2, sticky=tk.W)
-        ttk.Radiobutton(parent, text="Trigger", value=Camera.TRIGGER,
-                        variable=self.camera_run_mode).grid(column=2, row=2, sticky=tk.W)
-        ttk.Radiobutton(parent, text="8 bit", value=8,
-                        variable=self.camera_bits).grid(column=1, row=3, sticky=tk.W)
-        ttk.Radiobutton(parent, text="12 bit", value=12,
-                        variable=self.camera_bits).grid(column=2, row=3, sticky=tk.W)
-        
+        ttk.Radiobutton(
+            parent, text="Stream", value=Camera.NORMAL, variable=self.camera_run_mode
+        ).grid(column=1, row=2, sticky=tk.W)
+        ttk.Radiobutton(
+            parent, text="Trigger", value=Camera.TRIGGER, variable=self.camera_run_mode
+        ).grid(column=2, row=2, sticky=tk.W)
+        ttk.Radiobutton(parent, text="8 bit", value=8, variable=self.camera_bits).grid(
+            column=1, row=3, sticky=tk.W
+        )
+        ttk.Radiobutton(
+            parent, text="12 bit", value=12, variable=self.camera_bits
+        ).grid(column=2, row=3, sticky=tk.W)
+
     def make_camera_resolution_slice(self, parent):
         ttk.Label(parent, text="Resolution").grid(column=0, row=4, sticky=tk.E, padx=10)
-        ttk.Entry(parent, width=5, textvariable=self.camera_res_x,
-                  validatecommand=(parent.register(valid_int), '%P'),
-                  invalidcommand=parent.register(self.restore_camera_entries),
-                  validate='focus').grid(column=1, row=4, sticky=tk.E)
-        ttk.Entry(parent, width=5, textvariable=self.camera_res_y,
-                  validatecommand=(parent.register(valid_int), '%P'),
-                  invalidcommand=parent.register(self.restore_camera_entries),
-                  validate='focus').grid(column=2, row=4, sticky=tk.W)
-        
+        ttk.Entry(
+            parent,
+            width=5,
+            textvariable=self.camera_res_x,
+            validatecommand=(parent.register(valid_int), "%P"),
+            invalidcommand=parent.register(self.restore_camera_entries),
+            validate="focus",
+        ).grid(column=1, row=4, sticky=tk.E)
+        ttk.Entry(
+            parent,
+            width=5,
+            textvariable=self.camera_res_y,
+            validatecommand=(parent.register(valid_int), "%P"),
+            invalidcommand=parent.register(self.restore_camera_entries),
+            validate="focus",
+        ).grid(column=2, row=4, sticky=tk.W)
+
     def make_camera_binning_slice(self, parent):
         ttk.Label(parent, text="Binning").grid(column=0, row=5, sticky=tk.E, padx=10)
-        ttk.Radiobutton(parent, text="No Bin", value=Camera.NO_BIN,
-                        variable=self.camera_bin_mode).grid(column=1, row=5,
-                                                            columnspan=2, sticky=tk.W)
-        ttk.Radiobutton(parent, text="1:2", value=Camera.BIN1X2,
-                        variable=self.camera_bin_mode).grid(column=1, row=6, sticky=tk.W)
-        ttk.Radiobutton(parent, text="1:3", value=Camera.BIN1X3,
-                        variable=self.camera_bin_mode).grid(column=2, row=6, sticky=tk.W)
-        ttk.Radiobutton(parent, text="1:4", value=Camera.BIN1X4,
-                        variable=self.camera_bin_mode).grid(column=1, row=7, sticky=tk.W)
-        ttk.Radiobutton(parent, text="1:4 skip", value=Camera.SKIP,
-                        variable=self.camera_bin_mode).grid(column=2, row=7, sticky=tk.W)
-        
+        ttk.Radiobutton(
+            parent, text="No Bin", value=Camera.NO_BIN, variable=self.camera_bin_mode
+        ).grid(column=1, row=5, columnspan=2, sticky=tk.W)
+        ttk.Radiobutton(
+            parent, text="1:2", value=Camera.BIN1X2, variable=self.camera_bin_mode
+        ).grid(column=1, row=6, sticky=tk.W)
+        ttk.Radiobutton(
+            parent, text="1:3", value=Camera.BIN1X3, variable=self.camera_bin_mode
+        ).grid(column=2, row=6, sticky=tk.W)
+        ttk.Radiobutton(
+            parent, text="1:4", value=Camera.BIN1X4, variable=self.camera_bin_mode
+        ).grid(column=1, row=7, sticky=tk.W)
+        ttk.Radiobutton(
+            parent, text="1:4 skip", value=Camera.SKIP, variable=self.camera_bin_mode
+        ).grid(column=2, row=7, sticky=tk.W)
+
     def make_camera_exposure_time_slice(self, parent):
-        ttk.Label(parent, text="Exp. Time (ms)").grid(column=0, row=8,
-                                                      sticky=tk.E, padx=10)
-        ttk.Entry(parent, width=5, textvariable=self.camera_exp_t,
-                  validatecommand=(parent.register(valid_float), '%P'),
-                  invalidcommand=parent.register(self.restore_camera_entries),
-                  validate='focus').grid(column=1, row=8, sticky=tk.W)
-        
+        ttk.Label(parent, text="Exp. Time (ms)").grid(
+            column=0, row=8, sticky=tk.E, padx=10
+        )
+        ttk.Entry(
+            parent,
+            width=5,
+            textvariable=self.camera_exp_t,
+            validatecommand=(parent.register(valid_float), "%P"),
+            invalidcommand=parent.register(self.restore_camera_entries),
+            validate="focus",
+        ).grid(column=1, row=8, sticky=tk.W)
+
     def make_camera_fps_slice(self, parent):
         ttk.Label(parent, text="Frames/Sec").grid(column=0, row=9, sticky=tk.E, padx=10)
-        ttk.Entry(parent, width=5, textvariable=self.camera_fps,
-                  validatecommand=(parent.register(valid_float), '%P'),
-                  invalidcommand=parent.register(self.restore_camera_entries),
-                  validate='focus').grid(column=1, row=9, sticky=tk.W)
+        ttk.Entry(
+            parent,
+            width=5,
+            textvariable=self.camera_fps,
+            validatecommand=(parent.register(valid_float), "%P"),
+            invalidcommand=parent.register(self.restore_camera_entries),
+            validate="focus",
+        ).grid(column=1, row=9, sticky=tk.W)
 
     def make_camera_gain_slice(self, parent):
-        ttk.Label(parent, text="Gain [6-41]dB").grid(column=0, row=10,
-                                                     sticky=tk.E, padx=10)
-        ttk.Entry(parent, width=5, textvariable=self.camera_gain,
-                  validatecommand=(parent.register(valid_int), '%P'),
-                  invalidcommand=parent.register(self.restore_camera_entries),
-                  validate='focus').grid(column=1, row=10, sticky=tk.W)
+        ttk.Label(parent, text="Gain [6-41]dB").grid(
+            column=0, row=10, sticky=tk.E, padx=10
+        )
+        ttk.Entry(
+            parent,
+            width=5,
+            textvariable=self.camera_gain,
+            validatecommand=(parent.register(valid_int), "%P"),
+            invalidcommand=parent.register(self.restore_camera_entries),
+            validate="focus",
+        ).grid(column=1, row=10, sticky=tk.W)
 
     def make_camera_frequency_slice(self, parent):
-        ttk.Label(parent, text="Frequency (MHz)").grid(column=0, row=11,
-                                                       sticky=tk.E, padx=10)
-        ttk.Combobox(parent, textvariable=self.camera_freq,
-                     values=["32", "16", "8", "4", "2"], state="readonly",
-                     width=4).grid(column=1, row=11, sticky=tk.W)
-        
+        ttk.Label(parent, text="Frequency (MHz)").grid(
+            column=0, row=11, sticky=tk.E, padx=10
+        )
+        ttk.Combobox(
+            parent,
+            textvariable=self.camera_freq,
+            values=["32", "16", "8", "4", "2"],
+            state="readonly",
+            width=4,
+        ).grid(column=1, row=11, sticky=tk.W)
+
     def make_settings_buttons(self, parent):
         b = ttk.Button(parent, text="Write Config", command=self.set_cam_ctrl)
         b.grid(column=0, row=12, columnspan=3, pady=(10, 0), padx=10, sticky=tk.S)
@@ -169,55 +209,82 @@ class CameraPanel(Cyclic):
     ### Full Frame Slices ###
     def make_full_frame_preview_slice(self, parent):
         self.full_frame_preview = ttk.Label(parent)
-        self.full_frame_preview.grid(column=0, row=0, columnspan=3,
-                                     rowspan=13, sticky=tk.N)
+        self.full_frame_preview.grid(
+            column=0, row=0, columnspan=3, rowspan=13, sticky=tk.N
+        )
 
     def make_image_properties_slice(self, parent):
         l = ttk.Label(parent, textvariable=self.img_props)
         l.grid(column=3, row=0, rowspan=10, columnspan=2, padx=10, sticky=tk.NW)
 
     def make_roi_input_slice(self, parent):
-        ttk.Label(parent, text="Region of Interest").grid(column=3, row=11,
-                                                          columnspan=2, padx=10)
-        ttk.Entry(parent, width=5, textvariable=self.roi_x_entry,
-                  validatecommand=(parent.register(valid_int), '%P'),
-                  invalidcommand=(parent.register(self.roi_x_entry.set),
-                                  self.camera_res_x.get()),
-                  validate='focus').grid(column=3, row=12, sticky=tk.E)
-        ttk.Entry(parent, width=5, textvariable=self.roi_y_entry,
-                  validatecommand=(parent.register(valid_int), '%P'),
-                  invalidcommand=(parent.register(self.roi_y_entry.set),
-                                  self.camera_res_y.get()),
-                  validate='focus').grid(column=4, row=12, sticky=tk.W)
-        ttk.Button(parent, text="Set ROI",
-                   command=self.set_roi).grid(column=3, row=13,
-                                              pady=(10, 0), columnspan=2)
+        ttk.Label(parent, text="Region of Interest").grid(
+            column=3, row=11, columnspan=2, padx=10
+        )
+        ttk.Entry(
+            parent,
+            width=5,
+            textvariable=self.roi_x_entry,
+            validatecommand=(parent.register(valid_int), "%P"),
+            invalidcommand=(
+                parent.register(self.roi_x_entry.set),
+                self.camera_res_x.get(),
+            ),
+            validate="focus",
+        ).grid(column=3, row=12, sticky=tk.E)
+        ttk.Entry(
+            parent,
+            width=5,
+            textvariable=self.roi_y_entry,
+            validatecommand=(parent.register(valid_int), "%P"),
+            invalidcommand=(
+                parent.register(self.roi_y_entry.set),
+                self.camera_res_y.get(),
+            ),
+            validate="focus",
+        ).grid(column=4, row=12, sticky=tk.W)
+        ttk.Button(parent, text="Set ROI", command=self.set_roi).grid(
+            column=3, row=13, pady=(10, 0), columnspan=2
+        )
 
     def make_full_frame_buttons(self, parent):
-        ttk.Button(parent, text="Trigger",
-                   command=self.snap_img).grid(column=0, row=13, pady=(10, 0), padx=10)
-        ttk.Button(parent, textvariable=self.freeze_txt,
-                   command=self.freeze_preview).grid(column=1, row=13, pady=(10, 0), padx=10)
-        ttk.Button(parent, text="Save",
-                   command=self.save_img).grid(column=2, row=13, pady=(10, 0), padx=10)
-        
+        ttk.Button(parent, text="Trigger", command=self.snap_img).grid(
+            column=0, row=13, pady=(10, 0), padx=10
+        )
+        ttk.Button(
+            parent, textvariable=self.freeze_txt, command=self.freeze_preview
+        ).grid(column=1, row=13, pady=(10, 0), padx=10)
+        ttk.Button(parent, text="Save", command=self.save_img).grid(
+            column=2, row=13, pady=(10, 0), padx=10
+        )
+
     def make_image_stats_slice(self, parent):
-        ttk.Label(parent, textvariable=self.img_stats_txt).grid(column=0, row=14,
-                                                            columnspan=3, sticky=tk.W)
+        ttk.Label(parent, textvariable=self.img_stats_txt).grid(
+            column=0, row=14, columnspan=3, sticky=tk.W
+        )
         # NOTE secret reset button
         # ttk.Button(parent, text="Reset",
         #            command=self.reset_camera).grid(column=4, row=14, pady=(10, 0), padx=10)
-        
+
+    def make_histogram(self, parent):
+        self.histogram = tk.Canvas(parent, width=500, height=200)
+        self.histogram.grid(column=0, row=15, columnspan=3)
+
     ### ROI Frame Slices ###
     def make_roi_zoom_slice(self, parent):
         zoom_frame = ttk.Frame(parent)
         ttk.Label(zoom_frame, text="ROI Zoom").grid(column=0, row=0, padx=10)
-        ttk.Entry(zoom_frame, width=4, textvariable=self.roi_zoom_entry,
-                  validatecommand=(parent.register(valid_int), '%P'),
-                  invalidcommand=(parent.register(self.roi_zoom_entry.set), str(1)),
-                  validate='focus').grid(column=0, row=1)
-        ttk.Button(zoom_frame, text="Set Zoom",
-                   command=self.set_roi_zoom).grid(column=0, row=2, pady=(10, 0))
+        ttk.Entry(
+            zoom_frame,
+            width=4,
+            textvariable=self.roi_zoom_entry,
+            validatecommand=(parent.register(valid_int), "%P"),
+            invalidcommand=(parent.register(self.roi_zoom_entry.set), str(1)),
+            validate="focus",
+        ).grid(column=0, row=1)
+        ttk.Button(zoom_frame, text="Set Zoom", command=self.set_roi_zoom).grid(
+            column=0, row=2, pady=(10, 0)
+        )
         zoom_frame.grid(column=0, row=0, sticky=tk.N)
 
     def make_roi_preview_slice(self, parent):
@@ -234,19 +301,23 @@ class CameraPanel(Cyclic):
         """Set camera to new settings"""
         if self.camera:
             make_task(self.set_cam_ctrl_async(), self.tasks)
-    
+
     async def set_cam_ctrl_async(self):
         if self.camera:
             # set up camera object
-            await self.camera.set_mode(run_mode=self.camera_run_mode.get(),
-                                       bits=self.camera_bits.get())
-            resolution = ((int(self.camera_res_x.get()), int(self.camera_res_y.get())))
-            await self.camera.set_resolution(resolution=resolution,
-                                             bin_mode=self.camera_bin_mode.get())
-            await self.camera.set_exposure_time(exposure_time=float(self.camera_exp_t.get()))
+            await self.camera.set_mode(
+                run_mode=self.camera_run_mode.get(), bits=self.camera_bits.get()
+            )
+            resolution = (int(self.camera_res_x.get()), int(self.camera_res_y.get()))
+            await self.camera.set_resolution(
+                resolution=resolution, bin_mode=self.camera_bin_mode.get()
+            )
+            await self.camera.set_exposure_time(
+                exposure_time=float(self.camera_exp_t.get())
+            )
             await self.camera.set_fps(fps=float(self.camera_fps.get()))
             await self.camera.set_gain(gain=int(self.camera_gain.get()))
-            freq_div = (int.bit_length(32 // int(self.camera_freq.get())) - 1)
+            freq_div = int.bit_length(32 // int(self.camera_freq.get())) - 1
             await self.camera.set_frequency(freq_mode=freq_div)
 
             # write to camera, clear buffer, update UI
@@ -261,7 +332,7 @@ class CameraPanel(Cyclic):
 
     def restore_camera_entries(self):
         """Restore camera entry boxes from camera
-        
+
         except resolution which is set from update because it
         needs current frame information
         """
@@ -290,11 +361,12 @@ class CameraPanel(Cyclic):
 
     def save_img(self):
         """Save image dialog"""
-        f = filedialog.asksaveasfilename(initialdir="images/",
-                                         initialfile="new.fits",
-                                         filetypes = (("FITS files",["*.fits","*.fts"]),
-                                                      ("all files","*.*")),
-                                         defaultextension=".fits")
+        f = filedialog.asksaveasfilename(
+            initialdir="images/",
+            initialfile="new.fits",
+            filetypes=(("FITS files", ["*.fits", "*.fts"]), ("all files", "*.*")),
+            defaultextension=".fits",
+        )
         if f:
             if self.camera_frame:
                 self.data_writer.write_fits_file(f, frame=self.camera_frame)
@@ -331,19 +403,19 @@ class CameraPanel(Cyclic):
         size_y = self.roi_size_y
         f_size_x = self.full_img.size[0]
         f_size_y = self.full_img.size[1]
-        left = f_size_x//2 - size_x//2
-        lower = f_size_y//2 - size_y//2
-        box = (left, lower, left+size_x, lower+size_y)
+        left = f_size_x // 2 - size_x // 2
+        lower = f_size_y // 2 - size_y // 2
+        box = (left, lower, left + size_x, lower + size_y)
         return box
-    
+
     def get_crosscut_box(self) -> tuple[int, int, int, int]:
         """Get the cross-cut boxes as (left, lower, right, upper)"""
-        cc_width = 10 # TODO configure crosscut width
+        cc_width = 10  # TODO configure crosscut width
         f_size_x = self.full_img.size[0]
         f_size_y = self.full_img.size[1]
-        left = f_size_x//2 - cc_width//2
-        lower = f_size_y//2 - cc_width//2
-        box = (left, lower, left+cc_width, lower+cc_width)
+        left = f_size_x // 2 - cc_width // 2
+        lower = f_size_y // 2 - cc_width // 2
+        box = (left, lower, left + cc_width, lower + cc_width)
         return box
 
     def update_roi_img(self):
@@ -354,12 +426,12 @@ class CameraPanel(Cyclic):
         y = box[3] - box[1]
         z = self.roi_zoom
         roi_img = self.full_img.crop(box)
-        zoomed = roi_img.resize(size=(z*x, z*y), resample=Image.Resampling.NEAREST)
+        zoomed = roi_img.resize(size=(z * x, z * y), resample=Image.Resampling.NEAREST)
         disp_img = ImageTk.PhotoImage(zoomed)
-        self.roi_preview.img = disp_img # type: ignore # protect from garbage collect
+        self.roi_preview.img = disp_img  # type: ignore # protect from garbage collect
         self.roi_preview.configure(image=disp_img)
         self.update_crosscuts()
-    
+
     def update_crosscuts(self):
         """Update cross cuts"""
         cc_box = self.get_crosscut_box()
@@ -371,23 +443,37 @@ class CameraPanel(Cyclic):
         z = self.roi_zoom
 
         x_img = self.full_img.crop((roi_box[0], cc_box[1], roi_box[2], cc_box[3]))
-        zoomed_x = x_img.resize(size=(z*x, z*cc_y), resample=Image.Resampling.NEAREST)
+        zoomed_x = x_img.resize(
+            size=(z * x, z * cc_y), resample=Image.Resampling.NEAREST
+        )
         disp_x_img = ImageTk.PhotoImage(zoomed_x)
-        self.cc_x.img = disp_x_img # type: ignore # protect from garbage collect
+        self.cc_x.img = disp_x_img  # type: ignore # protect from garbage collect
         self.cc_x.configure(image=disp_x_img)
 
         y_img = self.full_img.crop((cc_box[0], roi_box[1], cc_box[2], roi_box[3]))
-        zoomed_y = y_img.resize(size=(z*cc_x, z*y), resample=Image.Resampling.NEAREST)
+        zoomed_y = y_img.resize(
+            size=(z * cc_x, z * y), resample=Image.Resampling.NEAREST
+        )
         disp_y_img = ImageTk.PhotoImage(zoomed_y)
-        self.cc_y.img = disp_y_img # type: ignore # protect from garbage collect
+        self.cc_y.img = disp_y_img  # type: ignore # protect from garbage collect
         self.cc_y.configure(image=disp_y_img)
 
     def update_img_props(self, camera_frame: Frame):
         """Update image properties"""
         prop_str = ""
-        for p in ["rows", "cols", "bin", "gGain", "expTime", "frameTime",
-                  "timestamp", "triggered", "nTriggers", "freq"]:
-            prop_str += str(p) + ': ' + str(getattr(camera_frame, p)) + '\n'
+        for p in [
+            "rows",
+            "cols",
+            "bin",
+            "gGain",
+            "expTime",
+            "frameTime",
+            "timestamp",
+            "triggered",
+            "nTriggers",
+            "freq",
+        ]:
+            prop_str += str(p) + ": " + str(getattr(camera_frame, p)) + "\n"
         self.img_props.set(prop_str.strip())
 
     def update_img_stats(self):
@@ -397,25 +483,29 @@ class CameraPanel(Cyclic):
             self.img_stats = get_centroid_and_variance(self.camera_frame.img_array)
         else:
             self.img_stats = get_centroid_and_variance(np.array(self.full_img))
-        stats_txt += "Centroid: " + str(tuple(map(lambda v: round(v, 3),
-                                                  self.img_stats[0:2])))
-        stats_txt += "\nVariance: " + str(tuple(map(lambda v: round(v, 3),
-                                                    self.img_stats[2:])))
-        stats_txt += "\nStd Dev: " + str(tuple(map(lambda v: round(np.sqrt(v), 3),
-                                                   self.img_stats[2:4])))
-        stats_txt += "\nFWHM: " + str(tuple(map(lambda v: round(variance_to_fwhm(v), 3),
-                                                self.img_stats[2:4])))
-        
+        stats_txt += "Centroid: " + str(
+            tuple(map(lambda v: round(v, 3), self.img_stats[0:2]))
+        )
+        stats_txt += "\nVariance: " + str(
+            tuple(map(lambda v: round(v, 3), self.img_stats[2:]))
+        )
+        stats_txt += "\nStd Dev: " + str(
+            tuple(map(lambda v: round(np.sqrt(v), 3), self.img_stats[2:4]))
+        )
+        stats_txt += "\nFWHM: " + str(
+            tuple(map(lambda v: round(variance_to_fwhm(v), 3), self.img_stats[2:4]))
+        )
+
         if self.camera_frame:
-            maxpixelval = np.max(self.camera_frame.img_array) #max pixel value
+            maxpixelval = np.max(self.camera_frame.img_array)  # max pixel value
             stats_txt += "\nMax Pixel Value: " + str(maxpixelval)
             if self.camera_frame.img_array.dtype == np.uint8:
-                if maxpixelval >= 2**8-1:
+                if maxpixelval >= 2**8 - 1:
                     stats_txt += "\nOVERSATURATED 8-BIT IMAGE!"
             else:
-                if maxpixelval >= 2**12-1:
+                if maxpixelval >= 2**12 - 1:
                     stats_txt += "\nOVERSATURATED 12-BIT IMAGE!"
-        
+
         self.img_stats_txt.set(stats_txt)
 
     def update_full_frame_preview(self):
@@ -423,22 +513,92 @@ class CameraPanel(Cyclic):
         # draw roi box
         roi_box = self.get_roi_box()
         img = self.full_img.convert("RGB")
-        ImageDraw.Draw(img).rectangle(roi_box, width=3,
-                                        outline=ImageColor.getrgb("yellow"))
+        ImageDraw.Draw(img).rectangle(
+            roi_box, width=3, outline=ImageColor.getrgb("yellow")
+        )
         # draw FWHM
         c = self.img_stats
         x_hwhm = variance_to_fwhm(c[2]) / 2
-        y_hwhm = variance_to_fwhm(c[3]) / 2 
-        ImageDraw.Draw(img).ellipse((c[0]-x_hwhm, c[1]-y_hwhm, c[0]+x_hwhm, c[1]+y_hwhm),
-                                    width=3, outline=ImageColor.getrgb("red"))
+        y_hwhm = variance_to_fwhm(c[3]) / 2
+        ImageDraw.Draw(img).ellipse(
+            (c[0] - x_hwhm, c[1] - y_hwhm, c[0] + x_hwhm, c[1] + y_hwhm),
+            width=3,
+            outline=ImageColor.getrgb("red"),
+        )
         # display
         disp_img = ImageTk.PhotoImage(img.resize((img.width // 4, img.height // 4)))
-        self.full_frame_preview.img = disp_img # type: ignore # protect from garbage collect
+        self.full_frame_preview.img = disp_img  # type: ignore # protect from garbage collect
         self.full_frame_preview.configure(image=disp_img)
 
+    def update_histogram(self):
+        """Draw histogram and labels"""
+        # delete drawings from last update
+        self.histogram.delete("all")
+
+        # make text labels, reserve margin space for text
+        margin_h = 30
+        margin_v = 40
+        self.histogram.create_text(
+            self.histogram.winfo_reqwidth() / 2,
+            0,
+            anchor="n",
+            text="Histogram of Pixel Values",
+        )
+        self.histogram.create_text(
+            self.histogram.winfo_reqwidth() / 2,
+            self.histogram.winfo_reqheight(),
+            anchor="s",
+            text="pixel value",
+        )
+        self.histogram.create_text(
+            0,
+            self.histogram.winfo_reqheight() / 2,
+            angle=90,
+            anchor="n",
+            text="# of pixels",
+        )
+
+        # get histogram data
+        if self.camera_frame:
+            values, edges = np.histogram(self.camera_frame.img_array)
+        else:
+            values, edges = np.histogram(np.array(self.full_img))
+
+        bar_width = (self.histogram.winfo_reqwidth() - 2 * margin_h) / len(values)
+
+        for i in range(len(values)):
+            self.histogram.create_rectangle(
+                (
+                    i * bar_width + margin_h,
+                    self.histogram.winfo_reqheight() - margin_v,
+                ),
+                (
+                    (i + 1) * bar_width + margin_h,
+                    self.histogram.winfo_reqheight() - margin_v
+                    - (self.histogram.winfo_reqheight() - 2 * margin_v)
+                    * values[i] / max(values),
+                ),
+                fill="gray",
+            )
+            self.histogram.create_text(
+                i * bar_width + margin_h,
+                self.histogram.winfo_reqheight() - margin_v,
+                anchor="n",
+                text=edges[i],
+                font="TkDefaultFont 6",
+            )
+        # last bar's end
+        self.histogram.create_text(
+            len(values) * bar_width + margin_h,
+            self.histogram.winfo_reqheight() - margin_v,
+            anchor="n",
+            text=edges[-1],
+            font="TkDefaultFont 6",
+        )
+
     async def update_resolution(self):
-        """Update resolution from camera, matching newest frame """
-        resolution: tuple[int, int] = (await self.camera.query_buffer())["resolution"] # type: ignore
+        """Update resolution from camera, matching newest frame"""
+        resolution: tuple[int, int] = (await self.camera.query_buffer())["resolution"]  # type: ignore
         self.camera_res_x.set(str(resolution[0]))
         self.camera_res_y.set(str(resolution[1]))
         self.update_resolution_flag = False
@@ -451,7 +611,7 @@ class CameraPanel(Cyclic):
                 self.set_camera_info(await self.camera.get_camera_info())
                 self.extra_init = False
 
-            if self.freeze_txt.get() == "Freeze": # means not frozen
+            if self.freeze_txt.get() == "Freeze":  # means not frozen
                 try:
                     self.camera_frame = self.camera.get_newest_frame()
                     self.full_img = Image.fromarray(self.camera_frame.display_array)
@@ -460,20 +620,21 @@ class CameraPanel(Cyclic):
                         make_task(self.update_resolution(), self.tasks)
                 except IndexError:
                     pass
-        else: # no camera, testing purposes
+        else:  # no camera, testing purposes
             if self.freeze_txt.get() == "Freeze":  # means not frozen
                 # image components
                 res = (int(self.camera_res_x.get()), int(self.camera_res_y.get()))
-                black = Image.new(mode='L', size=res, color=0)
+                black = Image.new(mode="L", size=res, color=0)
                 # grey = Image.new(mode='L', size=res, color=20)
                 # noise = Image.effect_noise(size=res, sigma=100)
-                gradient = ImageOps.invert(Image.radial_gradient(mode='L'))
+                gradient = ImageOps.invert(Image.radial_gradient(mode="L"))
                 # set image to black and then paste in the gradient at specified position
                 self.full_img = black
                 self.full_img.paste(gradient, (85, 400))
 
         self.update_img_stats()
         self.update_full_frame_preview()
+        self.update_histogram()
         self.update_roi_img()
 
     def close(self):
