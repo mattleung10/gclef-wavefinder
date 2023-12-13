@@ -473,9 +473,10 @@ class CameraPanel(Cyclic):
         """Update image statistics"""
         stats_txt = ""
         if self.camera_frame:
-            self.img_stats = get_centroid_and_variance(self.camera_frame.img_array)
+            image = self.camera_frame.img_array
         else:
-            self.img_stats = get_centroid_and_variance(np.array(self.full_img))
+            image = np.array(self.full_img)
+        self.img_stats = get_centroid_and_variance(image)
         stats_txt += "Centroid: " + str(
             tuple(map(lambda v: round(v, 3), self.img_stats[0:2]))
         )
@@ -488,17 +489,10 @@ class CameraPanel(Cyclic):
         stats_txt += "\nFWHM: " + str(
             tuple(map(lambda v: round(variance_to_fwhm(v), 3), self.img_stats[2:4]))
         )
-
-        if self.camera_frame:
-            maxpixelval = np.max(self.camera_frame.img_array)  # max pixel value
-            stats_txt += "\nMax Pixel Value: " + str(maxpixelval)
-            if self.camera_frame.img_array.dtype == np.uint8:
-                if maxpixelval >= 2**8 - 1:
-                    stats_txt += "\nOVERSATURATED 8-BIT IMAGE!"
-            else:
-                if maxpixelval >= 2**12 - 1:
-                    stats_txt += "\nOVERSATURATED 12-BIT IMAGE!"
-
+        stats_txt += "\nMax Pixel Value: " + str(np.max(image))
+        stats_txt += "\nSaturated Pixels: " + str(
+            np.count_nonzero(image == np.iinfo(image.dtype).max)
+        )
         self.img_stats_txt.set(stats_txt)
 
     def update_full_frame_preview(self):
