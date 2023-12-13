@@ -36,7 +36,7 @@ class CameraPanel(Cyclic):
         self.camera_fps = tk.StringVar(value="10.0")
         self.camera_gain = tk.StringVar(value="15")
         self.camera_freq = tk.StringVar(value="32")
-        self.img_props = tk.StringVar(value="1\n2\n3\n4\n5\n6\n7\n8\n9\n10")
+        self.img_props = tk.StringVar(value="1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11")
         self.freeze_txt = tk.StringVar(value="Freeze")
         self.roi_x_entry = tk.StringVar(value="50")
         self.roi_y_entry = tk.StringVar(value="50")
@@ -74,14 +74,13 @@ class CameraPanel(Cyclic):
         full_frame = ttk.LabelFrame(parent, text="Full Frame", labelanchor=tk.N)
         self.make_full_frame_preview_slice(full_frame)
         self.make_image_properties_slice(full_frame)
-        self.make_roi_input_slice(full_frame)
         self.make_full_frame_buttons(full_frame)
         self.make_image_stats_slice(full_frame)
         self.make_histogram(full_frame)
         full_frame.grid(column=1, row=0, sticky=tk.NSEW)
 
         roi_frame = ttk.LabelFrame(parent, text="Region of Interest", labelanchor=tk.N)
-        self.make_roi_zoom_slice(roi_frame)
+        self.make_roi_input_slice(roi_frame)
         self.make_roi_preview_slice(roi_frame)
         roi_frame.grid(column=2, row=0, rowspan=2, sticky=tk.NSEW)
 
@@ -215,37 +214,7 @@ class CameraPanel(Cyclic):
 
     def make_image_properties_slice(self, parent):
         l = ttk.Label(parent, textvariable=self.img_props)
-        l.grid(column=3, row=0, rowspan=10, columnspan=2, padx=10, sticky=tk.NW)
-
-    def make_roi_input_slice(self, parent):
-        ttk.Label(parent, text="Region of Interest").grid(
-            column=3, row=11, columnspan=2, padx=10
-        )
-        ttk.Entry(
-            parent,
-            width=5,
-            textvariable=self.roi_x_entry,
-            validatecommand=(parent.register(valid_int), "%P"),
-            invalidcommand=(
-                parent.register(self.roi_x_entry.set),
-                self.camera_res_x.get(),
-            ),
-            validate="focus",
-        ).grid(column=3, row=12, sticky=tk.E)
-        ttk.Entry(
-            parent,
-            width=5,
-            textvariable=self.roi_y_entry,
-            validatecommand=(parent.register(valid_int), "%P"),
-            invalidcommand=(
-                parent.register(self.roi_y_entry.set),
-                self.camera_res_y.get(),
-            ),
-            validate="focus",
-        ).grid(column=4, row=12, sticky=tk.W)
-        ttk.Button(parent, text="Set ROI", command=self.set_roi).grid(
-            column=3, row=13, pady=(10, 0), columnspan=2
-        )
+        l.grid(column=3, row=0, rowspan=11, columnspan=2, padx=10, sticky=tk.NW)
 
     def make_full_frame_buttons(self, parent):
         ttk.Button(parent, text="Trigger", command=self.snap_img).grid(
@@ -271,30 +240,55 @@ class CameraPanel(Cyclic):
         self.histogram.grid(column=0, row=15, columnspan=3)
 
     ### ROI Frame Slices ###
-    def make_roi_zoom_slice(self, parent):
-        zoom_frame = ttk.Frame(parent)
-        ttk.Label(zoom_frame, text="ROI Zoom").grid(column=0, row=0, padx=10)
+    def make_roi_input_slice(self, parent):
+        input_frame = ttk.Frame(parent)
+        ttk.Label(input_frame, text="Bounds").grid(column=0, row=0, padx=10)
         ttk.Entry(
-            zoom_frame,
-            width=4,
+            input_frame,
+            width=5,
+            textvariable=self.roi_x_entry,
+            validatecommand=(parent.register(valid_int), "%P"),
+            invalidcommand=(
+                parent.register(self.roi_x_entry.set),
+                self.camera_res_x.get(),
+            ),
+            validate="focus",
+        ).grid(column=1, row=0, sticky=tk.E)
+        ttk.Entry(
+            input_frame,
+            width=5,
+            textvariable=self.roi_y_entry,
+            validatecommand=(parent.register(valid_int), "%P"),
+            invalidcommand=(
+                parent.register(self.roi_y_entry.set),
+                self.camera_res_y.get(),
+            ),
+            validate="focus",
+        ).grid(column=2, row=0, sticky=tk.W)
+        ttk.Label(input_frame, text="Zoom").grid(column=0, row=1, padx=10)
+        ttk.Entry(
+            input_frame,
+            width=5,
             textvariable=self.roi_zoom_entry,
             validatecommand=(parent.register(valid_int), "%P"),
             invalidcommand=(parent.register(self.roi_zoom_entry.set), str(1)),
             validate="focus",
-        ).grid(column=0, row=1)
-        ttk.Button(zoom_frame, text="Set Zoom", command=self.set_roi_zoom).grid(
-            column=0, row=2, pady=(10, 0)
+        ).grid(column=1, row=1, sticky=tk.E)
+        ttk.Button(input_frame, text="Set", command=self.set_roi).grid(
+            column=1, row=2, pady=(10, 0), columnspan=2, padx=10
         )
-        zoom_frame.grid(column=0, row=0, sticky=tk.N)
+        input_frame.grid(column=0, row=0, rowspan=2, sticky=tk.NW)
 
     def make_roi_preview_slice(self, parent):
-        self.roi_preview = ttk.Label(parent)
-        self.roi_preview.grid(column=1, row=0)
+        roi_prev_frame = ttk.Frame(parent)
+        self.roi_preview = ttk.Label(roi_prev_frame)
+        self.roi_preview.grid(column=0, row=0)
         # cross-cuts
-        self.cc_x = ttk.Label(parent)
-        self.cc_x.grid(column=1, row=1)
-        self.cc_y = ttk.Label(parent)
-        self.cc_y.grid(column=2, row=0)
+        self.cc_x = ttk.Label(roi_prev_frame)
+        self.cc_x.grid(column=0, row=1)
+        self.cc_y = ttk.Label(roi_prev_frame)
+        self.cc_y.grid(column=1, row=0)
+        roi_prev_frame.grid(column=1, row=0)
 
     ### Functions ###
     def set_cam_ctrl(self):
@@ -378,7 +372,7 @@ class CameraPanel(Cyclic):
             make_task(self.camera.reset(), self.tasks)
 
     def set_roi(self):
-        """Set the region of interest"""
+        """Set the region of interest bounds and zoom"""
 
         # get inputs and clip to valid, then write back valid values
         size_x = int(self.roi_x_entry.get())
@@ -389,10 +383,8 @@ class CameraPanel(Cyclic):
         self.roi_size_y = size_y
         self.roi_x_entry.set(str(size_x))
         self.roi_y_entry.set(str(size_y))
-
-    def set_roi_zoom(self):
-        """Set the ROI zoom"""
         self.roi_zoom = int(self.roi_zoom_entry.get())
+        self.update_full_frame_preview()
         self.update_roi_img()
 
     def get_roi_box(self) -> tuple[int, int, int, int]:
@@ -462,6 +454,7 @@ class CameraPanel(Cyclic):
         """Update image properties"""
         prop_str = ""
         for p in [
+            "bits",
             "rows",
             "cols",
             "bin",
@@ -574,11 +567,25 @@ class CameraPanel(Cyclic):
                 ),
                 (
                     (i + 1) * bar_width + margin_h,
-                    self.histogram.winfo_reqheight() - margin_v
+                    self.histogram.winfo_reqheight()
+                    - margin_v
                     - (self.histogram.winfo_reqheight() - 2 * margin_v)
-                    * values[i] / max(values),
+                    * values[i]
+                    / max(values),
                 ),
                 fill="gray",
+            )
+            self.histogram.create_text(
+                i * bar_width + margin_h,
+                self.histogram.winfo_reqheight()
+                - margin_v
+                - (self.histogram.winfo_reqheight() - 2 * margin_v)
+                * values[i]
+                / max(values),
+                anchor="nw",
+                text=f"{values[i]}",
+                font="TkDefaultFont 6",
+                fill="white",
             )
             self.histogram.create_text(
                 i * bar_width + margin_h,
@@ -626,10 +633,10 @@ class CameraPanel(Cyclic):
                 res = (int(self.camera_res_x.get()), int(self.camera_res_y.get()))
                 black = Image.new(mode="L", size=res, color=0)
                 # grey = Image.new(mode='L', size=res, color=20)
-                # noise = Image.effect_noise(size=res, sigma=100)
+                noise = Image.effect_noise(size=res, sigma=50)
                 gradient = ImageOps.invert(Image.radial_gradient(mode="L"))
                 # set image to black and then paste in the gradient at specified position
-                self.full_img = black
+                self.full_img = noise
                 self.full_img.paste(gradient, (85, 400))
 
         self.update_img_stats()

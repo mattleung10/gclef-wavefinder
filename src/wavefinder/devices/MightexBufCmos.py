@@ -46,6 +46,7 @@ class Frame:
         # get image frame data
         if len(frame) == self.rows*self.cols + 512:
             # 8 bit mode
+            self.bits = 8
             unshaped = np.frombuffer(frame[0 : self.rows*self.cols], dtype=np.uint8)
             self.img_array = np.reshape(unshaped, (self.cols, self.rows))
             self.display_array = self.img_array
@@ -53,12 +54,14 @@ class Frame:
             # 12 bit mode
             # PixelData[][][0] contains the 8bit MSB of 12bit pixel data,
             # while the 4 LSB of PixelData[][][1] has the 4bit LSB of the 12bit pixel data.
+            self.bits = 12
             msb = np.frombuffer(frame[0 : 2*self.rows*self.cols : 2], dtype=np.uint8)
             lsb = np.frombuffer(frame[1 : 2*self.rows*self.cols : 2], dtype=np.uint8)
             combined = np.array((msb.astype(np.uint16) << 4) + lsb, dtype=np.uint16)
             self.img_array = np.reshape(combined, (self.cols, self.rows))
             self.display_array = np.reshape(msb, (self.cols, self.rows))
         else:
+            self.bits = 0
             raise BufferError("got bad frame from camera")
 
 class Camera(Cyclic):
