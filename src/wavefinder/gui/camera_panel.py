@@ -284,9 +284,9 @@ class CameraPanel(Cyclic):
         self.roi_preview = ttk.Label(roi_prev_frame)
         self.roi_preview.grid(column=0, row=0)
         # cross-cuts
-        self.cc_x = ttk.Label(roi_prev_frame)
+        self.cc_x = tk.Canvas(roi_prev_frame)
         self.cc_x.grid(column=0, row=1)
-        self.cc_y = ttk.Label(roi_prev_frame)
+        self.cc_y = tk.Canvas(roi_prev_frame)
         self.cc_y.grid(column=1, row=0)
         roi_prev_frame.grid(column=1, row=0)
 
@@ -400,16 +400,6 @@ class CameraPanel(Cyclic):
         box = (left, lower, left + size_x, lower + size_y)
         return box
 
-    def get_crosscut_box(self) -> tuple[int, int, int, int]:
-        """Get the cross-cut boxes as (left, lower, right, upper)"""
-        cc_width = 10  # TODO configure crosscut width
-        f_size_x = self.full_img.size[0]
-        f_size_y = self.full_img.size[1]
-        left = f_size_x // 2 - cc_width // 2
-        lower = f_size_y // 2 - cc_width // 2
-        box = (left, lower, left + cc_width, lower + cc_width)
-        return box
-
     def update_roi_img(self):
         """Update the region of interest image"""
         box = self.get_roi_box()
@@ -418,7 +408,18 @@ class CameraPanel(Cyclic):
         y = box[3] - box[1]
         z = self.roi_zoom
         roi_img = self.full_img.crop(box)
-        zoomed = roi_img.resize(size=(z * x, z * y), resample=Image.Resampling.NEAREST)
+        zoomed = roi_img.resize(
+            size=(z * x, z * y), resample=Image.Resampling.NEAREST
+        ).convert("RGB")
+        # draw crosshairs
+        ImageDraw.Draw(zoomed).line(
+            [(0, z * (y // 2) + z // 2), (z * x, z * (y // 2) + z // 2)],
+            fill=ImageColor.getrgb("yellow"),
+        )
+        ImageDraw.Draw(zoomed).line(
+            [(z * (x // 2) + z // 2, 0), (z * (x // 2) + z // 2, z * y)],
+            fill=ImageColor.getrgb("yellow"),
+        )
         disp_img = ImageTk.PhotoImage(zoomed)
         self.roi_preview.img = disp_img  # type: ignore # protect from garbage collect
         self.roi_preview.configure(image=disp_img)
@@ -426,29 +427,72 @@ class CameraPanel(Cyclic):
 
     def update_crosscuts(self):
         """Update cross cuts"""
-        cc_box = self.get_crosscut_box()
-        cc_x = cc_box[2] - cc_box[0]
-        cc_y = cc_box[3] - cc_box[1]
+
+        # delete drawings from last update
+        self.cc_x.delete("all")
+        self.cc_y.delete("all")
+
+        # extract cross-cuts from full image (8 bit)
         roi_box = self.get_roi_box()
-        x = roi_box[2] - roi_box[0]
-        y = roi_box[3] - roi_box[1]
-        z = self.roi_zoom
+        x_cut = np.array(
+            self.full_img.crop(
+                (
+                    roi_box[0],
+                    self.full_img.size[1] // 2,
+                    roi_box[2],
+                    self.full_img.size[1] // 2 + 1,
+                )
+            )
+        ).flatten()
+        y_cut = np.array(
+            self.full_img.crop(
+                (
+                    self.full_img.size[0] // 2,
+                    roi_box[1],
+                    self.full_img.size[0] // 2 + 1,
+                    roi_box[3],
+                )
+            )
+        ).flatten()
 
-        x_img = self.full_img.crop((roi_box[0], cc_box[1], roi_box[2], cc_box[3]))
-        zoomed_x = x_img.resize(
-            size=(z * x, z * cc_y), resample=Image.Resampling.NEAREST
+        # set size of cross-cuts to match roi image
+        self.cc_x.configure(
+            width=self.roi_preview.img.width(), height=200  # type: ignore
         )
-        disp_x_img = ImageTk.PhotoImage(zoomed_x)
-        self.cc_x.img = disp_x_img  # type: ignore # protect from garbage collect
-        self.cc_x.configure(image=disp_x_img)
+        self.cc_y.configure(
+            width=200, height=self.roi_preview.img.height()  # type: ignore
+        )
 
-        y_img = self.full_img.crop((cc_box[0], roi_box[1], cc_box[2], roi_box[3]))
-        zoomed_y = y_img.resize(
-            size=(z * cc_x, z * y), resample=Image.Resampling.NEAREST
-        )
-        disp_y_img = ImageTk.PhotoImage(zoomed_y)
-        self.cc_y.img = disp_y_img  # type: ignore # protect from garbage collect
-        self.cc_y.configure(image=disp_y_img)
+        # NOTE: it seems Tk adds a 2-pixel all-around padding between the label border and the image,
+        #       so this is to account for that so things line up with the cross-cuts.
+        offset = 2
+        bar_width_x = (self.roi_preview.img.width()) // len(x_cut)  # type: ignore
+        bar_width_y = (self.roi_preview.img.height()) // len(y_cut)  # type: ignore
+
+        for i in range(len(x_cut)):
+            self.cc_x.create_rectangle(
+                (
+                    i * bar_width_x + offset,
+                    0,
+                ),
+                (
+                    (i + 1) * bar_width_x + offset,
+                    self.cc_x.winfo_reqheight() * x_cut[i] / np.iinfo(x_cut.dtype).max,
+                ),
+                fill="gray",
+            )
+        for i in range(len(y_cut)):
+            self.cc_y.create_rectangle(
+                (
+                    0,
+                    i * bar_width_y + offset,
+                ),
+                (
+                    self.cc_y.winfo_reqwidth() * y_cut[i] / np.iinfo(y_cut.dtype).max,
+                    (i + 1) * bar_width_y + offset,
+                ),
+                fill="gray",
+            )
 
     def update_img_props(self, camera_frame: Frame):
         """Update image properties"""

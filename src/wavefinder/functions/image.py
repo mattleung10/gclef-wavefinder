@@ -1,7 +1,6 @@
 """Image Math"""
 
 import numpy as np
-from PIL import Image
 
 
 def get_centroid_and_variance(img_array: np.ndarray)-> tuple[float, float, float, float, float]:
