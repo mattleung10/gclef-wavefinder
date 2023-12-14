@@ -494,6 +494,22 @@ class CameraPanel(Cyclic):
                 fill="gray",
             )
 
+        # guidelines
+        self.cc_x.create_line(
+            0,
+            self.cc_x.winfo_reqheight() - 3,
+            self.cc_x.winfo_reqwidth(),
+            self.cc_x.winfo_reqheight() - 3,
+            fill="red",
+        )
+        self.cc_y.create_line(
+            self.cc_y.winfo_reqwidth() - 3,
+            0,
+            self.cc_y.winfo_reqwidth() - 3,
+            self.cc_y.winfo_reqheight(),
+            fill="red",
+        )
+
     def update_img_props(self, camera_frame: Frame):
         """Update image properties"""
         prop_str = ""
@@ -591,9 +607,15 @@ class CameraPanel(Cyclic):
 
         # get histogram data
         if self.camera_frame:
-            values, edges = np.histogram(self.camera_frame.img_array)
+            values, edges = np.histogram(
+                self.camera_frame.img_array,
+                range=(0, np.iinfo(self.camera_frame.img_array.dtype).max),
+            )
         else:
-            values, edges = np.histogram(np.array(self.full_img))
+            values, edges = np.histogram(
+                np.array(self.full_img),
+                range=(0, np.iinfo(np.array(self.full_img).dtype).max),
+            )
 
         bar_width = (self.histogram.winfo_reqwidth() - 2 * margin_h) / len(values)
 
