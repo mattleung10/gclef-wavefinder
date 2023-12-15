@@ -1,12 +1,11 @@
-# type: ignore
-# stops Pylance from linting this file
-
+'''! \file gclib.py
+'''
 """
 Python wrapper for Galil gclib.
 Contact softwaresupport@galil.com with questions, comments, and suggestions.
 """
 ###############################################################################
-# ctypes import, for pulling in all dll/so/dylib calls. 
+# ctypes import, for pulling in all dll/so/dylib calls.
 # Part of implementation, don't use directly.
 ###############################################################################
 import platform #for distinguishing 'Windows', 'Linux', 'Darwin'
@@ -61,10 +60,10 @@ if platform.system() == 'Windows':
         setattr(_gclibo, 'GRemoteConnections', getattr(_gclibo, '_GRemoteConnections@8'))
 
 elif platform.system() == 'Linux':
-    cdll.LoadLibrary("libgclib.so.0")
-    _gclib = CDLL("libgclib.so.0")
-    cdll.LoadLibrary("libgclibo.so.0")
-    _gclibo = CDLL("libgclibo.so.0")
+    cdll.LoadLibrary("libgclib.so.2")
+    _gclib = CDLL("libgclib.so.2")
+    cdll.LoadLibrary("libgclibo.so.2")
+    _gclibo = CDLL("libgclibo.so.2")
 
 elif platform.system() == 'Darwin': #OSX
     _gclib_path = '/Applications/gclib/dylib/gclib.0.dylib'
@@ -73,8 +72,8 @@ elif platform.system() == 'Darwin': #OSX
     _gclib = CDLL(_gclib_path)
     cdll.LoadLibrary(_gclibo_path)
     _gclibo = CDLL(_gclibo_path)
-    
-    
+
+
 
 # Python "typedefs"
 _GReturn = c_int #type for a return code
@@ -84,7 +83,7 @@ _GSize = c_ulong #type for a Galil size variable
 _GSize_ptr = POINTER(_GSize) #used for argtypes declaration
 _GCStringIn = c_char_p #char*. In C it's const.
 _GCStringOut = c_char_p #char*
-_GOption = c_int #type for option variables, e.g.    GArrayDownload 
+_GOption = c_int #type for option variables, e.g.    GArrayDownload
 _GStatus = c_ubyte #type for interrupt status bytes
 _GStatus_ptr = POINTER(_GStatus) #used for argtypes declaration
 
@@ -127,38 +126,38 @@ _gclibo.GSetupDownloadFile.argtypes = [_GCon, _GCStringIn, _GOption, _GCStringOu
 _enc = "ASCII" #byte encoding for going between python strings and c strings.
 _buf_size = 500000 #size of response buffer. Big enough to fit entire 4000 program via UL/LS, or 24000 elements of array data.
 _error_buf = create_string_buffer(128)    #buffer for retrieving error code descriptions.
-    
+
 def _rc(return_code):
     """Checks return codes from gclib and raises a python error if result is exceptional."""
     if return_code != 0:
         _gclibo.GError(return_code, _error_buf, 128) #Get the library's error description
         raise GclibError(str(_error_buf.value.decode(_enc)))
-    return 
+    return
 
 class GclibError(Exception):
     """Error class for non-zero gclib return codes."""
-    pass 
- 
+    pass
+
 class py:
     """Represents a single Python connection to a Galil Controller or PLC."""
-    
+
     def __init__(self):
         """Constructor for the Connection class. Initializes gclib's handle and read buffer."""
         self._gcon = _GCon(0) #handle to connection
         self._buf = create_string_buffer(_buf_size)
         self._timeout = 5000
-        return        
-    
+        return
+
     def __del__(self):
         """Destructor for the Connection class. Ensures close gets called to release Galil resource (Sockets, Kernel Driver, Com Port, etc)."""
         self.GClose()
         return
-    
+
     def _cc(self):
         """Checks if connection is established, throws error if not."""
         if self._gcon.value == None:
             _rc(-1201) #G_CONNECTION_NOT_ESTABLISHED
-    
+
     def GOpen(self, address):
         """
         Opens a connection a galil controller.
@@ -167,8 +166,8 @@ class py:
         c_address = _GCStringIn(address.encode(_enc))
         _rc(_gclib.GOpen(c_address, byref(self._gcon)))
         return
-        
-     
+
+
     def GClose(self):
         """
         Closes a connection to a Galil Controller.
@@ -177,11 +176,11 @@ class py:
             _rc(_gclib.GClose(self._gcon))
             self._gcon = _GCon(0)
         return
-        
-        
+
+
     def GCommand(self, command):
         """
-        Performs a command-and-response transaction on the connection. 
+        Performs a command-and-response transaction on the connection.
         Trims the response.
         """
         self._cc()
@@ -190,59 +189,59 @@ class py:
         response = str(self._buf.value.decode(_enc))
         return response[:-3].strip() # trim trailing /r/n: and leading space
 
-        
+
     def GSleep(self, val):
         """
         Provides a blocking sleep call which can be useful for timing-based chores.
         """
         _gclibo.GSleep(val)
-        return         
-        
-        
+        return
+
+
     def GVersion(self):
         """
         Provides the gclib version number. Please include the output of this function on all support cases.
         """
         _rc(_gclibo.GVersion(self._buf, _buf_size))
         return "py." + str(self._buf.value.decode(_enc))
-        
+
     def GServerStatus(self):
         _rc(_gclibo.GServerStatus(self._buf, _buf_size))
         return str(self._buf.value.decode(_enc))
-		
+
     def GSetServer(self, server_name):
         c_server_name = _GCStringIn(server_name.encode(_enc))
         _rc(_gclibo.GSetServer(c_server_name))
         return
-        
+
     def GListServers(self):
         _rc(_gclibo.GListServers(self._buf, _buf_size))
         return str(self._buf.value.decode(_enc))
-		
+
     def GPublishServer(self, server_name, publish, save):
         c_server_name = _GCStringIn(server_name.encode(_enc))
         _rc(_gclibo.GPublishServer(c_server_name, publish, save))
         return
-		
+
     def GRemoteConnections(self):
         _rc(_gclibo.GRemoteConnections(self._buf, _buf_size))
         return str(self._buf.value.decode(_enc))
-		
+
     def GInfo(self):
         """
         Provides a useful connection string. Please include the output of this function on all support cases.
         """
         _rc(_gclibo.GInfo(self._gcon, self._buf, _buf_size))
         return str(self._buf.value.decode(_enc))
-        
-        
+
+
     def GIpRequests(self):
         """
-        Provides a dictionary of all Galil controllers requesting IP addresses via BOOT-P or DHCP. 
-        
+        Provides a dictionary of all Galil controllers requesting IP addresses via BOOT-P or DHCP.
+
         Returns a dictionary mapping 'model-serial' --> 'mac address'
         e.g. {'DMC4000-783': '00:50:4c:20:03:0f', 'DMC4103-9998': '00:50:4c:38:27:0e'}
-        
+
         Linux/OS X users must be root to use GIpRequests() and have UDP access to bind and listen on port 67.
         """
         _rc(_gclibo.GIpRequests(self._buf, _buf_size)) #get the c string from gclib
@@ -254,8 +253,8 @@ class py:
             #fields go [model, serial number, mac]
             ip_req_dict[fields[0] + '-' + fields[1]] = fields[2] # e.g. DMC4000-783 maps to its MAC addr.
         return ip_req_dict
-    
-    
+
+
     def GAssign(self, ip, mac):
         """
         Assigns IP address over the Ethernet to a controller at a given MAC address.
@@ -265,12 +264,12 @@ class py:
         c_mac = _GCStringIn(mac.encode(_enc))
         _rc(_gclibo.GAssign(c_ip, c_mac))
         return
-        
-        
+
+
     def GAddresses(self):
         """
-        Provides a dictionary of all available connection addresses. 
-        
+        Provides a dictionary of all available connection addresses.
+
         Returns a dictionary mapping 'address' -> 'revision reports', where possible
         e.g. {}
         """
@@ -282,10 +281,10 @@ class py:
                 addr_dict[fields[0]] = fields[1]
             else:
                 addr_dict[fields[0]] = ''
-                
+
         return addr_dict
- 
-        
+
+
     def GProgramDownload(self, program, preprocessor=""):
         """
         Downloads a program to the controller's program buffer.
@@ -296,28 +295,28 @@ class py:
         c_pre = _GCStringIn(preprocessor.encode(_enc))
         _rc(_gclib.GProgramDownload(self._gcon, c_prog, c_pre))
         return
-     
-    
-    def GProgramUpload(self):    
+
+
+    def GProgramUpload(self):
         """
         Uploads a program from the controller's program buffer.
         """
         self._cc()
         _rc(_gclib.GProgramUpload(self._gcon, self._buf, _buf_size))
         return str(self._buf.value.decode(_enc))
-        
-        
+
+
     def GProgramDownloadFile(self, file_path, preprocessor=""):
         """
-        Program download from file. 
+        Program download from file.
         See the gclib docs for preprocessor options.
         """
         self._cc()
         c_path = _GCStringIn(file_path.encode(_enc))
         c_pre = _GCStringIn(preprocessor.encode(_enc))
         _rc(_gclibo.GProgramDownloadFile(self._gcon, c_path, c_pre))
-        return        
-        
+        return
+
     def GProgramUploadFile(self, file_path):
         """
         Program upload to file.
@@ -326,10 +325,10 @@ class py:
         c_path = _GCStringIn(file_path.encode(_enc))
         _rc(_gclibo.GProgramUploadFile(self._gcon, c_path))
         return
-        
+
     def GArrayDownload(self, name, first, last, array_data):
         """
-        Downloads array data to a pre-dimensioned array in the controller's array table. 
+        Downloads array data to a pre-dimensioned array in the controller's array table.
         array_data should be a list of values (e.g. int or float)
         """
         self._cc()
@@ -340,8 +339,8 @@ class py:
         c_data = _GCStringIn(array_string[:-1].encode(_enc)) #trim trailing command
         _rc(_gclib.GArrayDownload(self._gcon, c_name, first, last, c_data))
         return
-        
-        
+
+
     def GArrayUploadFile(self, file_path, names = []):
         """
         Uploads the entire controller array table or a subset and saves the data as a csv file specified by file_path.
@@ -353,12 +352,12 @@ class py:
         c_names = _GCStringIn(''.encode(_enc)) #in case empty list provided
         for name in names:
             names_string += name + ' '
-        
+
         c_names = _GCStringIn(names_string[:-1].encode(_enc)) #trim trailing space
         _rc(_gclibo.GArrayUploadFile(self._gcon, c_path, c_names))
         return
-            
-            
+
+
     def GArrayDownloadFile(self, file_path):
         """
         Downloads a csv file containing array data at file_path.
@@ -366,9 +365,9 @@ class py:
         self._cc()
         c_path = _GCStringIn(file_path.encode(_enc))
         _rc(_gclibo.GArrayDownloadFile(self._gcon, c_path))
-        return        
-    
-    
+        return
+
+
     def GArrayUpload(self, name, first, last):
         """
         Uploads array data from the controller's array table.
@@ -381,8 +380,8 @@ class py:
         for s in string_list:
             float_list.append(float(s))
         return float_list
-    
-    
+
+
     def GTimeout(self, timeout):
         """
         Set the library timeout. Set to -1 to use the intitial library timeout, as specified in GOpen.
@@ -391,15 +390,15 @@ class py:
         _rc(_gclibo.GTimeout(self._gcon, timeout))
         self._timeout = timeout
         return
-        
-    
+
+
     @property
     def timeout(self):
         """
         Convenience property read access to timeout value. If -1, gclib uses the initial library timeout, as specified in GOpen.
         """
         return self._timeout
-        
+
     @timeout.setter
     def timeout(self, timeout):
         """
@@ -408,7 +407,7 @@ class py:
         self.GTimeout(timeout)
         return
 
-        
+
     def GFirmwareDownload(self, file_path):
         """
         Upgrade firmware.
@@ -426,8 +425,8 @@ class py:
         self._cc()
         _rc(_gclib.GMessage(self._gcon, self._buf, _buf_size))
         return str(self._buf.value.decode(_enc))
-     
-     
+
+
     def GMotionComplete(self, axes):
         """
         Blocking call that returns once all axes specified have completed their motion.
@@ -438,18 +437,18 @@ class py:
         return
 
     def GInterrupt(self):
-        """   
+        """
         Provides access to PCI and UDP interrupts from the controller.
         """
         self._cc()
         status = _GStatus(0)
         _rc(_gclib.GInterrupt(self._gcon, byref(status)))
         return status.value
-    
+
     def GSetupDownloadFile(self, file_path, options):
         """
         Downloads specified sectors from a Galil compressed backup (gcb) file to a controller.
-        
+
         Returns a dictionary with the controller information stored in the gcb file.
         If options is specified as 0, an additional "options" key will be in the dictionary indicating the info sectors available in the gcb
         """
