@@ -42,6 +42,10 @@ class CameraPanel(Cyclic):
         self.roi_y_entry = tk.StringVar(value="50")
         self.roi_zoom_entry = tk.StringVar(value="10")
         self.img_stats_txt = tk.StringVar(value="A\nB\nC\n")
+        self.full_threshold_entry = tk.StringVar(value="50")
+        self.roi_threshold_entry = tk.StringVar(value="50")
+        self.full_threshold_hist = tk.BooleanVar(value=False)
+        self.roi_threshold_hist = tk.BooleanVar(value=False)
 
         # camera variables
         self.camera = camera
@@ -51,6 +55,8 @@ class CameraPanel(Cyclic):
         self.roi_size_x = int(self.roi_x_entry.get())
         self.roi_size_y = int(self.roi_y_entry.get())
         self.roi_zoom = int(self.roi_zoom_entry.get())
+        self.full_threshold = int(self.full_threshold_entry.get())
+        self.roi_threshold = int(self.roi_threshold_entry.get())
         self.img_stats = (0.0, 0.0, 0.0, 0.0, 0.0)
         self.update_resolution_flag = False
 
@@ -75,6 +81,7 @@ class CameraPanel(Cyclic):
         self.make_full_frame_preview_slice(full_frame)
         self.make_image_properties_slice(full_frame)
         self.make_full_frame_buttons(full_frame)
+        self.make_threshold_input(full_frame)
         self.make_image_stats_slice(full_frame)
         self.make_histogram(full_frame)
         full_frame.grid(column=1, row=0, sticky=tk.NSEW)
@@ -219,18 +226,57 @@ class CameraPanel(Cyclic):
 
     def make_full_frame_buttons(self, parent):
         ttk.Button(parent, text="Trigger", command=self.snap_img).grid(
-            column=0, row=13, pady=(10, 0), padx=10
+            column=0, row=13, pady=10, padx=10
         )
         ttk.Button(
             parent, textvariable=self.freeze_txt, command=self.freeze_preview
-        ).grid(column=1, row=13, pady=(10, 0), padx=10)
+        ).grid(column=1, row=13, pady=10, padx=10)
         ttk.Button(parent, text="Save", command=self.save_img).grid(
-            column=2, row=13, pady=(10, 0), padx=10
+            column=2, row=13, pady=10, padx=10
         )
+
+    def make_threshold_input(self, parent):
+        threshold_frame = ttk.Frame(parent)
+        ttk.Label(threshold_frame, text="Threshold %").grid(
+            column=0, row=0, padx=10, columnspan=2
+        )
+        ttk.Label(threshold_frame, text="Histogram").grid(column=2, row=0)
+        ttk.Label(threshold_frame, text="Full Frame").grid(
+            column=0, row=1, padx=10, sticky=tk.E
+        )
+        ttk.Entry(
+            threshold_frame,
+            width=2,
+            textvariable=self.full_threshold_entry,
+            validatecommand=(parent.register(valid_int), "%P"),
+            invalidcommand=parent.register(self.restore_thresholds),
+            validate="focus",
+        ).grid(column=1, row=1, sticky=tk.E)
+        ttk.Checkbutton(threshold_frame, variable=self.full_threshold_hist).grid(
+            column=2, row=1
+        )
+        ttk.Label(threshold_frame, text="ROI").grid(
+            column=0, row=2, padx=10, sticky=tk.E
+        )
+        ttk.Entry(
+            threshold_frame,
+            width=2,
+            textvariable=self.roi_threshold_entry,
+            validatecommand=(parent.register(valid_int), "%P"),
+            invalidcommand=parent.register(self.restore_thresholds),
+            validate="focus",
+        ).grid(column=1, row=2, sticky=tk.E)
+        ttk.Checkbutton(threshold_frame, variable=self.roi_threshold_hist).grid(
+            column=2, row=2
+        )
+        ttk.Button(
+            threshold_frame, text="Set Thresholds", command=self.set_thresholds
+        ).grid(column=3, row=1, rowspan=2, sticky=tk.W, pady=10, padx=10)
+        threshold_frame.grid(column=0, row=14, columnspan=3, sticky=tk.W, pady=10)
 
     def make_image_stats_slice(self, parent):
         ttk.Label(parent, textvariable=self.img_stats_txt).grid(
-            column=0, row=14, columnspan=3, sticky=tk.W
+            column=0, row=16, columnspan=3, sticky=tk.W
         )
         # NOTE secret reset button
         # ttk.Button(parent, text="Reset",
@@ -238,7 +284,7 @@ class CameraPanel(Cyclic):
 
     def make_histogram(self, parent):
         self.histogram = tk.Canvas(parent, width=500, height=200)
-        self.histogram.grid(column=0, row=15, columnspan=3)
+        self.histogram.grid(column=0, row=17, columnspan=3)
 
     ### ROI Frame Slices ###
     def make_roi_input_slice(self, parent):
@@ -375,6 +421,14 @@ class CameraPanel(Cyclic):
     def reset_camera(self):
         if self.camera:
             make_task(self.camera.reset(), self.tasks)
+
+    def set_thresholds(self):
+        self.full_threshold = int(self.full_threshold_entry.get())
+        self.roi_threshold = int(self.roi_threshold_entry.get())
+
+    def restore_thresholds(self):
+        self.full_threshold_entry.set(str(self.full_threshold))
+        self.roi_threshold_entry.set(str(self.roi_threshold))
 
     def set_roi(self):
         """Set the region of interest bounds and zoom"""
@@ -582,8 +636,20 @@ class CameraPanel(Cyclic):
         self.full_frame_preview.img = disp_img  # type: ignore # protect from garbage collect
         self.full_frame_preview.configure(image=disp_img)
 
-    def update_histogram(self, histogram_canvas: tk.Canvas, img_array: np.ndarray):
-        """Draw histogram and labels"""
+    def update_histogram(
+        self,
+        histogram_canvas: tk.Canvas,
+        img_array: np.ndarray,
+        threshold: int = 50,
+        threshold_en: bool = False,
+    ):
+        """Draw histogram and labels
+
+        histogram_canvas: canvas to draw to
+        img_array: image to analyze
+        threshold: threshold percentage
+        threshold_en: enable threshold limit for histogram
+        """
         # delete drawings from last update
         histogram_canvas.delete("all")
 
@@ -609,6 +675,11 @@ class CameraPanel(Cyclic):
             anchor="n",
             text="# of pixels",
         )
+
+        # get threshold value and apply if enabled
+        t_val = int(np.percentile(img_array, threshold))
+        if threshold_en:
+            img_array = img_array[img_array > t_val]
 
         # get histogram data and compute bar width
         values, edges = np.histogram(
@@ -659,6 +730,28 @@ class CameraPanel(Cyclic):
             text=edges[-1],
             font="TkDefaultFont 6",
         )
+        # threshold line
+        t_x = (
+            t_val
+            * (histogram_canvas.winfo_reqwidth() - 2 * margin_h)
+            / np.iinfo(img_array.dtype).max
+            + margin_h
+        )
+        histogram_canvas.create_line(
+            t_x,
+            histogram_canvas.winfo_reqheight() - margin_v,
+            t_x,
+            margin_v,
+            fill="blue",
+        )
+        histogram_canvas.create_text(
+            t_x,
+            margin_v,
+            anchor="s",
+            text=f"{t_val}",
+            font="TkDefaultFont 6",
+            fill="blue",
+        )
 
     async def update_resolution(self):
         """Update resolution from camera, matching newest frame"""
@@ -700,14 +793,31 @@ class CameraPanel(Cyclic):
         self.update_full_frame_preview()
         box = self.get_roi_box()
         if self.camera_frame:
-            self.update_histogram(self.histogram, self.camera_frame.img_array)
+            self.update_histogram(
+                self.histogram,
+                self.camera_frame.img_array,
+                self.full_threshold,
+                self.full_threshold_hist.get(),
+            )
             self.update_histogram(
                 self.roi_histogram,
                 self.camera_frame.img_array[box[1] : box[3], box[0] : box[2]],
+                self.roi_threshold,
+                self.roi_threshold_hist.get(),
             )
         else:
-            self.update_histogram(self.histogram, np.array(self.full_img))
-            self.update_histogram(self.roi_histogram, np.array(self.full_img.crop(box)))
+            self.update_histogram(
+                self.histogram,
+                np.array(self.full_img),
+                self.full_threshold,
+                self.full_threshold_hist.get(),
+            )
+            self.update_histogram(
+                self.roi_histogram,
+                np.array(self.full_img.crop(box)),
+                self.roi_threshold,
+                self.roi_threshold_hist.get(),
+            )
         self.update_roi_img()
 
     def close(self):
