@@ -293,7 +293,7 @@ class CameraPanel(Cyclic):
 
     def make_roi_histogram(self, parent):
         self.roi_histogram = tk.Canvas(parent, width=500, height=200)
-        self.roi_histogram.grid(column=0, row=2, columnspan=3, sticky=tk.E)
+        self.roi_histogram.grid(column=1, row=2, columnspan=2, sticky=tk.W)
 
     ### Functions ###
     def set_cam_ctrl(self):
