@@ -13,6 +13,4 @@ if __name__ == "__main__":
 ### TODO list
 # read in input configuration and table of wavelengths
 # alpha shapes, better image masking
-# Cross-cuts with axis labels
-# histogram of values
 # Stabilize size of preview image

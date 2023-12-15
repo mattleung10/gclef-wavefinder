@@ -3,9 +3,11 @@
 import numpy as np
 
 
-def get_centroid_and_variance(img_array: np.ndarray)-> tuple[float, float, float, float, float]:
+def get_centroid_and_variance(img_array: np.ndarray, threshold: float)-> tuple[float, float, float, float, float]:
     """Get image centroid and variance/covariance as (u_x, u_y, var_x, var_y, covar)"""
     x_avg, y_avg, x_var, y_var, covar = 0.0, 0.0, 0.0, 0.0, 0.0
+    t_val = np.iinfo(img_array.dtype).max * threshold / 100
+    img_array[img_array < t_val] = 0
 
     # make a grid of pixel coordinates in the x and y dimensions, e.g.:
     #   xx, yy = np.meshgrid(np.arange(2), np.arange(3))

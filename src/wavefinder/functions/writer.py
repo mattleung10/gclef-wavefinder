@@ -71,7 +71,7 @@ class DataWriter:
     def make_img_headers(self, img_array: np.ndarray) -> dict[str, tuple[float | int | str, str]]:
         """Make headers from image"""
         headers: dict[str, tuple[float | int | str, str]]= {}
-        stats = get_centroid_and_variance(img_array)
+        stats = get_centroid_and_variance(img_array, 50.) # TODO FIXME pass in the threshold here
         headers['cenx'] = (stats[0], "[px] centroid along x axis")
         headers['ceny'] = (stats[1], "[px] centroid along y axis")
         headers['fwhmx'] = (variance_to_fwhm(stats[2]), "[px] full width half maximum along x axis")

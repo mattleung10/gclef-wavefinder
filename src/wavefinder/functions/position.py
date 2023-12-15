@@ -39,7 +39,7 @@ class Positioner:
         center = (0, 0)
         if self.camera and self.x_axis and self.y_axis:
             frame = self.camera.get_newest_frame()
-            stats = get_centroid_and_variance(frame.img_array)
+            stats = get_centroid_and_variance(frame.img_array, 50.)  # TODO FIXME pass in the threshold here
             img_center = ((frame.rows - 1) / 2, (frame.cols - 1) / 2)
             move_x_px = -(stats[0] - img_center[0])
             move_y_px =   stats[1] - img_center[1]

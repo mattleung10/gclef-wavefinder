@@ -4,7 +4,7 @@ from tkinter import filedialog, ttk
 from typing import TYPE_CHECKING
 
 import numpy as np
-from PIL import Image, ImageColor, ImageDraw, ImageOps, ImageTk
+from PIL import Image, ImageColor, ImageDraw, ImageEnhance, ImageOps, ImageTk
 
 from ..devices.MightexBufCmos import Camera, Frame
 from ..functions.image import get_centroid_and_variance, variance_to_fwhm
@@ -55,8 +55,8 @@ class CameraPanel(Cyclic):
         self.roi_size_x = int(self.roi_x_entry.get())
         self.roi_size_y = int(self.roi_y_entry.get())
         self.roi_zoom = int(self.roi_zoom_entry.get())
-        self.full_threshold = int(self.full_threshold_entry.get())
-        self.roi_threshold = int(self.roi_threshold_entry.get())
+        self.full_threshold = float(self.full_threshold_entry.get())
+        self.roi_threshold = float(self.roi_threshold_entry.get())
         self.img_stats = (0.0, 0.0, 0.0, 0.0, 0.0)
         self.update_resolution_flag = False
 
@@ -246,9 +246,9 @@ class CameraPanel(Cyclic):
         )
         ttk.Entry(
             threshold_frame,
-            width=2,
+            width=5,
             textvariable=self.full_threshold_entry,
-            validatecommand=(parent.register(valid_int), "%P"),
+            validatecommand=(parent.register(valid_float), "%P"),
             invalidcommand=parent.register(self.restore_thresholds),
             validate="focus",
         ).grid(column=1, row=1, sticky=tk.E)
@@ -260,9 +260,9 @@ class CameraPanel(Cyclic):
         )
         ttk.Entry(
             threshold_frame,
-            width=2,
+            width=5,
             textvariable=self.roi_threshold_entry,
-            validatecommand=(parent.register(valid_int), "%P"),
+            validatecommand=(parent.register(valid_float), "%P"),
             invalidcommand=parent.register(self.restore_thresholds),
             validate="focus",
         ).grid(column=1, row=2, sticky=tk.E)
@@ -423,8 +423,8 @@ class CameraPanel(Cyclic):
             make_task(self.camera.reset(), self.tasks)
 
     def set_thresholds(self):
-        self.full_threshold = int(self.full_threshold_entry.get())
-        self.roi_threshold = int(self.roi_threshold_entry.get())
+        self.full_threshold = float(self.full_threshold_entry.get())
+        self.roi_threshold = float(self.roi_threshold_entry.get())
 
     def restore_thresholds(self):
         self.full_threshold_entry.set(str(self.full_threshold))
@@ -595,15 +595,9 @@ class CameraPanel(Cyclic):
             image = self.camera_frame.img_array
         else:
             image = np.array(self.full_img)
-        self.img_stats = get_centroid_and_variance(image)
+        self.img_stats = get_centroid_and_variance(image, self.full_threshold)
         stats_txt += "Centroid: " + str(
             tuple(map(lambda v: round(v, 3), self.img_stats[0:2]))
-        )
-        stats_txt += "\nVariance: " + str(
-            tuple(map(lambda v: round(v, 3), self.img_stats[2:]))
-        )
-        stats_txt += "\nStd Dev: " + str(
-            tuple(map(lambda v: round(np.sqrt(v), 3), self.img_stats[2:4]))
         )
         stats_txt += "\nFWHM: " + str(
             tuple(map(lambda v: round(variance_to_fwhm(v), 3), self.img_stats[2:4]))
@@ -640,7 +634,7 @@ class CameraPanel(Cyclic):
         self,
         histogram_canvas: tk.Canvas,
         img_array: np.ndarray,
-        threshold: int = 50,
+        threshold: float = 50.0,
         threshold_en: bool = False,
     ):
         """Draw histogram and labels
@@ -677,8 +671,9 @@ class CameraPanel(Cyclic):
         )
 
         # get threshold value and apply if enabled
-        t_val = int(np.percentile(img_array, threshold))
+        t_val = np.iinfo(img_array.dtype).max * threshold / 100
         if threshold_en:
+            # NOTE: this removes the elements below the threshold and flattens the array to 1-D
             img_array = img_array[img_array > t_val]
 
         # get histogram data and compute bar width
@@ -688,33 +683,34 @@ class CameraPanel(Cyclic):
         bar_width = (histogram_canvas.winfo_reqwidth() - 2 * margin_h) / len(values)
 
         for i in range(len(values)):
-            histogram_canvas.create_rectangle(
-                (
+            if max(values) != 0:
+                histogram_canvas.create_rectangle(
+                    (
+                        i * bar_width + margin_h,
+                        histogram_canvas.winfo_reqheight() - margin_v,
+                    ),
+                    (
+                        (i + 1) * bar_width + margin_h,
+                        histogram_canvas.winfo_reqheight()
+                        - margin_v
+                        - (histogram_canvas.winfo_reqheight() - 2 * margin_v)
+                        * values[i]
+                        / max(values),
+                    ),
+                    fill="gray",
+                )
+                histogram_canvas.create_text(
                     i * bar_width + margin_h,
-                    histogram_canvas.winfo_reqheight() - margin_v,
-                ),
-                (
-                    (i + 1) * bar_width + margin_h,
                     histogram_canvas.winfo_reqheight()
                     - margin_v
                     - (histogram_canvas.winfo_reqheight() - 2 * margin_v)
                     * values[i]
                     / max(values),
-                ),
-                fill="gray",
-            )
-            histogram_canvas.create_text(
-                i * bar_width + margin_h,
-                histogram_canvas.winfo_reqheight()
-                - margin_v
-                - (histogram_canvas.winfo_reqheight() - 2 * margin_v)
-                * values[i]
-                / max(values),
-                anchor="nw",
-                text=f"{values[i]}",
-                font="TkDefaultFont 6",
-                fill="white",
-            )
+                    anchor="nw",
+                    text=f"{values[i]}",
+                    font="TkDefaultFont 6",
+                    fill="white",
+                )
             histogram_canvas.create_text(
                 i * bar_width + margin_h,
                 histogram_canvas.winfo_reqheight() - margin_v,
@@ -783,7 +779,11 @@ class CameraPanel(Cyclic):
                 res = (int(self.camera_res_x.get()), int(self.camera_res_y.get()))
                 black = Image.new(mode="L", size=res, color=0)
                 # grey = Image.new(mode='L', size=res, color=20)
-                noise = Image.effect_noise(size=res, sigma=50)
+                noise = ImageEnhance.Brightness(
+                    Image.effect_noise(size=res, sigma=50)
+                ).enhance(
+                    0.5
+                )  # dims the values by 50%
                 gradient = ImageOps.invert(Image.radial_gradient(mode="L"))
                 # set image to black and then paste in the gradient at specified position
                 self.full_img = noise
