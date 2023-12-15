@@ -82,6 +82,7 @@ class CameraPanel(Cyclic):
         roi_frame = ttk.LabelFrame(parent, text="Region of Interest", labelanchor=tk.N)
         self.make_roi_input_slice(roi_frame)
         self.make_roi_preview_slice(roi_frame)
+        self.make_roi_histogram(roi_frame)
         roi_frame.grid(column=2, row=0, rowspan=2, sticky=tk.NSEW)
 
         # update UI to match camera object
@@ -290,6 +291,10 @@ class CameraPanel(Cyclic):
         self.cc_y.grid(column=1, row=0)
         roi_prev_frame.grid(column=1, row=0)
 
+    def make_roi_histogram(self, parent):
+        self.roi_histogram = tk.Canvas(parent, width=500, height=200)
+        self.roi_histogram.grid(column=0, row=2, columnspan=3, sticky=tk.E)
+
     ### Functions ###
     def set_cam_ctrl(self):
         """Set camera to new settings"""
@@ -457,10 +462,10 @@ class CameraPanel(Cyclic):
 
         # set size of cross-cuts to match roi image
         self.cc_x.configure(
-            width=self.roi_preview.img.width(), height=200  # type: ignore
+            width=self.roi_preview.img.width(), height=100  # type: ignore
         )
         self.cc_y.configure(
-            width=200, height=self.roi_preview.img.height()  # type: ignore
+            width=100, height=self.roi_preview.img.height()  # type: ignore
         )
 
         # NOTE: it seems Tk adds a 2-pixel all-around padding between the label border and the image,
@@ -577,69 +582,61 @@ class CameraPanel(Cyclic):
         self.full_frame_preview.img = disp_img  # type: ignore # protect from garbage collect
         self.full_frame_preview.configure(image=disp_img)
 
-    def update_histogram(self):
+    def update_histogram(self, histogram_canvas: tk.Canvas, img_array: np.ndarray):
         """Draw histogram and labels"""
         # delete drawings from last update
-        self.histogram.delete("all")
+        histogram_canvas.delete("all")
 
         # make text labels, reserve margin space for text
         margin_h = 30
         margin_v = 40
-        self.histogram.create_text(
-            self.histogram.winfo_reqwidth() / 2,
+        histogram_canvas.create_text(
+            histogram_canvas.winfo_reqwidth() / 2,
             0,
             anchor="n",
             text="Histogram of Pixel Values",
         )
-        self.histogram.create_text(
-            self.histogram.winfo_reqwidth() / 2,
-            self.histogram.winfo_reqheight(),
+        histogram_canvas.create_text(
+            histogram_canvas.winfo_reqwidth() / 2,
+            histogram_canvas.winfo_reqheight(),
             anchor="s",
             text="pixel value",
         )
-        self.histogram.create_text(
+        histogram_canvas.create_text(
             0,
-            self.histogram.winfo_reqheight() / 2,
+            histogram_canvas.winfo_reqheight() / 2,
             angle=90,
             anchor="n",
             text="# of pixels",
         )
 
-        # get histogram data
-        if self.camera_frame:
-            values, edges = np.histogram(
-                self.camera_frame.img_array,
-                range=(0, np.iinfo(self.camera_frame.img_array.dtype).max),
-            )
-        else:
-            values, edges = np.histogram(
-                np.array(self.full_img),
-                range=(0, np.iinfo(np.array(self.full_img).dtype).max),
-            )
-
-        bar_width = (self.histogram.winfo_reqwidth() - 2 * margin_h) / len(values)
+        # get histogram data and compute bar width
+        values, edges = np.histogram(
+            img_array, range=(0, np.iinfo(img_array.dtype).max)
+        )
+        bar_width = (histogram_canvas.winfo_reqwidth() - 2 * margin_h) / len(values)
 
         for i in range(len(values)):
-            self.histogram.create_rectangle(
+            histogram_canvas.create_rectangle(
                 (
                     i * bar_width + margin_h,
-                    self.histogram.winfo_reqheight() - margin_v,
+                    histogram_canvas.winfo_reqheight() - margin_v,
                 ),
                 (
                     (i + 1) * bar_width + margin_h,
-                    self.histogram.winfo_reqheight()
+                    histogram_canvas.winfo_reqheight()
                     - margin_v
-                    - (self.histogram.winfo_reqheight() - 2 * margin_v)
+                    - (histogram_canvas.winfo_reqheight() - 2 * margin_v)
                     * values[i]
                     / max(values),
                 ),
                 fill="gray",
             )
-            self.histogram.create_text(
+            histogram_canvas.create_text(
                 i * bar_width + margin_h,
-                self.histogram.winfo_reqheight()
+                histogram_canvas.winfo_reqheight()
                 - margin_v
-                - (self.histogram.winfo_reqheight() - 2 * margin_v)
+                - (histogram_canvas.winfo_reqheight() - 2 * margin_v)
                 * values[i]
                 / max(values),
                 anchor="nw",
@@ -647,17 +644,17 @@ class CameraPanel(Cyclic):
                 font="TkDefaultFont 6",
                 fill="white",
             )
-            self.histogram.create_text(
+            histogram_canvas.create_text(
                 i * bar_width + margin_h,
-                self.histogram.winfo_reqheight() - margin_v,
+                histogram_canvas.winfo_reqheight() - margin_v,
                 anchor="n",
                 text=edges[i],
                 font="TkDefaultFont 6",
             )
         # last bar's end
-        self.histogram.create_text(
+        histogram_canvas.create_text(
             len(values) * bar_width + margin_h,
-            self.histogram.winfo_reqheight() - margin_v,
+            histogram_canvas.winfo_reqheight() - margin_v,
             anchor="n",
             text=edges[-1],
             font="TkDefaultFont 6",
@@ -701,7 +698,16 @@ class CameraPanel(Cyclic):
 
         self.update_img_stats()
         self.update_full_frame_preview()
-        self.update_histogram()
+        box = self.get_roi_box()
+        if self.camera_frame:
+            self.update_histogram(self.histogram, self.camera_frame.img_array)
+            self.update_histogram(
+                self.roi_histogram,
+                self.camera_frame.img_array[box[1] : box[3], box[0] : box[2]],
+            )
+        else:
+            self.update_histogram(self.histogram, np.array(self.full_img))
+            self.update_histogram(self.roi_histogram, np.array(self.full_img.crop(box)))
         self.update_roi_img()
 
     def close(self):
