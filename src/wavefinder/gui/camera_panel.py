@@ -4,7 +4,15 @@ from tkinter import filedialog, ttk
 from typing import TYPE_CHECKING
 
 import numpy as np
-from PIL import Image, ImageColor, ImageDraw, ImageEnhance, ImageOps, ImageTk
+from PIL import (
+    Image,
+    ImageChops,
+    ImageColor,
+    ImageDraw,
+    ImageEnhance,
+    ImageOps,
+    ImageTk,
+)
 
 from ..devices.MightexBufCmos import Camera, Frame
 from ..functions.image import get_centroid_and_variance, variance_to_fwhm
@@ -777,17 +785,16 @@ class CameraPanel(Cyclic):
             if self.freeze_txt.get() == "Freeze":  # means not frozen
                 # image components
                 res = (int(self.camera_res_x.get()), int(self.camera_res_y.get()))
-                black = Image.new(mode="L", size=res, color=0)
-                # grey = Image.new(mode='L', size=res, color=20)
+                bk = Image.new(mode="L", size=res, color=0)  # black background
                 noise = ImageEnhance.Brightness(
-                    Image.effect_noise(size=res, sigma=50)
-                ).enhance(
-                    0.5
-                )  # dims the values by 50%
-                gradient = ImageOps.invert(Image.radial_gradient(mode="L"))
-                # set image to black and then paste in the gradient at specified position
-                self.full_img = noise
-                self.full_img.paste(gradient, (85, 400))
+                    Image.effect_noise(size=res, sigma=50)  # dark noise
+                ).enhance(0.5)
+                gradient = ImageOps.invert(
+                    Image.radial_gradient(mode="L")  # gradient spot
+                )
+                bk.paste(gradient, (85, 400))
+                # dark noise with gradient spot overlay
+                self.full_img = ImageChops.add(noise, bk, 1.5, 10)
 
         self.update_img_stats()
         self.update_full_frame_preview()
