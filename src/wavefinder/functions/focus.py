@@ -1,15 +1,16 @@
 import asyncio
 
 import numpy as np
-from PIL import Image
 
 from ..devices.Axis import Axis
 from ..devices.MightexBufCmos import Camera
+from ..gui.config import Configuration
 from .image import get_centroid_and_variance
 
 
 class Focuser:
     def __init__(self,
+                 config: Configuration,
                  camera: Camera | None,
                  f_axis: Axis | None,
                  focus_points_per_pass: int = 10,
@@ -17,12 +18,14 @@ class Focuser:
                  minimum_move: float = 0.001) -> None:
         """Focuser class
         
+        config: application configuration
         camera: MightexBufCmos Camera device
         f_axis: focal axis handle
         focus_points_per_pass: number of focus steps per pass
         focus_frames_per_point: number of frames to average per focus point
         minimum_move: minimum movement in mm
         """
+        self.config = config
         self.camera = camera
         self.f_axis = f_axis
         self.points_per_pass = focus_points_per_pass
@@ -39,6 +42,12 @@ class Focuser:
 
         returns the best focus position
         """
+        threshold = (
+            self.config.image_roi_threshold
+            if self.config.image_use_roi_stats
+            else self.config.image_full_threshold
+        )
+
         focus_pos = 0.0
         if self.camera and self.f_axis:
             # set camera to trigger mode
@@ -74,7 +83,7 @@ class Focuser:
                             nT = frame.nTriggers
 
                         # compute focus
-                        stats = get_centroid_and_variance(frame.img_array, 50.) # TODO FIXME pass in the threshold here
+                        stats = get_centroid_and_variance(frame.img_array, threshold)
                         # sqrt(var_x) * sqrt(var_y)
                         v = np.sqrt(stats[2]) * np.sqrt(stats[3])
                         sum += v

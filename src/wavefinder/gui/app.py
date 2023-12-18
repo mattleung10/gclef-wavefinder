@@ -114,16 +114,19 @@ class App(tk.Tk):
         z_axis = self.axes.get(self.config.focus_axis, None)
 
         self.positioner = Positioner(
-            self.camera, x_axis, y_axis, px_size=self.config.pixel_size
+            self.config, self.camera, x_axis, y_axis, px_size=self.config.pixel_size
         )
         self.focuser = Focuser(
+            self.config,
             self.camera,
             z_axis,
             self.config.focus_points_per_pass,
             self.config.focus_frames_per_point,
             self.config.focus_minimum_move,
         )
-        self.writer = DataWriter(self.camera, self.axes, self.positioner, self.focuser)
+        self.writer = DataWriter(
+            self.config, self.camera, self.axes, self.positioner, self.focuser
+        )
 
     def make_panels(self):
         """Make UI panels"""

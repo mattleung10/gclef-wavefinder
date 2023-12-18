@@ -159,13 +159,13 @@ class Configuration:
             if "image" in c:
                 if "full_threshold" in c["image"]:
                     if isinstance(c["image"]["full_threshold"], float):
-                        self.image_full_threshold = c["image"]["full_threshold"]
+                        self.image_full_threshold = float(c["image"]["full_threshold"])
                 if "roi_threshold" in c["image"]:
                     if isinstance(c["image"]["roi_threshold"], float):
-                        self.image_roi_threshold = c["image"]["roi_threshold"]
+                        self.image_roi_threshold = float(c["image"]["roi_threshold"])
                 if "use_roi_stats" in c["image"]:
                     if isinstance(c["image"]["use_roi_stats"], bool):
-                        self.image_use_roi_stats = c["image"]["use_roi_stats"]
+                        self.image_use_roi_stats = bool(c["image"]["use_roi_stats"])
             if "motion" in c:
                 if "zaber" in c["motion"]:
                     if "ports" in c["motion"]["zaber"]:
