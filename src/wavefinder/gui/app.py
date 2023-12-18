@@ -127,7 +127,7 @@ class App(tk.Tk):
 
     def make_panels(self):
         """Make UI panels"""
-        self.camera_panel = CameraPanel(self, self.camera, self.writer)
+        self.camera_panel = CameraPanel(self, self.config, self.camera, self.writer)
         # internal frames of camera panel manage their own grid
 
         self.motion_panel = MotionPanel(self, self.axes)

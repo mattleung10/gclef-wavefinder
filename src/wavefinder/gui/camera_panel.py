@@ -4,19 +4,13 @@ from tkinter import filedialog, ttk
 from typing import TYPE_CHECKING
 
 import numpy as np
-from PIL import (
-    Image,
-    ImageChops,
-    ImageColor,
-    ImageDraw,
-    ImageEnhance,
-    ImageOps,
-    ImageTk,
-)
+from PIL import (Image, ImageChops, ImageColor, ImageDraw, ImageEnhance,
+                 ImageOps, ImageTk)
 
 from ..devices.MightexBufCmos import Camera, Frame
 from ..functions.image import get_centroid_and_variance, variance_to_fwhm
 from ..functions.writer import DataWriter
+from ..gui.config import Configuration
 from ..gui.utils import Cyclic
 from .utils import make_task, valid_float, valid_int
 
@@ -27,7 +21,15 @@ if TYPE_CHECKING:
 class CameraPanel(Cyclic):
     """Camera UI Panel is made of 3 LabelFrames"""
 
-    def __init__(self, parent: "App", camera: Camera | None, data_writer: DataWriter):
+    def __init__(
+        self,
+        parent: "App",
+        config: Configuration,
+        camera: Camera | None,
+        data_writer: DataWriter,
+    ):
+        self.config = config
+
         # Task variables
         self.tasks: set[asyncio.Task] = set()
         self.extra_init = True
@@ -50,8 +52,9 @@ class CameraPanel(Cyclic):
         self.roi_y_entry = tk.StringVar(value="50")
         self.roi_zoom_entry = tk.StringVar(value="10")
         self.img_stats_txt = tk.StringVar(value="A\nB\nC\n")
-        self.full_threshold_entry = tk.StringVar(value="50")
-        self.roi_threshold_entry = tk.StringVar(value="50")
+        self.full_threshold_entry = tk.StringVar(value=str(config.image_full_threshold))
+        self.roi_threshold_entry = tk.StringVar(value=str(config.image_roi_threshold))
+        self.use_roi_stats = tk.BooleanVar(value=config.image_use_roi_stats)
         self.full_threshold_hist = tk.BooleanVar(value=False)
         self.roi_threshold_hist = tk.BooleanVar(value=False)
 
@@ -63,8 +66,6 @@ class CameraPanel(Cyclic):
         self.roi_size_x = int(self.roi_x_entry.get())
         self.roi_size_y = int(self.roi_y_entry.get())
         self.roi_zoom = int(self.roi_zoom_entry.get())
-        self.full_threshold = float(self.full_threshold_entry.get())
-        self.roi_threshold = float(self.roi_threshold_entry.get())
         self.img_stats = (0.0, 0.0, 0.0, 0.0, 0.0)
         self.update_resolution_flag = False
 
@@ -279,7 +280,13 @@ class CameraPanel(Cyclic):
         )
         ttk.Button(
             threshold_frame, text="Set Thresholds", command=self.set_thresholds
-        ).grid(column=3, row=1, rowspan=2, sticky=tk.W, pady=10, padx=10)
+        ).grid(column=3, row=1, sticky=tk.W, pady=10, padx=10)
+        ttk.Checkbutton(
+            threshold_frame,
+            variable=self.use_roi_stats,
+            text="Use ROI for Stats",
+            command=self.set_thresholds,
+        ).grid(column=3, row=2, sticky=tk.W, padx=10)
         threshold_frame.grid(column=0, row=14, columnspan=3, sticky=tk.W, pady=10)
 
     def make_image_stats_slice(self, parent):
@@ -431,12 +438,13 @@ class CameraPanel(Cyclic):
             make_task(self.camera.reset(), self.tasks)
 
     def set_thresholds(self):
-        self.full_threshold = float(self.full_threshold_entry.get())
-        self.roi_threshold = float(self.roi_threshold_entry.get())
+        self.config.image_full_threshold = float(self.full_threshold_entry.get())
+        self.config.image_roi_threshold = float(self.roi_threshold_entry.get())
+        self.config.image_use_roi_stats = self.use_roi_stats.get()
 
     def restore_thresholds(self):
-        self.full_threshold_entry.set(str(self.full_threshold))
-        self.roi_threshold_entry.set(str(self.roi_threshold))
+        self.full_threshold_entry.set(str(self.config.image_full_threshold))
+        self.roi_threshold_entry.set(str(self.config.image_roi_threshold))
 
     def set_roi(self):
         """Set the region of interest bounds and zoom"""
@@ -486,6 +494,19 @@ class CameraPanel(Cyclic):
         ImageDraw.Draw(zoomed).line(
             [(z * (x // 2) + z // 2, 0), (z * (x // 2) + z // 2, z * y)],
             fill=ImageColor.getrgb("yellow"),
+        )
+        # draw FWHM
+        c = self.img_stats
+        x_hwhm = variance_to_fwhm(c[2]) / 2
+        y_hwhm = variance_to_fwhm(c[3]) / 2
+        ImageDraw.Draw(zoomed).ellipse(
+            (
+                z * (c[0] - box[0] - x_hwhm),
+                z * (c[1] - box[1] - y_hwhm),
+                z * (c[0] - box[0] + x_hwhm),
+                z * (c[1] - box[1] + y_hwhm),
+            ),
+            outline=ImageColor.getrgb("red"),
         )
         disp_img = ImageTk.PhotoImage(zoomed)
         self.roi_preview.img = disp_img  # type: ignore # protect from garbage collect
@@ -603,7 +624,27 @@ class CameraPanel(Cyclic):
             image = self.camera_frame.img_array
         else:
             image = np.array(self.full_img)
-        self.img_stats = get_centroid_and_variance(image, self.full_threshold)
+
+        # use ROI if selected
+        if self.config.image_use_roi_stats:
+            stats_txt += "Region of Interest Image Statistics\n"
+            box = self.get_roi_box()
+            image = image[box[1] : box[3], box[0] : box[2]]
+            threshold = self.config.image_roi_threshold
+        else:
+            stats_txt += "Full Frame Image Statistics\n"
+            threshold = self.config.image_roi_threshold
+
+        self.img_stats = get_centroid_and_variance(image, threshold)
+        
+        # translate to full-frame pixel coordinates
+        if self.config.image_use_roi_stats:
+            box = self.get_roi_box()
+            stats = list(self.img_stats)
+            stats[0] += box[0]
+            stats[1] += box[1]
+            self.img_stats = tuple(stats)
+
         stats_txt += "Centroid: " + str(
             tuple(map(lambda v: round(v, 3), self.img_stats[0:2]))
         )
@@ -803,26 +844,26 @@ class CameraPanel(Cyclic):
             self.update_histogram(
                 self.histogram,
                 self.camera_frame.img_array,
-                self.full_threshold,
+                self.config.image_full_threshold,
                 self.full_threshold_hist.get(),
             )
             self.update_histogram(
                 self.roi_histogram,
                 self.camera_frame.img_array[box[1] : box[3], box[0] : box[2]],
-                self.roi_threshold,
+                self.config.image_roi_threshold,
                 self.roi_threshold_hist.get(),
             )
         else:
             self.update_histogram(
                 self.histogram,
                 np.array(self.full_img),
-                self.full_threshold,
+                self.config.image_full_threshold,
                 self.full_threshold_hist.get(),
             )
             self.update_histogram(
                 self.roi_histogram,
                 np.array(self.full_img.crop(box)),
-                self.roi_threshold,
+                self.config.image_roi_threshold,
                 self.roi_threshold_hist.get(),
             )
         self.update_roi_img()

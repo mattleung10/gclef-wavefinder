@@ -32,6 +32,11 @@ class Configuration:
         self.camera_gain = 15
         self.pixel_size = (3.75, 3.75)
 
+        # image processing defaults
+        self.image_full_threshold = 50.
+        self.image_roi_threshold = 50.
+        self.image_use_roi_stats = False
+        
         # motion defaults
         self.zaber_ports = [
             "COM1",
@@ -151,6 +156,16 @@ class Configuration:
                 if "gain" in c["camera"]:
                     if c["camera"]["gain"] in range(6, 42):
                         self.camera_gain = c["camera"]["gain"]
+            if "image" in c:
+                if "full_threshold" in c["image"]:
+                    if isinstance(c["image"]["full_threshold"], float):
+                        self.image_full_threshold = c["image"]["full_threshold"]
+                if "roi_threshold" in c["image"]:
+                    if isinstance(c["image"]["roi_threshold"], float):
+                        self.image_roi_threshold = c["image"]["roi_threshold"]
+                if "use_roi_stats" in c["image"]:
+                    if isinstance(c["image"]["use_roi_stats"], bool):
+                        self.image_use_roi_stats = c["image"]["use_roi_stats"]
             if "motion" in c:
                 if "zaber" in c["motion"]:
                     if "ports" in c["motion"]["zaber"]:
