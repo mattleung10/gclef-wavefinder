@@ -1,14 +1,10 @@
 import asyncio
 import tkinter as tk
 from tkinter import ttk
-from typing import TYPE_CHECKING
 
 from ..devices.Axis import Axis
 from ..gui.utils import Cyclic
 from .utils import make_task, valid_float
-
-if TYPE_CHECKING:
-    from .app import App
 
 
 class MotionPanel(Cyclic, ttk.LabelFrame):
@@ -17,7 +13,7 @@ class MotionPanel(Cyclic, ttk.LabelFrame):
     # number of colors must match number of status codes
     COLORS = ["green", "yellow", "yellow", "red"]
 
-    def __init__(self, parent: 'App', axes: dict[str, Axis]):
+    def __init__(self, parent: ttk.Frame, axes: dict[str, Axis]):
         super().__init__(parent, text="Motion Control", labelanchor=tk.N)
 
         self.axes = axes
@@ -27,7 +23,7 @@ class MotionPanel(Cyclic, ttk.LabelFrame):
         self.extra_init = True
 
         # UI variables
-        self.pos:    dict[str, tk.StringVar] = {}
+        self.pos: dict[str, tk.StringVar] = {}
         self.pos_in: dict[str, tk.StringVar] = {}
         self.lights: dict[str, ttk.Label] = {}
         self.home_sel: dict[str, tk.IntVar] = {}
@@ -56,9 +52,14 @@ class MotionPanel(Cyclic, ttk.LabelFrame):
             l.grid(column=1, row=row, padx=10, sticky=tk.E)
             # position input
             self.pos_in[a.name] = tk.StringVar(value=str(0.0))
-            e = ttk.Entry(self, textvariable=self.pos_in[a.name], validate='focus',
-                          validatecommand=(self.register(valid_float), '%P'),
-                          invalidcommand=self.register(self.bad_input), width=7)
+            e = ttk.Entry(
+                self,
+                textvariable=self.pos_in[a.name],
+                validate="focus",
+                validatecommand=(self.register(valid_float), "%P"),
+                invalidcommand=self.register(self.bad_input),
+                width=7,
+            )
             e.grid(column=2, row=row, sticky=tk.W)
             # status light
             self.lights[a.name] = ttk.Label(self, width=1)
@@ -69,7 +70,7 @@ class MotionPanel(Cyclic, ttk.LabelFrame):
             # home selector
             self.home_sel[a.name] = tk.IntVar(value=0)
             c = ttk.Checkbutton(self, variable=self.home_sel[a.name])
-            c.grid(column=5,row=row)
+            c.grid(column=5, row=row)
 
             row += 1
         return row
@@ -87,11 +88,11 @@ class MotionPanel(Cyclic, ttk.LabelFrame):
         self.jog_more.grid(column=5, row=row, pady=(10, 0), padx=2)
         # 2nd row
         z = ttk.Button(self, text="Zero Input", command=self.zero_input)
-        z.grid(column=0, row=row+1, pady=(10, 0), padx=10)
+        z.grid(column=0, row=row + 1, pady=(10, 0), padx=10)
         cp = ttk.Button(self, text="Copy Position", command=self.copy_position)
-        cp.grid(column=1, row=row+1, columnspan=2, pady=(10, 0), padx=10)
+        cp.grid(column=1, row=row + 1, columnspan=2, pady=(10, 0), padx=10)
         h = ttk.Button(self, text="Home", command=self.home_stages)
-        h.grid(column=4, row=row+1, columnspan=2, pady=(10, 0), padx=10)
+        h.grid(column=4, row=row + 1, columnspan=2, pady=(10, 0), padx=10)
 
     ### Functions ###
     def stop_stages(self):
@@ -134,7 +135,7 @@ class MotionPanel(Cyclic, ttk.LabelFrame):
         """Zero position input"""
         for a in self.axes.keys():
             self.pos_in[a].set("0.0")
-    
+
     def bad_input(self):
         """Reset entries with bad inputs to zero"""
         for e in self.pos_in.values():

@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 class CameraPanel(Cyclic):
     """Camera UI Panel is made of 3 LabelFrames"""
 
-    def __init__(self, parent: "App", camera: Camera | None, data_writer: DataWriter):
+    def __init__(self, parent: ttk.Frame, camera: Camera | None, data_writer: DataWriter):
         # Task variables
         self.tasks: set[asyncio.Task] = set()
         self.extra_init = True

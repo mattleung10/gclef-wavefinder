@@ -1,21 +1,17 @@
 import asyncio
 import tkinter as tk
 from tkinter import ttk
-from typing import TYPE_CHECKING
 
 from ..functions.focus import Focuser
 from ..functions.position import Positioner
 from ..gui.utils import Cyclic
 from .utils import make_task
 
-if TYPE_CHECKING:
-    from .app import App
-
 
 class FunctionPanel(Cyclic, ttk.LabelFrame):
     """Advanced Function Panel"""
 
-    def __init__(self, parent: 'App', focuser: Focuser, positioner: Positioner):
+    def __init__(self, parent: ttk.Frame, focuser: Focuser, positioner: Positioner):
         super().__init__(parent, text="Functions", labelanchor=tk.N)
 
         # Task variables
@@ -26,7 +22,6 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
 
         # position variables
         self.positioner = positioner
-
 
         self.make_focus_slice()
         self.make_positioner_slice()
@@ -46,7 +41,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         self.focus_position = tk.StringVar(value="Not Yet Found")
         focus_readout = ttk.Label(self, textvariable=self.focus_position)
         focus_readout.grid(column=2, row=0)
-        
+
     def make_positioner_slice(self):
         ttk.Label(self, text="Auto Position").grid(column=0, row=1, sticky=tk.E)
         self.center_button = ttk.Button(self, text="Center", command=self.center)
@@ -74,7 +69,9 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
 
     def after_center(self, future: asyncio.Future):
         """Callback for after center completes"""
-        self.center_position.set(str(tuple(map(lambda v: round(v, 3), future.result()))))
+        self.center_position.set(
+            str(tuple(map(lambda v: round(v, 3), future.result())))
+        )
         self.center_button.configure(state=tk.NORMAL)
 
     async def update(self):

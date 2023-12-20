@@ -4,6 +4,7 @@ import platform
 import sys
 import tkinter as tk
 import traceback
+from tkinter import ttk
 
 from ..devices.Axis import Axis
 from ..devices.GalilAdapter import GalilAdapter
@@ -12,6 +13,7 @@ from ..devices.ZaberAdapter import ZaberAdapter
 from ..functions.focus import Focuser
 from ..functions.position import Positioner
 from ..functions.writer import DataWriter
+from ..gui.scrollable_frame import ScrollableContainer
 from .camera_panel import CameraPanel
 from .config import Configurable
 from .function_panel import FunctionPanel
@@ -110,17 +112,25 @@ class App(tk.Tk, Configurable):
 
     def make_panels(self):
         """Make UI panels"""
-        self.camera_panel = CameraPanel(self, self.camera, self.writer)
+
+        scrollable = ScrollableContainer(self)
+
+        # make scrollable frame expand with window
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+        scrollable.grid(row=0, column=0, sticky=tk.NSEW)
+
+        self.camera_panel = CameraPanel(scrollable.frame, self.camera, self.writer)
         # internal frames of camera panel manage their own grid
 
-        self.motion_panel = MotionPanel(self, self.axes)
+        self.motion_panel = MotionPanel(scrollable.frame, self.axes)
         self.motion_panel.grid(column=0, row=1, sticky=tk.NSEW)
 
-        self.function_panel = FunctionPanel(self, focuser=self.focuser, positioner=self.positioner)
+        self.function_panel = FunctionPanel(scrollable.frame, focuser=self.focuser, positioner=self.positioner)
         self.function_panel.grid(column=1, row=1, sticky=tk.NSEW)
 
         # pad all panels
-        for f in self.winfo_children():
+        for f in scrollable.frame.winfo_children():
             f.configure(padding="3 3 12 12") # type: ignore
             f.grid_configure(padx=3, pady=(10, 0))
 
