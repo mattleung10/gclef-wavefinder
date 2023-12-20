@@ -1,7 +1,10 @@
+from email import header
 import numpy as np
 from astropy.io import fits
 from astropy.time import Time
 from PIL import Image
+
+from wavefinder.gui.config import Configuration
 
 from ..devices.Axis import Axis
 from ..devices.MightexBufCmos import Camera, Frame
@@ -11,7 +14,8 @@ from ..functions.position import Positioner
 
 
 class DataWriter:
-    def __init__(self, camera: Camera | None, axes: dict[str, Axis], positioner: Positioner, focuser: Focuser) -> None:
+    def __init__(self, config: Configuration, camera: Camera | None, axes: dict[str, Axis], positioner: Positioner, focuser: Focuser) -> None:
+        self.config = config
         self.camera = camera
         self.axes = axes
         self.positioner = positioner
@@ -70,8 +74,15 @@ class DataWriter:
     
     def make_img_headers(self, img_array: np.ndarray) -> dict[str, tuple[float | int | str, str]]:
         """Make headers from image"""
+        threshold = (
+            self.config.image_roi_threshold
+            if self.config.image_use_roi_stats
+            else self.config.image_full_threshold
+        )
+
         headers: dict[str, tuple[float | int | str, str]]= {}
-        stats = get_centroid_and_variance(img_array)
+        stats = get_centroid_and_variance(img_array, threshold)
+        headers['threshld'] = (threshold, "[counts] minimum pixel value for image computations")
         headers['cenx'] = (stats[0], "[px] centroid along x axis")
         headers['ceny'] = (stats[1], "[px] centroid along y axis")
         headers['fwhmx'] = (variance_to_fwhm(stats[2]), "[px] full width half maximum along x axis")
