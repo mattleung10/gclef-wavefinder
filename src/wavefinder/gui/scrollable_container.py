@@ -2,15 +2,15 @@ import tkinter as tk
 from tkinter import ttk
 
 
-class ScrollableContainer(ttk.Frame):
-    """A Scrollable Frame
+class ScrollableContainer(tk.Tk):
+    """A Scrollable Tk App
 
     Puts a frame inside a canvas with scrollbars.
     Add your elements to the frame.
     """
 
-    def __init__(self, container, *args, **kwargs):
-        super().__init__(container, *args, **kwargs)
+    def __init__(self):
+        super().__init__()
 
         self.canvas = tk.Canvas(self)
         self.scrollbar_v = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.canvas.yview)
@@ -42,8 +42,8 @@ class ScrollableContainer(ttk.Frame):
 
     def onCanvasConfigure(self, event):
         #Resize the inner frame to match the canvas
-        minWidth = self.frame.winfo_reqwidth()
-        minHeight = self.frame.winfo_reqheight()
+        minWidth = self.get_min_width()
+        minHeight = self.get_min_height()
 
         if self.winfo_width() >= minWidth:
             newWidth = self.winfo_width()
@@ -64,3 +64,9 @@ class ScrollableContainer(ttk.Frame):
             self.scrollbar_v.grid()
 
         self.canvas.itemconfig(self.window, width=newWidth, height=newHeight)
+
+    def get_min_width(self):
+        return self.frame.winfo_reqwidth() + self.scrollbar_v.winfo_reqwidth()
+    
+    def get_min_height(self):
+        return self.frame.winfo_reqheight() + self.scrollbar_h.winfo_reqheight()

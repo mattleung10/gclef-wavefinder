@@ -13,7 +13,7 @@ from ..devices.ZaberAdapter import ZaberAdapter
 from ..functions.focus import Focuser
 from ..functions.position import Positioner
 from ..functions.writer import DataWriter
-from ..gui.scrollable_frame import ScrollableContainer
+from .scrollable_container import ScrollableContainer
 from .camera_panel import CameraPanel
 from .config import Configuration
 from .function_panel import FunctionPanel
@@ -21,7 +21,7 @@ from .motion_panel import MotionPanel
 from .utils import Cyclic, make_task
 
 
-class App(tk.Tk):
+class App(ScrollableContainer):
     """Main graphical application"""
 
     def __init__(self, config_filename="config.toml"):
@@ -133,28 +133,29 @@ class App(tk.Tk):
     def make_panels(self):
         """Make UI panels"""
 
-        scrollable = ScrollableContainer(self)
-
-        # make scrollable frame expand with window
-        self.rowconfigure(0, weight=1)
-        self.columnconfigure(0, weight=1)
-        scrollable.grid(row=0, column=0, sticky=tk.NSEW)
-
-        self.camera_panel = CameraPanel(scrollable.frame, self.config, self.camera, self.writer)
+        # TODO FIXME: camera panel is too wide, fix it
+        self.camera_panel = CameraPanel(self.frame, self.config, self.camera, self.writer)
         # internal frames of camera panel manage their own grid
 
-        self.motion_panel = MotionPanel(scrollable.frame, self.axes)
+        self.motion_panel = MotionPanel(self.frame, self.axes)
         self.motion_panel.grid(column=0, row=1, sticky=tk.NSEW)
 
         self.function_panel = FunctionPanel(
-            scrollable.frame, focuser=self.focuser, positioner=self.positioner
+            self.frame, focuser=self.focuser, positioner=self.positioner
         )
         self.function_panel.grid(column=1, row=1, sticky=tk.NSEW)
 
         # pad all panels
-        for f in scrollable.frame.winfo_children():
+        for f in self.frame.winfo_children():
             f.configure(padding="3 3 12 12")  # type: ignore
             f.grid_configure(padx=3, pady=(10, 0))
+
+        # set initial size to fit as much as possible
+        # TODO FIXME touch this up w/ padding
+        self.update()
+        w = min(self.get_min_width(), self.winfo_screenwidth())
+        h = min(self.get_min_height(), self.winfo_screenheight())
+        self.geometry(f"{w}x{h}")
 
         # add panels to cyclic tasks
         self.cyclics.update([self.camera_panel, self.motion_panel, self.function_panel])
