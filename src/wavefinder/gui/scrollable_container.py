@@ -2,8 +2,8 @@ import tkinter as tk
 from tkinter import ttk
 
 
-class ScrollableContainer(tk.Tk):
-    """A Scrollable Tk App
+class ScrollableWindow(tk.Tk):
+    """A Scrollable Tk App window
 
     Puts a frame inside a canvas with scrollbars.
     Add your elements to the frame.
@@ -13,8 +13,12 @@ class ScrollableContainer(tk.Tk):
         super().__init__()
 
         self.canvas = tk.Canvas(self)
-        self.scrollbar_v = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.canvas.yview)
-        self.scrollbar_h = ttk.Scrollbar(self, orient=tk.HORIZONTAL, command=self.canvas.xview)
+        self.scrollbar_v = ttk.Scrollbar(
+            self, orient=tk.VERTICAL, command=self.canvas.yview
+        )
+        self.scrollbar_h = ttk.Scrollbar(
+            self, orient=tk.HORIZONTAL, command=self.canvas.xview
+        )
         self.sizegrip = ttk.Sizegrip(self)
         self.frame = ttk.Frame(self.canvas)
 
@@ -29,6 +33,9 @@ class ScrollableContainer(tk.Tk):
         self.canvas.configure(xscrollcommand=self.scrollbar_h.set)
 
         # place elements, canvas takes all extra space
+        # NOTE: set border to -9 px because it's 10px even with zero setting,
+        #       so this yields a 1px border all around
+        self.configure(bd=-9)
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
         self.scrollbar_v.grid(row=0, column=1, sticky=tk.NS)
@@ -37,36 +44,28 @@ class ScrollableContainer(tk.Tk):
         self.canvas.grid(row=0, column=0, sticky=tk.NSEW)
 
     def onFrameConfigure(self, event):
-        #Reset the scroll region to encompass the inner frame
+        # Reset the scroll region to encompass the inner frame
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
     def onCanvasConfigure(self, event):
-        #Resize the inner frame to match the canvas
-        minWidth = self.get_min_width()
-        minHeight = self.get_min_height()
-
-        if self.winfo_width() >= minWidth:
-            newWidth = self.winfo_width()
-            #Hide the scrollbar when not needed
+        # when the canvas is large enough to show the whole frame,
+        # hide the scrollbars
+        if self.canvas.winfo_width() >= self.frame.winfo_reqwidth():
             self.scrollbar_h.grid_remove()
         else:
-            newWidth = minWidth
-            #Show the scrollbar when needed
             self.scrollbar_h.grid()
 
-        if self.winfo_height() >= minHeight:
-            newHeight = self.winfo_height()
-            #Hide the scrollbar when not needed
+        if self.canvas.winfo_height() >= self.frame.winfo_reqheight():
             self.scrollbar_v.grid_remove()
         else:
-            newHeight = minHeight
-            #Show the scrollbar when needed
             self.scrollbar_v.grid()
 
-        self.canvas.itemconfig(self.window, width=newWidth, height=newHeight)
+    def get_min_app_width(self):
+        """Get minimum width to display entire app."""
+        # NOTE: add 2 for the border
+        return self.frame.winfo_reqwidth() + self.scrollbar_v.winfo_reqwidth() + 2
 
-    def get_min_width(self):
-        return self.frame.winfo_reqwidth() + self.scrollbar_v.winfo_reqwidth()
-    
-    def get_min_height(self):
-        return self.frame.winfo_reqheight() + self.scrollbar_h.winfo_reqheight()
+    def get_min_app_height(self):
+        """Get minimum height to display entire app."""
+        # NOTE: add 2 for the border
+        return self.frame.winfo_reqheight() + self.scrollbar_h.winfo_reqheight() + 2

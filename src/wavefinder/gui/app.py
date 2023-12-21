@@ -13,7 +13,7 @@ from ..devices.ZaberAdapter import ZaberAdapter
 from ..functions.focus import Focuser
 from ..functions.position import Positioner
 from ..functions.writer import DataWriter
-from .scrollable_container import ScrollableContainer
+from .scrollable_container import ScrollableWindow
 from .camera_panel import CameraPanel
 from .config import Configuration
 from .function_panel import FunctionPanel
@@ -21,7 +21,7 @@ from .motion_panel import MotionPanel
 from .utils import Cyclic, make_task
 
 
-class App(ScrollableContainer):
+class App(ScrollableWindow):
     """Main graphical application"""
 
     def __init__(self, config_filename="config.toml"):
@@ -153,8 +153,8 @@ class App(ScrollableContainer):
         # set initial size to fit as much as possible
         # TODO FIXME touch this up w/ padding
         self.update()
-        w = min(self.get_min_width(), self.winfo_screenwidth())
-        h = min(self.get_min_height(), self.winfo_screenheight())
+        w = min(self.get_min_app_width(), self.winfo_screenwidth())
+        h = min(self.get_min_app_height(), self.winfo_screenheight())
         self.geometry(f"{w}x{h}")
 
         # add panels to cyclic tasks
@@ -193,3 +193,4 @@ class App(ScrollableContainer):
             task.cancel()
         self.loop.stop()
         self.destroy()
+
