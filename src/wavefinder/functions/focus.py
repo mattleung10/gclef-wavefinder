@@ -83,7 +83,7 @@ class Focuser:
                             nT = frame.nTriggers
 
                         # compute focus
-                        stats = get_centroid_and_variance(frame.img_array, threshold)
+                        stats = get_centroid_and_variance(frame.img_array, frame.bits, threshold)
                         # sqrt(var_x) * sqrt(var_y)
                         v = np.sqrt(stats[2]) * np.sqrt(stats[3])
                         sum += v

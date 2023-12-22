@@ -538,6 +538,7 @@ class CameraPanel(Cyclic):
                 )
             )
         ).flatten()
+        max_pixel = (1 << 8) - 1
 
         # set size of cross-cuts to match roi image
         self.cc_x.configure(
@@ -561,7 +562,7 @@ class CameraPanel(Cyclic):
                 ),
                 (
                     (i + 1) * bar_width_x + offset,
-                    self.cc_x.winfo_reqheight() * x_cut[i] / np.iinfo(x_cut.dtype).max,
+                    self.cc_x.winfo_reqheight() * x_cut[i] / max_pixel,
                 ),
                 fill="gray",
             )
@@ -572,7 +573,7 @@ class CameraPanel(Cyclic):
                     i * bar_width_y + offset,
                 ),
                 (
-                    self.cc_y.winfo_reqwidth() * y_cut[i] / np.iinfo(y_cut.dtype).max,
+                    self.cc_y.winfo_reqwidth() * y_cut[i] / max_pixel,
                     (i + 1) * bar_width_y + offset,
                 ),
                 fill="gray",
@@ -618,8 +619,10 @@ class CameraPanel(Cyclic):
         stats_txt = ""
         if self.camera_frame:
             image = self.camera_frame.img_array
+            bits = self.camera_frame.bits
         else:
             image = np.array(self.full_img)
+            bits = 8
 
         # use ROI if selected
         if self.config.image_use_roi_stats:
@@ -631,7 +634,7 @@ class CameraPanel(Cyclic):
             stats_txt += "Full Frame Image Statistics\n"
             threshold = self.config.image_roi_threshold
 
-        self.img_stats = get_centroid_and_variance(image, threshold)
+        self.img_stats = get_centroid_and_variance(image, bits, threshold)
         
         # translate to full-frame pixel coordinates
         if self.config.image_use_roi_stats:
@@ -649,7 +652,7 @@ class CameraPanel(Cyclic):
         )
         stats_txt += "\nMax Pixel Value: " + str(np.max(image))
         stats_txt += "\nSaturated Pixels: " + str(
-            np.count_nonzero(image == np.iinfo(image.dtype).max)
+            np.count_nonzero(image == (1 << bits) - 1)
         )
         self.img_stats_txt.set(stats_txt)
 
@@ -679,6 +682,7 @@ class CameraPanel(Cyclic):
         self,
         histogram_canvas: tk.Canvas,
         img_array: np.ndarray,
+        bits: int,
         threshold: float = 50.0,
         threshold_en: bool = False,
     ):
@@ -686,6 +690,7 @@ class CameraPanel(Cyclic):
 
         histogram_canvas: canvas to draw to
         img_array: image to analyze
+        bits: number of bits per pixel
         threshold: threshold percentage
         threshold_en: enable threshold limit for histogram
         """
@@ -715,15 +720,17 @@ class CameraPanel(Cyclic):
             text="# of pixels",
         )
 
+        max_pixel = (1 << bits) - 1
+
         # get threshold value and apply if enabled
-        t_val = np.iinfo(img_array.dtype).max * threshold / 100
+        t_val = max_pixel * threshold / 100
         if threshold_en:
             # NOTE: this removes the elements below the threshold and flattens the array to 1-D
             img_array = img_array[img_array > t_val]
 
         # get histogram data and compute bar width
         values, edges = np.histogram(
-            img_array, range=(0, np.iinfo(img_array.dtype).max)
+            img_array, range=(0, max_pixel)
         )
         bar_width = (histogram_canvas.winfo_reqwidth() - 2 * margin_h) / len(values)
 
@@ -775,7 +782,7 @@ class CameraPanel(Cyclic):
         t_x = (
             t_val
             * (histogram_canvas.winfo_reqwidth() - 2 * margin_h)
-            / np.iinfo(img_array.dtype).max
+            / max_pixel
             + margin_h
         )
         histogram_canvas.create_line(
@@ -840,12 +847,14 @@ class CameraPanel(Cyclic):
             self.update_histogram(
                 self.histogram,
                 self.camera_frame.img_array,
+                self.camera_frame.bits,
                 self.config.image_full_threshold,
                 self.full_threshold_hist.get(),
             )
             self.update_histogram(
                 self.roi_histogram,
                 self.camera_frame.img_array[box[1] : box[3], box[0] : box[2]],
+                self.camera_frame.bits,
                 self.config.image_roi_threshold,
                 self.roi_threshold_hist.get(),
             )
@@ -853,12 +862,14 @@ class CameraPanel(Cyclic):
             self.update_histogram(
                 self.histogram,
                 np.array(self.full_img),
+                8,
                 self.config.image_full_threshold,
                 self.full_threshold_hist.get(),
             )
             self.update_histogram(
                 self.roi_histogram,
                 np.array(self.full_img.crop(box)),
+                8,
                 self.config.image_roi_threshold,
                 self.roi_threshold_hist.get(),
             )

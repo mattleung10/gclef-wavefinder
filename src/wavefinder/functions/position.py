@@ -48,7 +48,7 @@ class Positioner:
                 if self.config.image_use_roi_stats
                 else self.config.image_full_threshold
             )
-            stats = get_centroid_and_variance(frame.img_array, threshold)
+            stats = get_centroid_and_variance(frame.img_array, frame.bits, threshold)
             img_center = ((frame.rows - 1) / 2, (frame.cols - 1) / 2)
             move_x_px = -(stats[0] - img_center[0])
             move_y_px = stats[1] - img_center[1]

@@ -62,17 +62,17 @@ class DataWriter:
         pxsizex, pxsizey = self.positioner.px_size
         headers['pxsizex']   = (pxsizex,                "[um] pixel size in x dimension")
         headers['pxsizey']   = (pxsizey,                "[um] pixel size in y dimension")
-        headers.update(self.make_img_headers(frame.img_array))
+        headers.update(self.make_img_headers(frame.img_array, frame.bits))
         return headers
 
     def make_dummy_frame_headers(self, img: Image.Image)-> dict[str, tuple[float | int | str, str]]:
         """Make fake camera headers"""
         headers: dict[str, tuple[float | int | str, str]] = {}
         headers['detector'] = ("simulated", "detector name")
-        headers.update(self.make_img_headers(np.array(img)))
+        headers.update(self.make_img_headers(np.array(img), 8))
         return headers
     
-    def make_img_headers(self, img_array: np.ndarray) -> dict[str, tuple[float | int | str, str]]:
+    def make_img_headers(self, img_array: np.ndarray, bits: int) -> dict[str, tuple[float | int | str, str]]:
         """Make headers from image"""
         threshold = (
             self.config.image_roi_threshold
@@ -81,7 +81,9 @@ class DataWriter:
         )
 
         headers: dict[str, tuple[float | int | str, str]]= {}
-        stats = get_centroid_and_variance(img_array, threshold)
+        stats = get_centroid_and_variance(img_array, bits, threshold)
+        headers['datamin'] = (float(0), "[counts] minimum possible pixel value")
+        headers['datamax'] = (float((1 << bits) - 1), "[counts] maximum possible pixel value")
         headers['threshld'] = (threshold, "[counts] minimum pixel value for image computations")
         headers['cenx'] = (stats[0], "[px] centroid along x axis")
         headers['ceny'] = (stats[1], "[px] centroid along y axis")
