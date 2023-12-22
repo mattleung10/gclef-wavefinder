@@ -44,12 +44,24 @@ class ScrollableWindow(tk.Tk):
         self.canvas.grid(row=0, column=0, sticky=tk.NSEW)
 
     def onFrameConfigure(self, event):
+        """Event handler for when the canvas changes size.
+
+        This usually occurs when the window is resized.
+        """
         # Reset the scroll region to encompass the inner frame
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
+        # adjust the window to fit the app frame
+        w = min(self.get_min_app_width(), self.winfo_screenwidth())
+        h = min(self.get_min_app_height(), self.winfo_screenheight())
+        self.geometry(f"{w}x{h}")
+
     def onCanvasConfigure(self, event):
-        # when the canvas is large enough to show the whole frame,
-        # hide the scrollbars
+        """Event handler for when the frame changes size.
+
+        This usually occurs when the contents of the frame change size.
+        """
+        # hide the scrollbars when the canvas is large enough to show the whole frame
         if self.canvas.winfo_width() >= self.frame.winfo_reqwidth():
             self.scrollbar_h.grid_remove()
         else:

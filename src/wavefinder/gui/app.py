@@ -4,7 +4,6 @@ import platform
 import sys
 import tkinter as tk
 import traceback
-from tkinter import ttk
 
 from ..devices.Axis import Axis
 from ..devices.GalilAdapter import GalilAdapter
@@ -13,11 +12,11 @@ from ..devices.ZaberAdapter import ZaberAdapter
 from ..functions.focus import Focuser
 from ..functions.position import Positioner
 from ..functions.writer import DataWriter
-from .scrollable_container import ScrollableWindow
 from .camera_panel import CameraPanel
 from .config import Configuration
 from .function_panel import FunctionPanel
 from .motion_panel import MotionPanel
+from .scrollable_container import ScrollableWindow
 from .utils import Cyclic, make_task
 
 
@@ -132,9 +131,9 @@ class App(ScrollableWindow):
 
     def make_panels(self):
         """Make UI panels"""
-
-        # TODO FIXME: camera panel is too wide, fix it
-        self.camera_panel = CameraPanel(self.frame, self.config, self.camera, self.writer)
+        self.camera_panel = CameraPanel(
+            self.frame, self.config, self.camera, self.writer
+        )
         # internal frames of camera panel manage their own grid
 
         self.motion_panel = MotionPanel(self.frame, self.axes)
@@ -149,13 +148,6 @@ class App(ScrollableWindow):
         for f in self.frame.winfo_children():
             f.configure(padding="3 3 12 12")  # type: ignore
             f.grid_configure(padx=3, pady=(10, 0))
-
-        # set initial size to fit as much as possible
-        # TODO FIXME touch this up w/ padding
-        self.update()
-        w = min(self.get_min_app_width(), self.winfo_screenwidth())
-        h = min(self.get_min_app_height(), self.winfo_screenheight())
-        self.geometry(f"{w}x{h}")
 
         # add panels to cyclic tasks
         self.cyclics.update([self.camera_panel, self.motion_panel, self.function_panel])
@@ -193,4 +185,3 @@ class App(ScrollableWindow):
             task.cancel()
         self.loop.stop()
         self.destroy()
-
