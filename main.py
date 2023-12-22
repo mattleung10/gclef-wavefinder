@@ -11,6 +11,7 @@ if __name__ == "__main__":
 
 
 ### TODO list
+# test center & focus w/ thresholding
+# obstype input
+# auto exposure time calculation
 # read in input configuration and table of wavelengths
-# alpha shapes, better image masking
-# Stabilize size of preview image
