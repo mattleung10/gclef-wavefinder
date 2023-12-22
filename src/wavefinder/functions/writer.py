@@ -84,7 +84,7 @@ class DataWriter:
         stats = get_centroid_and_variance(img_array, bits, threshold)
         headers['datamin'] = (float(0), "[counts] minimum possible pixel value")
         headers['datamax'] = (float((1 << bits) - 1), "[counts] maximum possible pixel value")
-        headers['threshld'] = (threshold, "[counts] minimum pixel value for image computations")
+        headers['threshld'] = (threshold, "[percent] drop pixels below this % of datamax")
         headers['cenx'] = (stats[0], "[px] centroid along x axis")
         headers['ceny'] = (stats[1], "[px] centroid along y axis")
         headers['fwhmx'] = (variance_to_fwhm(stats[2]), "[px] full width half maximum along x axis")
@@ -102,6 +102,8 @@ class DataWriter:
         """Make headers related to this specific experiment"""
         headers: dict[str, tuple[float | int | str, str]] = {}
         # TODO: fill these in
+        # obstype = one of {EXPOSE, STANDARD, LAMBERT-DARK, LAMBERT-FLAT, BIAS, DARK, SKY-FLAT, LAMP-FLAT, ARC, SPECTRUM}
+        headers['obstype'] = ("To be Recorded", "Type of observation taken")
         headers['object']   = ("To be Recorded", "target of the observation")
         headers['wavelen']  = (0, "[nm] wavelength being measured")
         headers['order']    = (0, "diffraction order")
