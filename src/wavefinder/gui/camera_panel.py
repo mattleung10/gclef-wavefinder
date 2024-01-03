@@ -1,6 +1,6 @@
 import asyncio
 import tkinter as tk
-from tkinter import filedialog, ttk
+from tkinter import filedialog, font, ttk
 
 import numpy as np
 from PIL import (Image, ImageChops, ImageColor, ImageDraw, ImageEnhance,
@@ -694,12 +694,18 @@ class CameraPanel(Cyclic):
         threshold: threshold percentage
         threshold_en: enable threshold limit for histogram
         """
+        # measure font size and set canvas size
+        f = font.Font(font="TkDefaultFont 6")
+        font_width = f.measure(text="123456")
+        font_height = f.metrics('linespace')
+        histogram_canvas.configure(width=(font_width * 12), height=(font_height * 13))
+
         # delete drawings from last update
         histogram_canvas.delete("all")
 
         # make text labels, reserve margin space for text
-        margin_h = 30
-        margin_v = 40
+        margin_h = font_height * 2
+        margin_v = font_height * 3
         histogram_canvas.create_text(
             histogram_canvas.winfo_reqwidth() / 2,
             0,
