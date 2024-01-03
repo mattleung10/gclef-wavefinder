@@ -11,7 +11,7 @@ if __name__ == "__main__":
 
 
 ### TODO list
-# test center & focus w/ thresholding
+# read in input configuration and table of wavelengths
 # obstype input
 # auto exposure time calculation
-# read in input configuration and table of wavelengths
+# rotation axis position/hysteresis correction

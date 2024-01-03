@@ -1,16 +1,14 @@
-from email import header
 import numpy as np
 from astropy.io import fits
 from astropy.time import Time
 from PIL import Image
-
-from wavefinder.gui.config import Configuration
 
 from ..devices.Axis import Axis
 from ..devices.MightexBufCmos import Camera, Frame
 from ..functions.focus import Focuser
 from ..functions.image import get_centroid_and_variance, variance_to_fwhm
 from ..functions.position import Positioner
+from ..gui.config import Configuration
 
 
 class DataWriter:

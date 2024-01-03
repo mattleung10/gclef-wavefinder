@@ -19,10 +19,12 @@ This graphical software for G-CLEF camera AIT lab prototyping measures optical p
   - Homing functions
   - Axis status and error detection
 * Region of Interest visualization
+* Cross-cuts
+* Histogram
 * Image statistics
-  - background deletion
+  - background deletion by threshold
   - centroid
-  - variance, covariance, std. dev., full-width half-max
+  - full-width half-max
 * Automatic image centering
 * Automatic focus
 * Save images in FITS format
