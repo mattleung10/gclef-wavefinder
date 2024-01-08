@@ -26,14 +26,6 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         # Task variables
         self.tasks: set[asyncio.Task] = set()
 
-        # UI variables
-        self.full_threshold_entry = tk.StringVar(value=str(config.image_full_threshold))
-        self.roi_threshold_entry = tk.StringVar(value=str(config.image_roi_threshold))
-        self.use_roi_stats = tk.BooleanVar(value=config.image_use_roi_stats)
-        self.full_threshold_hist = tk.BooleanVar(value=False)
-        self.roi_threshold_hist = tk.BooleanVar(value=False)
-        self.img_stats_txt = tk.StringVar(value="A\nB\nC\n")
-
         # focus variables
         self.focuser = focuser
 
@@ -43,6 +35,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         self.make_mode_switch_slice()
         self.make_threshold_slice()
         self.make_img_stats_slice()
+        self.make_buttons_slice()
         self.make_focus_slice()
 
         # TODO: function to read in table of positions;
@@ -54,6 +47,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         #           save images and a table of data
 
     def make_mode_switch_slice(self):
+        self.use_roi_stats = tk.BooleanVar(value=self.config.image_use_roi_stats)
         mode_switch_frame = ttk.Frame(self)
         ttk.Label(mode_switch_frame, text="Calculate using").grid(
             column=0, row=0, rowspan=2, padx=10
@@ -75,6 +69,8 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         mode_switch_frame.grid(column=0, row=0, columnspan=3, sticky=tk.W)
 
     def make_threshold_slice(self):
+        self.full_threshold_entry = tk.StringVar(value=str(self.config.image_full_threshold))
+        self.roi_threshold_entry = tk.StringVar(value=str(self.config.image_roi_threshold))
         threshold_frame = ttk.Frame(self)
         ttk.Label(threshold_frame, text="Ignore pixel\nvalues below").grid(
             column=0, row=0, rowspan=2, padx=10
@@ -107,14 +103,18 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         threshold_frame.grid(column=0, row=1, columnspan=3)
 
     def make_img_stats_slice(self):
-        ttk.Label(self, textvariable=self.img_stats_txt).grid(column=0, row=2, sticky=tk.W)
+        self.img_stats_header = tk.StringVar(value="Image Statistics")
+        ttk.Label(self, textvariable=self.img_stats_header).grid(column=0, row=2, sticky=tk.W)
+        self.img_stats_txt = tk.StringVar(value="B\nC\nD\nE")
+        ttk.Label(self, textvariable=self.img_stats_txt).grid(column=0, row=3, rowspan=3, sticky=tk.W)
+
+    def make_buttons_slice(self):
         self.center_button = ttk.Button(self, text="Auto-Center", command=self.center)
-        self.center_button.grid(column=1, row=2, pady=(10, 0), padx=10) # TODO: move button
+        self.center_button.grid(column=1, row=2, pady=(10, 0), padx=10)
+        self.focus_button = ttk.Button(self, text="Auto-Focus", command=self.focus)
+        self.focus_button.grid(column=1, row=3, pady=(10, 0), padx=10)
 
     def make_focus_slice(self):
-        ttk.Label(self, text="Auto Focus").grid(column=0, row=3, sticky=tk.E)
-        self.focus_button = ttk.Button(self, text="Focus", command=self.focus)
-        self.focus_button.grid(column=1, row=3, pady=(10, 0), padx=10)
         self.focus_position = tk.StringVar(value="Not Yet Found")
         focus_readout = ttk.Label(self, textvariable=self.focus_position)
         focus_readout.grid(column=2, row=3)
@@ -155,11 +155,10 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         """Update image statistics"""
         stats_txt = ""
 
-        # use ROI if selected
         if self.config.image_use_roi_stats:
-            stats_txt += "Region of Interest Image Statistics\n"
+            self.img_stats_header.set("Region of Interest Image Statistics")
         else:
-            stats_txt += "Full Frame Image Statistics\n"
+            self.img_stats_header.set("Full Frame Image Statistics")
 
         stats_txt += "Centroid: " + str(
             (
