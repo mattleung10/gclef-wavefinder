@@ -30,13 +30,24 @@ class Configuration:
         self.camera_exposure_time = 50
         self.camera_fps = 10
         self.camera_gain = 15
-        self.pixel_size = (3.75, 3.75)
+        self.camera_pixel_size = (3.75, 3.75)
 
         # image processing defaults
-        self.image_full_threshold = 50.
-        self.image_roi_threshold = 50.
+        self.image_full_threshold = 50.0
+        self.image_roi_threshold = 50.0
         self.image_use_roi_stats = False
-        
+        self.img_stats = {
+            "rows": 0,
+            "cols": 0,
+            "cen_x": 0.0,
+            "cen_y": 0.0,
+            "var_x": 0.0,
+            "var_y": 0.0,
+            "covar": 0.0,
+            "max": 0,
+            "n_sat": 0,
+        }
+
         # motion defaults
         self.zaber_ports = [
             "COM1",
@@ -94,7 +105,7 @@ class Configuration:
 
     def read_config_file(self, config_filename: str) -> None:
         """Read configuration file, validate input, overwrite defaults.
-        
+
         Args:
             config_filename: name of config file
         """
@@ -107,7 +118,7 @@ class Configuration:
         except tomllib.TOMLDecodeError as e:
             print(f"Error loading config file {config_filename}, using defaults\n{e}")
             return
-        
+
         try:
             if "app" in c:
                 if "update_rate" in c["app"]:

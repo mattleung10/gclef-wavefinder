@@ -3,8 +3,15 @@ import tkinter as tk
 from tkinter import filedialog, font, ttk
 
 import numpy as np
-from PIL import (Image, ImageChops, ImageColor, ImageDraw, ImageEnhance,
-                 ImageOps, ImageTk)
+from PIL import (
+    Image,
+    ImageChops,
+    ImageColor,
+    ImageDraw,
+    ImageEnhance,
+    ImageOps,
+    ImageTk,
+)
 
 from ..devices.MightexBufCmos import Camera, Frame
 from ..functions.image import get_centroid_and_variance, variance_to_fwhm
@@ -31,6 +38,7 @@ class CameraPanel(Cyclic):
         self.extra_init = True
 
         # UI variables
+        # TODO: use config to initialize these and write back to config when changed
         self.camera_model = tk.StringVar(value="")
         self.camera_serial = tk.StringVar(value="")
         self.camera_run_mode = tk.IntVar(value=Camera.NORMAL)
@@ -47,7 +55,6 @@ class CameraPanel(Cyclic):
         self.roi_x_entry = tk.StringVar(value="50")
         self.roi_y_entry = tk.StringVar(value="50")
         self.roi_zoom_entry = tk.StringVar(value="10")
-        self.img_stats_txt = tk.StringVar(value="A\nB\nC\n")
         self.full_threshold_entry = tk.StringVar(value=str(config.image_full_threshold))
         self.roi_threshold_entry = tk.StringVar(value=str(config.image_roi_threshold))
         self.use_roi_stats = tk.BooleanVar(value=config.image_use_roi_stats)
@@ -62,7 +69,6 @@ class CameraPanel(Cyclic):
         self.roi_size_x = int(self.roi_x_entry.get())
         self.roi_size_y = int(self.roi_y_entry.get())
         self.roi_zoom = int(self.roi_zoom_entry.get())
-        self.img_stats = (0.0, 0.0, 0.0, 0.0, 0.0)
         self.update_resolution_flag = False
 
         self.data_writer = data_writer
@@ -86,16 +92,14 @@ class CameraPanel(Cyclic):
         self.make_full_frame_preview_slice(full_frame)
         self.make_image_properties_slice(full_frame)
         self.make_full_frame_buttons(full_frame)
-        self.make_threshold_input(full_frame)
-        self.make_image_stats_slice(full_frame)
         self.make_histogram(full_frame)
-        full_frame.grid(column=1, row=0, sticky=tk.NSEW)
+        full_frame.grid(column=1, row=0, rowspan=2, sticky=tk.NSEW)
 
         roi_frame = ttk.LabelFrame(parent, text="Region of Interest", labelanchor=tk.N)
         self.make_roi_input_slice(roi_frame)
         self.make_roi_preview_slice(roi_frame)
         self.make_roi_histogram(roi_frame)
-        roi_frame.grid(column=2, row=0, rowspan=2, sticky=tk.NSEW)
+        roi_frame.grid(column=2, row=0, rowspan=3, sticky=tk.NSEW)
 
         # update UI to match camera object
         self.restore_camera_entries()
@@ -240,62 +244,18 @@ class CameraPanel(Cyclic):
             column=2, row=13, pady=10, padx=10
         )
 
-    def make_threshold_input(self, parent):
-        threshold_frame = ttk.Frame(parent)
-        ttk.Label(threshold_frame, text="Threshold %").grid(
-            column=0, row=0, padx=10, columnspan=2
-        )
-        ttk.Label(threshold_frame, text="Histogram").grid(column=2, row=0)
-        ttk.Label(threshold_frame, text="Full Frame").grid(
-            column=0, row=1, padx=10, sticky=tk.E
-        )
-        ttk.Entry(
-            threshold_frame,
-            width=5,
-            textvariable=self.full_threshold_entry,
-            validatecommand=(parent.register(valid_float), "%P"),
-            invalidcommand=parent.register(self.restore_thresholds),
-            validate="focus",
-        ).grid(column=1, row=1, sticky=tk.E)
-        ttk.Checkbutton(threshold_frame, variable=self.full_threshold_hist).grid(
-            column=2, row=1
-        )
-        ttk.Label(threshold_frame, text="ROI").grid(
-            column=0, row=2, padx=10, sticky=tk.E
-        )
-        ttk.Entry(
-            threshold_frame,
-            width=5,
-            textvariable=self.roi_threshold_entry,
-            validatecommand=(parent.register(valid_float), "%P"),
-            invalidcommand=parent.register(self.restore_thresholds),
-            validate="focus",
-        ).grid(column=1, row=2, sticky=tk.E)
-        ttk.Checkbutton(threshold_frame, variable=self.roi_threshold_hist).grid(
-            column=2, row=2
-        )
-        ttk.Button(
-            threshold_frame, text="Set Thresholds", command=self.set_thresholds
-        ).grid(column=3, row=1, sticky=tk.W, pady=10, padx=10)
-        ttk.Checkbutton(
-            threshold_frame,
-            variable=self.use_roi_stats,
-            text="Use ROI for Stats",
-            command=self.set_thresholds,
-        ).grid(column=3, row=2, sticky=tk.W, padx=10)
-        threshold_frame.grid(column=0, row=14, columnspan=3, sticky=tk.W, pady=10)
-
-    def make_image_stats_slice(self, parent):
-        ttk.Label(parent, textvariable=self.img_stats_txt).grid(
-            column=0, row=16, columnspan=3, sticky=tk.W
-        )
         # NOTE secret reset button
         # ttk.Button(parent, text="Reset",
         #            command=self.reset_camera).grid(column=4, row=14, pady=(10, 0), padx=10)
 
     def make_histogram(self, parent):
         self.histogram = tk.Canvas(parent, width=500, height=200)
-        self.histogram.grid(column=0, row=17, columnspan=3)
+        self.histogram.grid(column=0, row=15, columnspan=3, sticky=tk.W)
+        ttk.Checkbutton(
+            parent,
+            text="Limit histogram to threshold",
+            variable=self.full_threshold_hist,
+        ).grid(column=0, row=16, columnspan=2, sticky=tk.W)
 
     ### ROI Frame Slices ###
     def make_roi_input_slice(self, parent):
@@ -351,6 +311,11 @@ class CameraPanel(Cyclic):
     def make_roi_histogram(self, parent):
         self.roi_histogram = tk.Canvas(parent, width=500, height=200)
         self.roi_histogram.grid(column=1, row=2, columnspan=2, sticky=tk.W)
+        ttk.Checkbutton(
+            parent,
+            text="Limit histogram to threshold",
+            variable=self.roi_threshold_hist,
+        ).grid(column=1, row=3, columnspan=2, sticky=tk.W)
 
     ### Functions ###
     def set_cam_ctrl(self):
@@ -492,15 +457,14 @@ class CameraPanel(Cyclic):
             fill=ImageColor.getrgb("yellow"),
         )
         # draw FWHM
-        c = self.img_stats
-        x_hwhm = variance_to_fwhm(c[2]) / 2
-        y_hwhm = variance_to_fwhm(c[3]) / 2
+        x_hwhm = variance_to_fwhm(self.config.img_stats["var_x"]) / 2
+        y_hwhm = variance_to_fwhm(self.config.img_stats["var_y"]) / 2
         ImageDraw.Draw(zoomed).ellipse(
             (
-                z * (c[0] - box[0] - x_hwhm),
-                z * (c[1] - box[1] - y_hwhm),
-                z * (c[0] - box[0] + x_hwhm),
-                z * (c[1] - box[1] + y_hwhm),
+                z * (self.config.img_stats["cen_x"] - box[0] - x_hwhm),
+                z * (self.config.img_stats["cen_y"] - box[1] - y_hwhm),
+                z * (self.config.img_stats["cen_x"] - box[0] + x_hwhm),
+                z * (self.config.img_stats["cen_y"] - box[1] + y_hwhm),
             ),
             outline=ImageColor.getrgb("red"),
         )
@@ -616,7 +580,6 @@ class CameraPanel(Cyclic):
 
     def update_img_stats(self):
         """Update image statistics"""
-        stats_txt = ""
         if self.camera_frame:
             image = self.camera_frame.img_array
             bits = self.camera_frame.bits
@@ -626,35 +589,31 @@ class CameraPanel(Cyclic):
 
         # use ROI if selected
         if self.config.image_use_roi_stats:
-            stats_txt += "Region of Interest Image Statistics\n"
             box = self.get_roi_box()
             image = image[box[1] : box[3], box[0] : box[2]]
             threshold = self.config.image_roi_threshold
         else:
-            stats_txt += "Full Frame Image Statistics\n"
             threshold = self.config.image_roi_threshold
 
-        self.img_stats = get_centroid_and_variance(image, bits, threshold)
-        
+        cen_x, cen_y, var_x, var_y, covar = get_centroid_and_variance(
+            image, bits, threshold
+        )
+
         # translate to full-frame pixel coordinates
         if self.config.image_use_roi_stats:
             box = self.get_roi_box()
-            stats = list(self.img_stats)
-            stats[0] += box[0]
-            stats[1] += box[1]
-            self.img_stats = tuple(stats)
+            cen_x += box[0]
+            cen_y += box[1]
 
-        stats_txt += "Centroid: " + str(
-            tuple(map(lambda v: round(v, 3), self.img_stats[0:2]))
-        )
-        stats_txt += "\nFWHM: " + str(
-            tuple(map(lambda v: round(variance_to_fwhm(v), 3), self.img_stats[2:4]))
-        )
-        stats_txt += "\nMax Pixel Value: " + str(np.max(image))
-        stats_txt += "\nSaturated Pixels: " + str(
-            np.count_nonzero(image == (1 << bits) - 1)
-        )
-        self.img_stats_txt.set(stats_txt)
+        self.config.img_stats["size_x"] = np.size(image, 1)
+        self.config.img_stats["size_y"] = np.size(image, 0)
+        self.config.img_stats["cen_x"] = cen_x
+        self.config.img_stats["cen_y"] = cen_y
+        self.config.img_stats["var_x"] = var_x
+        self.config.img_stats["var_y"] = var_y
+        self.config.img_stats["covar"] = covar
+        self.config.img_stats["max"] = np.max(image)
+        self.config.img_stats["n_sat"] = np.count_nonzero(image == (1 << bits) - 1)
 
     def update_full_frame_preview(self):
         """Update the full frame preview"""
@@ -665,11 +624,15 @@ class CameraPanel(Cyclic):
             roi_box, width=3, outline=ImageColor.getrgb("yellow")
         )
         # draw FWHM
-        c = self.img_stats
-        x_hwhm = variance_to_fwhm(c[2]) / 2
-        y_hwhm = variance_to_fwhm(c[3]) / 2
+        x_hwhm = variance_to_fwhm(self.config.img_stats["var_x"]) / 2
+        y_hwhm = variance_to_fwhm(self.config.img_stats["var_y"]) / 2
         ImageDraw.Draw(img).ellipse(
-            (c[0] - x_hwhm, c[1] - y_hwhm, c[0] + x_hwhm, c[1] + y_hwhm),
+            (
+                self.config.img_stats["cen_x"] - x_hwhm,
+                self.config.img_stats["cen_y"] - y_hwhm,
+                self.config.img_stats["cen_x"] + x_hwhm,
+                self.config.img_stats["cen_y"] + y_hwhm,
+            ),
             width=3,
             outline=ImageColor.getrgb("red"),
         )
@@ -697,7 +660,7 @@ class CameraPanel(Cyclic):
         # measure font size and set canvas size
         f = font.Font(font="TkDefaultFont 6")
         font_width = f.measure(text="123456")
-        font_height = f.metrics('linespace')
+        font_height = f.metrics("linespace")
         histogram_canvas.configure(width=(font_width * 12), height=(font_height * 13))
 
         # delete drawings from last update
@@ -735,9 +698,7 @@ class CameraPanel(Cyclic):
             img_array = img_array[img_array > t_val]
 
         # get histogram data and compute bar width
-        values, edges = np.histogram(
-            img_array, range=(0, max_pixel)
-        )
+        values, edges = np.histogram(img_array, range=(0, max_pixel))
         bar_width = (histogram_canvas.winfo_reqwidth() - 2 * margin_h) / len(values)
 
         for i in range(len(values)):
@@ -786,9 +747,7 @@ class CameraPanel(Cyclic):
         )
         # threshold line
         t_x = (
-            t_val
-            * (histogram_canvas.winfo_reqwidth() - 2 * margin_h)
-            / max_pixel
+            t_val * (histogram_canvas.winfo_reqwidth() - 2 * margin_h) / max_pixel
             + margin_h
         )
         histogram_canvas.create_line(

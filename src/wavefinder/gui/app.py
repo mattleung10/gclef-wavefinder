@@ -115,7 +115,7 @@ class App(ScrollableWindow):
         z_axis = self.axes.get(self.config.focus_axis, None)
 
         self.positioner = Positioner(
-            self.config, self.camera, x_axis, y_axis, px_size=self.config.pixel_size
+            self.config, x_axis, y_axis
         )
         self.focuser = Focuser(
             self.config,
@@ -137,12 +137,12 @@ class App(ScrollableWindow):
         # internal frames of camera panel manage their own grid
 
         self.motion_panel = MotionPanel(self.frame, self.axes)
-        self.motion_panel.grid(column=0, row=1, sticky=tk.NSEW)
+        self.motion_panel.grid(column=0, row=1, rowspan=2, sticky=tk.NSEW)
 
         self.function_panel = FunctionPanel(
-            self.frame, focuser=self.focuser, positioner=self.positioner
+            self.frame, self.config, focuser=self.focuser, positioner=self.positioner
         )
-        self.function_panel.grid(column=1, row=1, sticky=tk.NSEW)
+        self.function_panel.grid(column=1, row=2, sticky=tk.NSEW)
 
         # pad all panels
         for f in self.frame.winfo_children():
