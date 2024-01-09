@@ -38,22 +38,21 @@ class CameraPanel(Cyclic):
         self.extra_init = True
 
         # UI variables
-        # TODO: use config to initialize these and write back to config when changed
         self.camera_model = tk.StringVar(value="")
         self.camera_serial = tk.StringVar(value="")
-        self.camera_run_mode = tk.IntVar(value=Camera.NORMAL)
-        self.camera_bits = tk.IntVar(value=8)
-        self.camera_res_x = tk.StringVar(value="1280")
-        self.camera_res_y = tk.StringVar(value="960")
-        self.camera_bin_mode = tk.IntVar(value=Camera.NO_BIN)
-        self.camera_exp_t = tk.StringVar(value="50.0")
-        self.camera_fps = tk.StringVar(value="10.0")
-        self.camera_gain = tk.StringVar(value="15")
-        self.camera_freq = tk.StringVar(value="32")
+        self.camera_run_mode = tk.IntVar(value=self.config.camera_run_mode)
+        self.camera_bits = tk.IntVar(value=self.config.camera_bits)
+        self.camera_res_x = tk.StringVar(value=str(self.config.camera_resolution[0]))
+        self.camera_res_y = tk.StringVar(value=str(self.config.camera_resolution[1]))
+        self.camera_bin_mode = tk.IntVar(value=self.config.camera_bin_mode)
+        self.camera_exp_t = tk.StringVar(value=str(self.config.camera_exposure_time))
+        self.camera_fps = tk.StringVar(value=str(self.config.camera_fps))
+        self.camera_gain = tk.StringVar(value=str(self.config.camera_gain))
+        self.camera_freq = tk.StringVar(value=str(32 >> self.config.camera_freq_mode))
         self.img_props = tk.StringVar(value="1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11")
         self.freeze_txt = tk.StringVar(value="Freeze")
-        self.roi_x_entry = tk.StringVar(value="50")
-        self.roi_y_entry = tk.StringVar(value="50")
+        self.roi_x_entry = tk.StringVar(value=str(self.config.roi_size[0]))
+        self.roi_y_entry = tk.StringVar(value=str(self.config.roi_size[1]))
         self.roi_zoom_entry = tk.StringVar(value="10")
         self.full_threshold_entry = tk.StringVar(value=str(config.image_full_threshold))
         self.roi_threshold_entry = tk.StringVar(value=str(config.image_roi_threshold))
@@ -329,17 +328,25 @@ class CameraPanel(Cyclic):
             await self.camera.set_mode(
                 run_mode=self.camera_run_mode.get(), bits=self.camera_bits.get()
             )
+            self.config.camera_run_mode = self.camera_run_mode.get()
+            self.config.camera_bits = self.camera_bits.get()
             resolution = (int(self.camera_res_x.get()), int(self.camera_res_y.get()))
             await self.camera.set_resolution(
                 resolution=resolution, bin_mode=self.camera_bin_mode.get()
             )
+            self.config.camera_resolution = resolution
+            self.config.camera_bin_mode = self.camera_bin_mode.get()
             await self.camera.set_exposure_time(
                 exposure_time=float(self.camera_exp_t.get())
             )
+            self.config.camera_exposure_time = float(self.camera_exp_t.get())
             await self.camera.set_fps(fps=float(self.camera_fps.get()))
+            self.config.camera_fps = float(self.camera_fps.get())
             await self.camera.set_gain(gain=int(self.camera_gain.get()))
+            self.config.camera_gain = int(self.camera_gain.get())
             freq_div = int.bit_length(32 // int(self.camera_freq.get())) - 1
             await self.camera.set_frequency(freq_mode=freq_div)
+            self.config.camera_freq_mode = freq_div
 
             # write to camera, clear buffer, update UI
             await self.camera.write_configuration()
@@ -359,11 +366,19 @@ class CameraPanel(Cyclic):
         """
         if self.camera:
             self.camera_run_mode.set(self.camera.run_mode)
+            self.config.camera_run_mode = self.camera_run_mode.get()
             self.camera_bin_mode.set(self.camera.bin_mode)
+            self.config.camera_bin_mode = self.camera_bin_mode.get()
             self.camera_exp_t.set(str(self.camera.exposure_time))
+            self.config.camera_exposure_time = float(self.camera_exp_t.get())
             self.camera_fps.set(str(self.camera.fps))
+            self.config.camera_fps = float(self.camera_fps.get())
             self.camera_gain.set(str(self.camera.gain))
-            self.camera_freq.set(str((32 >> self.camera.freq_mode)))
+            self.config.camera_gain = int(self.camera_gain.get())
+            self.camera_freq.set(str(32 >> self.camera.freq_mode))
+            self.config.camera_freq_mode = (
+                int.bit_length(32 // int(self.camera_freq.get())) - 1
+            )
 
             # update resolution
             self.update_resolution_flag = True
@@ -411,10 +426,8 @@ class CameraPanel(Cyclic):
         """Set the region of interest bounds and zoom"""
 
         # get inputs and clip to valid, then write back valid values
-        size_x = int(self.roi_x_entry.get())
-        size_y = int(self.roi_y_entry.get())
-        size_x = min(max(size_x, 1), int(self.camera_res_x.get()))
-        size_y = min(max(size_y, 1), int(self.camera_res_y.get()))
+        size_x = min(max(int(self.roi_x_entry.get()), 1), int(self.camera_res_x.get()))
+        size_y = min(max(int(self.roi_y_entry.get()), 1), int(self.camera_res_y.get()))
         self.roi_size_x = size_x
         self.roi_size_y = size_y
         self.roi_x_entry.set(str(size_x))
@@ -771,6 +784,7 @@ class CameraPanel(Cyclic):
         resolution: tuple[int, int] = (await self.camera.query_buffer())["resolution"]  # type: ignore
         self.camera_res_x.set(str(resolution[0]))
         self.camera_res_y.set(str(resolution[1]))
+        self.config.camera_resolution = resolution
         self.update_resolution_flag = False
 
     async def update(self):

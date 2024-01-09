@@ -27,14 +27,15 @@ class Configuration:
         self.camera_resolution = (1280, 960)
         self.camera_bin_mode = Camera.NO_BIN
         self.camera_nBuffer = 24
-        self.camera_exposure_time = 50
-        self.camera_fps = 10
+        self.camera_exposure_time = 50.0
+        self.camera_fps = 10.0
         self.camera_gain = 15
         self.camera_pixel_size = (3.75, 3.75)
 
         # image processing defaults
         self.image_full_threshold = 50.0
         self.image_roi_threshold = 50.0
+        self.roi_size = (50, 50)
         self.image_use_roi_stats = False
         self.img_stats = {
             "rows": 0,
@@ -122,7 +123,7 @@ class Configuration:
         try:
             if "app" in c:
                 if "update_rate" in c["app"]:
-                    self.interval = c["app"]["update_rate"]
+                    self.interval = float(c["app"]["update_rate"])
             if "camera" in c:
                 if "run_mode" in c["camera"]:
                     if c["camera"]["run_mode"] == "NORMAL":
@@ -136,14 +137,14 @@ class Configuration:
                         self.camera_bits = 12
                 if "freq_mode" in c["camera"]:
                     if c["camera"]["freq_mode"] in range(5):
-                        self.camera_freq_mode = c["camera"]["freq_mode"]
+                        self.camera_freq_mode = int(c["camera"]["freq_mode"])
                 if "resolution" in c["camera"]:
                     if "rows" in c["camera"]["resolution"]:
                         rows = c["camera"]["resolution"]["rows"]
                         if "columns" in c["camera"]["resolution"]:
                             cols = c["camera"]["resolution"]["columns"]
                             if rows in range(1280) and cols in range(960):
-                                self.camera_resolution = (rows, cols)
+                                self.camera_resolution = (int(rows), int(cols))
                 if "bin_mode" in c["camera"]:
                     if c["camera"]["bin_mode"] == "NO_BIN":
                         self.camera_bin_mode = Camera.NO_BIN
@@ -157,16 +158,16 @@ class Configuration:
                         self.camera_bin_mode = Camera.SKIP
                 if "nBuffer" in c["camera"]:
                     if c["camera"]["nBuffer"] in range(25):
-                        self.camera_nBuffer = c["camera"]["nBuffer"]
+                        self.camera_nBuffer = int(c["camera"]["nBuffer"])
                 if "exposure" in c["camera"]:
                     if isinstance(c["camera"]["exposure"], float):
-                        self.camera_exposure_time = c["camera"]["exposure"]
+                        self.camera_exposure_time = float(c["camera"]["exposure"])
                 if "fps" in c["camera"]:
                     if isinstance(c["camera"]["fps"], float):
-                        self.camera_fps = c["camera"]["fps"]
+                        self.camera_fps = float(c["camera"]["fps"])
                 if "gain" in c["camera"]:
                     if c["camera"]["gain"] in range(6, 42):
-                        self.camera_gain = c["camera"]["gain"]
+                        self.camera_gain = int(c["camera"]["gain"])
             if "image" in c:
                 if "full_threshold" in c["image"]:
                     if isinstance(c["image"]["full_threshold"], float):
@@ -174,6 +175,13 @@ class Configuration:
                 if "roi_threshold" in c["image"]:
                     if isinstance(c["image"]["roi_threshold"], float):
                         self.image_roi_threshold = float(c["image"]["roi_threshold"])
+                if "roi_size" in c["image"]:
+                    if "x" in c["image"]["roi_size"]:
+                        x = c["image"]["roi_size"]["x"]
+                        if "y" in c["image"]["roi_size"]:
+                            y = c["image"]["roi_size"]["y"]
+                            if x in range(1280) and y in range(960):
+                                self.roi_size = (int(x), int(y))
                 if "use_roi_stats" in c["image"]:
                     if isinstance(c["image"]["use_roi_stats"], bool):
                         self.image_use_roi_stats = bool(c["image"]["use_roi_stats"])

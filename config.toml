@@ -17,8 +17,9 @@ fps         = 10.0
 gain        = 15
 
 [image]
-full_threshold  = 60.0
+full_threshold  = 50.0
 roi_threshold   = 50.0
+roi_size        = {x = 50, y = 50}
 use_roi_stats   = false
 
 [motion.zaber]
@@ -72,9 +73,10 @@ minimum_move        =  0.001
 # [image]
 # full_threshold:   full-frame threshold for image processing, as a percentage
 #                       70.0 means all pixels less than 70% of saturation are
-#                       set to zero for image processing (centroid, FWHM)
+#                       set to zero for image processing (centroid, FWHM), default [50.0]
 # roi_threshold:    same as full_threshold, but for the region of interest
-#                       sub-image
+#                       sub-image, default [50.0]
+# roi_size:         size of ROI bounding box in pixels, default [{x = 50, y = 50}]
 # use_roi_stats:    true to use the region of interest for all image processing,
 #                       false to use the full frame
 #
