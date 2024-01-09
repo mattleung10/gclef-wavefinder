@@ -54,7 +54,7 @@ class DataWriter:
             headers['detector'] = ("Mightex " + self.camera.modelno, "detector name")
         else:
             headers['detector'] = ("not_found",         "detector name")
-        headers['date-obs'] = (frame.time.fits,         "observation date and time")
+        headers['date-obs'] = (frame.time.fits,         "observation date and time") # type: ignore
         headers['xposure']  = (frame.expTime / 1000,    "[s] exposure time")
         headers['gain']     = (frame.gGain,             "[dB] detector gain")
         pxsizex, pxsizey = self.positioner.px_size
@@ -100,7 +100,6 @@ class DataWriter:
         """Make headers related to this specific experiment"""
         headers: dict[str, tuple[float | int | str, str]] = {}
         # TODO: fill these in
-        # obstype = one of {EXPOSE, STANDARD, LAMBERT-DARK, LAMBERT-FLAT, BIAS, DARK, SKY-FLAT, LAMP-FLAT, ARC, SPECTRUM}
         headers['obstype'] = ("To be Recorded", "Type of observation taken")
         headers['object']   = ("To be Recorded", "target of the observation")
         headers['wavelen']  = (0, "[nm] wavelength being measured")
@@ -114,7 +113,7 @@ class DataWriter:
     def make_general_headers(self) -> dict[str, tuple[str, str]]:
         """Make general, standard headers"""
         headers: dict[str, tuple[str, str]] = {}
-        headers['date']     = (Time.now().fits,     "time this file was created, in UTC")
+        headers['date']     = (Time.now().fits,     "time this file was created, in UTC") # type: ignore
         headers['origin']   = ("CfA",               "institution which created this file")
         headers['creator']  = ("gclef-wavefinder",  "software which created this file")
         headers['instrume'] = ("G-CLEF_AIT",        "instrument name")

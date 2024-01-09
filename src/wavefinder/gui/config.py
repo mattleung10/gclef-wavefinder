@@ -109,6 +109,14 @@ class Configuration:
         self.focus_frames_per_point = 3
         self.focus_minimum_move = 0.001
 
+        # writer defaults
+        self.writer_obstypes = [
+            "STANDARD",
+            "BIAS",
+            "DARK",
+            "FLAT",
+        ]
+
     def read_config_file(self, config_filename: str) -> None:
         """Read configuration file, validate input, overwrite defaults.
 

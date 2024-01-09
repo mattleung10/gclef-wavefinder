@@ -1,4 +1,5 @@
 import asyncio
+from re import S
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
@@ -52,15 +53,37 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
 
     def make_capture_buttons_slice(self):
         capture_frame = ttk.Frame(self)
+        ttk.Label(capture_frame, text="Target Object").grid(
+            column=0, row=0, padx=10, sticky=tk.E
+        )
+        self.target_object = tk.StringVar()
+        ttk.Entry(capture_frame, textvariable=self.target_object, width=20).grid(
+            column=1, row=0, sticky=tk.W
+        )
         self.capture_button_txt = tk.StringVar(value="Capture Image")
         self.capture_button = ttk.Button(
-            capture_frame, textvariable=self.capture_button_txt, command=self.capture
+            capture_frame,
+            textvariable=self.capture_button_txt,
+            command=self.capture,
+            width=13,
         )
-        self.capture_button.grid(column=0, row=0, padx=10)
-        ttk.Button(capture_frame, text="Save", command=self.save_img).grid(
-            column=2, row=0, padx=10
+        self.capture_button.grid(column=2, row=0, padx=10, pady=(10, 0), sticky=tk.E)
+
+        ttk.Label(capture_frame, text="Obs. Type").grid(
+            column=0, row=1, padx=10, sticky=tk.E
         )
-        capture_frame.grid(column=0, row=0, columnspan=3, pady=10)
+        self.obstype = tk.StringVar(value=self.config.writer_obstypes[0])
+        ttk.Combobox(
+            capture_frame,
+            textvariable=self.obstype,
+            values=self.config.writer_obstypes,
+            state="readonly",
+            width=10,
+        ).grid(column=1, row=1, sticky=tk.W)
+        ttk.Button(capture_frame, text="Save", command=self.save_img, width=13).grid(
+            column=2, row=1, padx=10, pady=(10, 0), sticky=tk.E
+        )
+        capture_frame.grid(column=0, row=0, columnspan=3, pady=10, sticky=tk.EW)
 
     def make_mode_switch_slice(self):
         self.use_roi_stats = tk.BooleanVar(value=self.config.image_use_roi_stats)
@@ -74,15 +97,15 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
             value=False,
             variable=self.use_roi_stats,
             command=self.set_use_roi_stats,
-        ).grid(column=1, row=0, columnspan=2, sticky=tk.W)
+        ).grid(column=1, row=0)
         ttk.Radiobutton(
             mode_switch_frame,
             text="ROI",
             value=True,
             variable=self.use_roi_stats,
             command=self.set_use_roi_stats,
-        ).grid(column=1, row=1, columnspan=2, sticky=tk.W)
-        mode_switch_frame.grid(column=0, row=1, columnspan=3, sticky=tk.W)
+        ).grid(column=2, row=0)
+        mode_switch_frame.grid(column=0, row=1, columnspan=3, pady=10, sticky=tk.EW)
 
     def make_threshold_slice(self):
         self.full_threshold_entry = tk.StringVar(
@@ -120,7 +143,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         ttk.Button(
             threshold_frame, text="Set Thresholds", command=self.set_thresholds
         ).grid(column=3, row=0, rowspan=2, sticky=tk.W, pady=10, padx=10)
-        threshold_frame.grid(column=0, row=2, columnspan=2)
+        threshold_frame.grid(column=0, row=2, columnspan=2, pady=10, sticky=tk.EW)
 
     def make_img_stats_slice(self):
         self.img_stats_header = tk.StringVar(value="Image Statistics")
