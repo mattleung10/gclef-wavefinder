@@ -1,6 +1,6 @@
 import asyncio
 import tkinter as tk
-from tkinter import filedialog, font, ttk
+from tkinter import font, ttk
 
 import numpy as np
 from PIL import (
@@ -15,7 +15,6 @@ from PIL import (
 
 from ..devices.MightexBufCmos import Camera, Frame
 from ..functions.image import get_centroid_and_variance, variance_to_fwhm
-from ..functions.writer import DataWriter
 from ..gui.config import Configuration
 from ..gui.utils import Cyclic
 from .utils import make_task, valid_float, valid_int
@@ -28,8 +27,7 @@ class CameraPanel(Cyclic):
         self,
         parent: ttk.Frame,
         config: Configuration,
-        camera: Camera | None,
-        data_writer: DataWriter,
+        camera: Camera | None
     ):
         self.config = config
 
@@ -50,7 +48,6 @@ class CameraPanel(Cyclic):
         self.camera_gain = tk.StringVar(value=str(self.config.camera_gain))
         self.camera_freq = tk.StringVar(value=str(32 >> self.config.camera_freq_mode))
         self.img_props = tk.StringVar(value="1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11")
-        self.freeze_txt = tk.StringVar(value="Freeze")
         self.roi_x_entry = tk.StringVar(value=str(self.config.roi_size[0]))
         self.roi_y_entry = tk.StringVar(value=str(self.config.roi_size[1]))
         self.roi_zoom_entry = tk.StringVar(value="10")
@@ -62,15 +59,10 @@ class CameraPanel(Cyclic):
 
         # camera variables
         self.camera = camera
-        res = (int(self.camera_res_x.get()), int(self.camera_res_y.get()))
-        self.camera_frame = None
-        self.full_img = Image.new(mode="L", size=res, color=0)
         self.roi_size_x = int(self.roi_x_entry.get())
         self.roi_size_y = int(self.roi_y_entry.get())
         self.roi_zoom = int(self.roi_zoom_entry.get())
         self.update_resolution_flag = False
-
-        self.data_writer = data_writer
 
         # make panel slices
         settings_frame = ttk.LabelFrame(
@@ -90,7 +82,6 @@ class CameraPanel(Cyclic):
         full_frame = ttk.LabelFrame(parent, text="Full Frame", labelanchor=tk.N)
         self.make_full_frame_preview_slice(full_frame)
         self.make_image_properties_slice(full_frame)
-        self.make_full_frame_buttons(full_frame)
         self.make_histogram(full_frame)
         full_frame.grid(column=1, row=0, rowspan=2, sticky=tk.NSEW)
 
@@ -218,43 +209,33 @@ class CameraPanel(Cyclic):
         ).grid(column=1, row=11, sticky=tk.W)
 
     def make_settings_buttons(self, parent):
-        b = ttk.Button(parent, text="Write Config", command=self.set_cam_ctrl)
-        b.grid(column=0, row=12, columnspan=3, pady=(10, 0), padx=10, sticky=tk.S)
+        ttk.Button(parent, text="Write to Camera", command=self.set_cam_ctrl).grid(
+            column=0, row=12, columnspan=3, pady=(10, 0), padx=10, sticky=tk.S
+        )
+        # # NOTE secret reset button
+        # ttk.Button(parent, text="Reset Camera", command=self.reset_camera).grid(
+        #     column=0, row=13, columnspan=3, pady=(10, 0), padx=10
+        # )
 
     ### Full Frame Slices ###
     def make_full_frame_preview_slice(self, parent):
         self.full_frame_preview = ttk.Label(parent)
         self.full_frame_preview.grid(
-            column=0, row=0, columnspan=3, rowspan=13, sticky=tk.N
+            column=0, row=0, columnspan=3, rowspan=11, sticky=tk.N
         )
 
     def make_image_properties_slice(self, parent):
         l = ttk.Label(parent, textvariable=self.img_props)
         l.grid(column=3, row=0, rowspan=11, columnspan=2, padx=10, sticky=tk.NW)
 
-    def make_full_frame_buttons(self, parent):
-        ttk.Button(parent, text="Trigger", command=self.snap_img).grid(
-            column=0, row=13, pady=10, padx=10
-        )
-        ttk.Button(
-            parent, textvariable=self.freeze_txt, command=self.freeze_preview
-        ).grid(column=1, row=13, pady=10, padx=10)
-        ttk.Button(parent, text="Save", command=self.save_img).grid(
-            column=2, row=13, pady=10, padx=10
-        )
-
-        # NOTE secret reset button
-        # ttk.Button(parent, text="Reset",
-        #            command=self.reset_camera).grid(column=4, row=14, pady=(10, 0), padx=10)
-
     def make_histogram(self, parent):
         self.histogram = tk.Canvas(parent, width=500, height=200)
-        self.histogram.grid(column=0, row=15, columnspan=3, sticky=tk.W)
+        self.histogram.grid(column=0, row=12, columnspan=3, sticky=tk.W)
         ttk.Checkbutton(
             parent,
             text="Limit histogram to threshold",
             variable=self.full_threshold_hist,
-        ).grid(column=0, row=16, columnspan=2, sticky=tk.W)
+        ).grid(column=0, row=13, columnspan=2, sticky=tk.W)
 
     ### ROI Frame Slices ###
     def make_roi_input_slice(self, parent):
@@ -388,27 +369,6 @@ class CameraPanel(Cyclic):
         self.camera_model.set(info["ModuleNo"])
         self.camera_serial.set(info["SerialNo"])
 
-    def freeze_preview(self):
-        """Freeze preview"""
-        if self.freeze_txt.get() == "Freeze":
-            self.freeze_txt.set("Unfreeze")
-        else:
-            self.freeze_txt.set("Freeze")
-
-    def save_img(self):
-        """Save image dialog"""
-        f = filedialog.asksaveasfilename(
-            initialdir="images/",
-            initialfile="new.fits",
-            filetypes=(("FITS files", ["*.fits", "*.fts"]), ("all files", "*.*")),
-            defaultextension=".fits",
-        )
-        if f:
-            if self.camera_frame:
-                self.data_writer.write_fits_file(f, frame=self.camera_frame)
-            else:
-                self.data_writer.write_fits_file(f, image=self.full_img)
-
     def reset_camera(self):
         if self.camera:
             make_task(self.camera.reset(), self.tasks)
@@ -442,8 +402,8 @@ class CameraPanel(Cyclic):
         """
         size_x = self.roi_size_x
         size_y = self.roi_size_y
-        f_size_x = self.full_img.size[0]
-        f_size_y = self.full_img.size[1]
+        f_size_x = self.config.full_img.size[0]
+        f_size_y = self.config.full_img.size[1]
         left = f_size_x // 2 - size_x // 2
         lower = f_size_y // 2 - size_y // 2
         box = (left, lower, left + size_x, lower + size_y)
@@ -456,7 +416,7 @@ class CameraPanel(Cyclic):
         x = box[2] - box[0]
         y = box[3] - box[1]
         z = self.roi_zoom
-        roi_img = self.full_img.crop(box)
+        roi_img = self.config.full_img.crop(box)
         zoomed = roi_img.resize(
             size=(z * x, z * y), resample=Image.Resampling.NEAREST
         ).convert("RGB")
@@ -496,21 +456,21 @@ class CameraPanel(Cyclic):
         # extract cross-cuts from full image (8 bit)
         roi_box = self.get_roi_box()
         x_cut = np.array(
-            self.full_img.crop(
+            self.config.full_img.crop(
                 (
                     roi_box[0],
-                    self.full_img.size[1] // 2,
+                    self.config.full_img.size[1] // 2,
                     roi_box[2],
-                    self.full_img.size[1] // 2 + 1,
+                    self.config.full_img.size[1] // 2 + 1,
                 )
             )
         ).flatten()
         y_cut = np.array(
-            self.full_img.crop(
+            self.config.full_img.crop(
                 (
-                    self.full_img.size[0] // 2,
+                    self.config.full_img.size[0] // 2,
                     roi_box[1],
-                    self.full_img.size[0] // 2 + 1,
+                    self.config.full_img.size[0] // 2 + 1,
                     roi_box[3],
                 )
             )
@@ -593,11 +553,11 @@ class CameraPanel(Cyclic):
 
     def update_img_stats(self):
         """Update image statistics"""
-        if self.camera_frame:
-            image = self.camera_frame.img_array
-            bits = self.camera_frame.bits
+        if self.config.camera_frame:
+            image = self.config.camera_frame.img_array
+            bits = self.config.camera_frame.bits
         else:
-            image = np.array(self.full_img)
+            image = np.array(self.config.full_img)
             bits = 8
 
         # use ROI if selected
@@ -632,7 +592,7 @@ class CameraPanel(Cyclic):
         """Update the full frame preview"""
         # draw roi box
         roi_box = self.get_roi_box()
-        img = self.full_img.convert("RGB")
+        img = self.config.full_img.convert("RGB")
         ImageDraw.Draw(img).rectangle(
             roi_box, width=3, outline=ImageColor.getrgb("yellow")
         )
@@ -795,17 +755,17 @@ class CameraPanel(Cyclic):
                 self.set_camera_info(await self.camera.get_camera_info())
                 self.extra_init = False
 
-            if self.freeze_txt.get() == "Freeze":  # means not frozen
+            if not self.config.image_frozen:
                 try:
-                    self.camera_frame = self.camera.get_newest_frame()
-                    self.full_img = Image.fromarray(self.camera_frame.display_array)
-                    self.update_img_props(self.camera_frame)
+                    self.config.camera_frame = self.camera.get_newest_frame()
+                    self.config.full_img = Image.fromarray(self.config.camera_frame.display_array)
+                    self.update_img_props(self.config.camera_frame)
                     if self.update_resolution_flag:
                         make_task(self.update_resolution(), self.tasks)
                 except IndexError:
                     pass
         else:  # no camera, testing purposes
-            if self.freeze_txt.get() == "Freeze":  # means not frozen
+            if not self.config.image_frozen:
                 # image components
                 res = (int(self.camera_res_x.get()), int(self.camera_res_y.get()))
                 bk = Image.new(mode="L", size=res, color=0)  # black background
@@ -817,37 +777,37 @@ class CameraPanel(Cyclic):
                 )
                 bk.paste(gradient, (85, 400))
                 # dark noise with gradient spot overlay
-                self.full_img = ImageChops.add(noise, bk, 1.5, 10)
+                self.config.full_img = ImageChops.add(noise, bk, 1.5, 10)
 
         self.update_img_stats()
         self.update_full_frame_preview()
         box = self.get_roi_box()
-        if self.camera_frame:
+        if self.config.camera_frame:
             self.update_histogram(
                 self.histogram,
-                self.camera_frame.img_array,
-                self.camera_frame.bits,
+                self.config.camera_frame.img_array,
+                self.config.camera_frame.bits,
                 self.config.image_full_threshold,
                 self.full_threshold_hist.get(),
             )
             self.update_histogram(
                 self.roi_histogram,
-                self.camera_frame.img_array[box[1] : box[3], box[0] : box[2]],
-                self.camera_frame.bits,
+                self.config.camera_frame.img_array[box[1] : box[3], box[0] : box[2]],
+                self.config.camera_frame.bits,
                 self.config.image_roi_threshold,
                 self.roi_threshold_hist.get(),
             )
         else:
             self.update_histogram(
                 self.histogram,
-                np.array(self.full_img),
+                np.array(self.config.full_img),
                 8,
                 self.config.image_full_threshold,
                 self.full_threshold_hist.get(),
             )
             self.update_histogram(
                 self.roi_histogram,
-                np.array(self.full_img.crop(box)),
+                np.array(self.config.full_img.crop(box)),
                 8,
                 self.config.image_roi_threshold,
                 self.roi_threshold_hist.get(),

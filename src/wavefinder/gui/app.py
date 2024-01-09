@@ -114,9 +114,7 @@ class App(ScrollableWindow):
         y_axis = self.axes.get(self.config.camera_y_axis, None)
         z_axis = self.axes.get(self.config.focus_axis, None)
 
-        self.positioner = Positioner(
-            self.config, x_axis, y_axis
-        )
+        self.positioner = Positioner(self.config, x_axis, y_axis)
         self.focuser = Focuser(
             self.config,
             self.camera,
@@ -131,16 +129,19 @@ class App(ScrollableWindow):
 
     def make_panels(self):
         """Make UI panels"""
-        self.camera_panel = CameraPanel(
-            self.frame, self.config, self.camera, self.writer
-        )
+        self.camera_panel = CameraPanel(self.frame, self.config, self.camera)
         # internal frames of camera panel manage their own grid
 
         self.motion_panel = MotionPanel(self.frame, self.axes)
         self.motion_panel.grid(column=0, row=1, rowspan=2, sticky=tk.NSEW)
 
         self.function_panel = FunctionPanel(
-            self.frame, self.config, focuser=self.focuser, positioner=self.positioner
+            self.frame,
+            self.config,
+            camera=self.camera,
+            focuser=self.focuser,
+            positioner=self.positioner,
+            data_writer=self.writer,
         )
         self.function_panel.grid(column=1, row=2, sticky=tk.NSEW)
 

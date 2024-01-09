@@ -1,6 +1,8 @@
 import tomllib
 
-from ..devices.MightexBufCmos import Camera
+from PIL import Image
+
+from ..devices.MightexBufCmos import Camera, Frame
 
 
 class Configuration:
@@ -31,8 +33,11 @@ class Configuration:
         self.camera_fps = 10.0
         self.camera_gain = 15
         self.camera_pixel_size = (3.75, 3.75)
+        self.camera_frame: Frame | None = None
 
-        # image processing defaults
+        # image processing defaults and state
+        self.full_img = Image.new(mode="L", size=self.camera_resolution)
+        self.image_frozen = False
         self.image_full_threshold = 50.0
         self.image_roi_threshold = 50.0
         self.roi_size = (50, 50)
