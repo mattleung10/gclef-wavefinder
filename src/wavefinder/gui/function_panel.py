@@ -1,14 +1,14 @@
 import asyncio
-from re import S
 import tkinter as tk
-from tkinter import ttk
-from tkinter import filedialog
+from tkinter import filedialog, ttk
 
-from ..functions.writer import DataWriter
+from astropy.time import Time
+
 from ..devices.MightexBufCmos import Camera
 from ..functions.focus import Focuser
 from ..functions.image import variance_to_fwhm
 from ..functions.position import Positioner
+from ..functions.writer import DataWriter
 from ..gui.config import Configuration
 from ..gui.utils import Cyclic
 from .utils import make_task, valid_float
@@ -37,6 +37,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         self.tasks: set[asyncio.Task] = set()
 
         self.make_capture_buttons_slice()
+        self.make_sequence_slice()
         self.make_mode_switch_slice()
         self.make_threshold_slice()
         self.make_img_stats_slice()
@@ -82,7 +83,28 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         ttk.Button(capture_frame, text="Save", command=self.save_img, width=13).grid(
             column=2, row=1, padx=10, pady=(10, 0), sticky=tk.E
         )
-        capture_frame.grid(column=0, row=0, columnspan=3, pady=10, sticky=tk.EW)
+        capture_frame.grid(column=0, row=0, columnspan=2, pady=10, sticky=tk.E)
+
+    def make_sequence_slice(self):
+        sequence_frame = ttk.Frame(self)
+        ttk.Label(sequence_frame, text="Automated Sequence").grid(
+            column=0, row=0, padx=10, sticky=tk.E
+        )
+        ttk.Button(
+            sequence_frame,
+            text="Select Input File",
+            command=self.select_sequence_file,
+            width=13,
+        ).grid(column=1, row=0, padx=10, pady=(10, 0), sticky=tk.W)
+        ttk.Button(
+            sequence_frame, text="Run", command=self.run_sequence, width=13
+        ).grid(column=2, row=0, padx=10, pady=(10, 0), sticky=tk.E)
+        self.sequence_status = tk.StringVar(value="Progress")
+        ttk.Label(sequence_frame, textvariable=self.sequence_status).grid(
+            column=0, row=1, padx=10, sticky=tk.E
+        )
+
+        sequence_frame.grid(column=0, row=1, columnspan=2, pady=10, sticky=tk.E)
 
     def make_mode_switch_slice(self):
         self.use_roi_stats = tk.BooleanVar(value=self.config.image_use_roi_stats)
@@ -104,7 +126,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
             variable=self.use_roi_stats,
             command=self.set_use_roi_stats,
         ).grid(column=2, row=0)
-        mode_switch_frame.grid(column=0, row=1, columnspan=3, pady=10, sticky=tk.EW)
+        mode_switch_frame.grid(column=0, row=2, columnspan=3, pady=10, sticky=tk.W)
 
     def make_threshold_slice(self):
         self.full_threshold_entry = tk.StringVar(
@@ -140,30 +162,37 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
             column=2, row=1, padx=10, sticky=tk.W
         )
         ttk.Button(
-            threshold_frame, text="Set Thresholds", command=self.set_thresholds
+            threshold_frame,
+            text="Set Thresholds",
+            width=13,
+            command=self.set_thresholds,
         ).grid(column=3, row=0, rowspan=2, sticky=tk.W, pady=10, padx=10)
-        threshold_frame.grid(column=0, row=2, columnspan=2, pady=10, sticky=tk.EW)
+        threshold_frame.grid(column=0, row=3, columnspan=2, pady=10, sticky=tk.EW)
 
     def make_img_stats_slice(self):
         self.img_stats_header = tk.StringVar(value="Image Statistics")
         ttk.Label(
             self, textvariable=self.img_stats_header, font="TkDefaultFont 9 underline"
-        ).grid(column=0, row=3, sticky=tk.W)
+        ).grid(column=0, row=4, sticky=tk.W)
         self.img_stats_txt = tk.StringVar(value="B\nC\nD\nE")
         ttk.Label(self, textvariable=self.img_stats_txt).grid(
-            column=0, row=4, rowspan=4, sticky=tk.W
+            column=0, row=5, rowspan=4, sticky=tk.W
         )
 
     def make_auto_buttons_slice(self):
-        self.center_button = ttk.Button(self, text="Auto-Center", command=self.center)
-        self.center_button.grid(column=1, row=4, pady=(10, 0), padx=10, sticky=tk.E)
-        self.focus_button = ttk.Button(self, text="Auto-Focus", command=self.focus)
-        self.focus_button.grid(column=1, row=5, pady=(10, 0), padx=10, sticky=tk.E)
+        self.center_button = ttk.Button(
+            self, text="Auto-Center", width=13, command=self.center
+        )
+        self.center_button.grid(column=1, row=5, pady=(10, 0), padx=10, sticky=tk.E)
+        self.focus_button = ttk.Button(
+            self, text="Auto-Focus", width=13, command=self.focus
+        )
+        self.focus_button.grid(column=1, row=6, pady=(10, 0), padx=10, sticky=tk.E)
 
     def make_focus_slice(self):
         self.focus_position = tk.StringVar(value="Best Focus: Not Yet Found")
         focus_readout = ttk.Label(self, textvariable=self.focus_position)
-        focus_readout.grid(column=0, row=8, sticky=tk.W)
+        focus_readout.grid(column=0, row=9, sticky=tk.W)
 
     def set_thresholds(self):
         self.config.image_full_threshold = float(self.full_threshold_entry.get())
@@ -194,9 +223,12 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
 
     def save_img(self):
         """Save image dialog"""
+        t = Time.now()
+        datestr = f"{t.ymdhms[0]:04}{t.ymdhms[1]:02}{t.ymdhms[2]:02}"
+
         f = filedialog.asksaveasfilename(
             initialdir="images/",
-            initialfile="new.fits",
+            initialfile=f"gclef_{datestr}_ait.fits",
             filetypes=(("FITS files", ["*.fits", "*.fts"]), ("all files", "*.*")),
             defaultextension=".fits",
         )
@@ -215,6 +247,14 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
                     obstype=self.obstype.get(),
                     target=self.target_object.get(),
                 )
+
+    def select_sequence_file(self):
+        """Select input file for automated sequence"""
+        pass
+
+    def run_sequence(self):
+        """Run automated sequence"""
+        pass
 
     def focus(self):
         """Start focus routine"""

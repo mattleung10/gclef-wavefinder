@@ -23,12 +23,7 @@ from .utils import make_task, valid_float, valid_int
 class CameraPanel(Cyclic):
     """Camera UI Panel is made of 3 LabelFrames"""
 
-    def __init__(
-        self,
-        parent: ttk.Frame,
-        config: Configuration,
-        camera: Camera | None
-    ):
+    def __init__(self, parent: ttk.Frame, config: Configuration, camera: Camera | None):
         self.config = config
 
         # Task variables
@@ -272,10 +267,10 @@ class CameraPanel(Cyclic):
             invalidcommand=(parent.register(self.roi_zoom_entry.set), str(1)),
             validate="focus",
         ).grid(column=1, row=1, sticky=tk.E)
-        ttk.Button(input_frame, text="Set", command=self.set_roi).grid(
-            column=1, row=2, pady=(10, 0), columnspan=2, padx=10
+        ttk.Button(input_frame, text="Set ROI", command=self.set_roi).grid(
+            column=3, row=0, rowspan=2, pady=(10, 0), padx=10
         )
-        input_frame.grid(column=0, row=0, rowspan=2, sticky=tk.NW)
+        input_frame.grid(column=0, row=0, sticky=tk.NW)
 
     def make_roi_preview_slice(self, parent):
         roi_prev_frame = ttk.Frame(parent)
@@ -286,16 +281,16 @@ class CameraPanel(Cyclic):
         self.cc_x.grid(column=0, row=1)
         self.cc_y = tk.Canvas(roi_prev_frame)
         self.cc_y.grid(column=1, row=0)
-        roi_prev_frame.grid(column=1, row=0)
+        roi_prev_frame.grid(column=0, row=1)
 
     def make_roi_histogram(self, parent):
         self.roi_histogram = tk.Canvas(parent, width=500, height=200)
-        self.roi_histogram.grid(column=1, row=2, columnspan=2, sticky=tk.W)
+        self.roi_histogram.grid(column=0, row=2, columnspan=2, sticky=tk.W)
         ttk.Checkbutton(
             parent,
             text="Limit histogram to threshold",
             variable=self.roi_threshold_hist,
-        ).grid(column=1, row=3, columnspan=2, sticky=tk.W)
+        ).grid(column=0, row=3, columnspan=2, sticky=tk.W)
 
     ### Functions ###
     def set_cam_ctrl(self):
@@ -758,7 +753,9 @@ class CameraPanel(Cyclic):
             if not self.config.image_frozen:
                 try:
                     self.config.camera_frame = self.camera.get_newest_frame()
-                    self.config.full_img = Image.fromarray(self.config.camera_frame.display_array)
+                    self.config.full_img = Image.fromarray(
+                        self.config.camera_frame.display_array
+                    )
                     self.update_img_props(self.config.camera_frame)
                     if self.update_resolution_flag:
                         make_task(self.update_resolution(), self.tasks)
