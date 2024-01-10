@@ -428,11 +428,11 @@ class CameraPanel(Cyclic):
         x_hwhm = variance_to_fwhm(self.config.img_stats["var_x"]) / 2
         y_hwhm = variance_to_fwhm(self.config.img_stats["var_y"]) / 2
         ImageDraw.Draw(zoomed).ellipse(
-            (
-                z * (self.config.img_stats["cen_x"] - box[0] - x_hwhm),
-                z * (self.config.img_stats["cen_y"] - box[1] - y_hwhm),
-                z * (self.config.img_stats["cen_x"] - box[0] + x_hwhm),
-                z * (self.config.img_stats["cen_y"] - box[1] + y_hwhm),
+            (  # NOTE FIXME not sure about the +1/2
+                z * (self.config.img_stats["cen_x"] - box[0] - x_hwhm + 1 / 2),
+                z * (self.config.img_stats["cen_y"] - box[1] - y_hwhm + 1 / 2),
+                z * (self.config.img_stats["cen_x"] - box[0] + x_hwhm + 1 / 2),
+                z * (self.config.img_stats["cen_y"] - box[1] + y_hwhm + 1 / 2),
             ),
             outline=ImageColor.getrgb("red"),
         )
@@ -555,6 +555,10 @@ class CameraPanel(Cyclic):
             image = np.array(self.config.full_img)
             bits = 8
 
+        # full frame size
+        size_x = np.size(image, 1)
+        size_y = np.size(image, 0)
+
         # use ROI if selected
         if self.config.image_use_roi_stats:
             box = self.get_roi_box()
@@ -573,8 +577,8 @@ class CameraPanel(Cyclic):
             cen_x += box[0]
             cen_y += box[1]
 
-        self.config.img_stats["size_x"] = np.size(image, 1)
-        self.config.img_stats["size_y"] = np.size(image, 0)
+        self.config.img_stats["size_x"] = size_x
+        self.config.img_stats["size_y"] = size_y
         self.config.img_stats["cen_x"] = cen_x
         self.config.img_stats["cen_y"] = cen_y
         self.config.img_stats["var_x"] = var_x

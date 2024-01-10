@@ -43,8 +43,8 @@ class Configuration:
         self.roi_size = (50, 50)
         self.image_use_roi_stats = False
         self.img_stats = {
-            "rows": 0,
-            "cols": 0,
+            "size_x": 0,
+            "size_y": 0,
             "cen_x": 0.0,
             "cen_y": 0.0,
             "var_x": 0.0,
