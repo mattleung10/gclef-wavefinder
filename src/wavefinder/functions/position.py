@@ -38,8 +38,8 @@ class Positioner:
         center = (0, 0)
         if self.x_axis and self.y_axis:
             img_center = (
-                (self.img_stats["size_x"] - 1) / 2,
-                (self.img_stats["size_y"] - 1) / 2,
+                self.img_stats["size_x"] / 2,
+                self.img_stats["size_y"] / 2,
             )
             move_x_px = -(self.img_stats["cen_x"] - img_center[0])
             move_y_px = self.img_stats["cen_y"] - img_center[1]
