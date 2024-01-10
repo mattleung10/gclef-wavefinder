@@ -12,6 +12,5 @@ if __name__ == "__main__":
 
 ### TODO list
 # read in input configuration and table of wavelengths
-# obstype input
 # auto exposure time calculation
 # rotation axis position/hysteresis correction

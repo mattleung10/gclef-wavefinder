@@ -53,24 +53,8 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
 
     def make_capture_buttons_slice(self):
         capture_frame = ttk.Frame(self)
-        ttk.Label(capture_frame, text="Target Object").grid(
-            column=0, row=0, padx=10, sticky=tk.E
-        )
-        self.target_object = tk.StringVar()
-        ttk.Entry(capture_frame, textvariable=self.target_object, width=20).grid(
-            column=1, row=0, sticky=tk.W
-        )
-        self.capture_button_txt = tk.StringVar(value="Capture Image")
-        self.capture_button = ttk.Button(
-            capture_frame,
-            textvariable=self.capture_button_txt,
-            command=self.capture,
-            width=13,
-        )
-        self.capture_button.grid(column=2, row=0, padx=10, pady=(10, 0), sticky=tk.E)
-
         ttk.Label(capture_frame, text="Obs. Type").grid(
-            column=0, row=1, padx=10, sticky=tk.E
+            column=0, row=0, padx=10, sticky=tk.E
         )
         self.obstype = tk.StringVar(value=self.config.writer_obstypes[0])
         ttk.Combobox(
@@ -79,7 +63,22 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
             values=self.config.writer_obstypes,
             state="readonly",
             width=10,
-        ).grid(column=1, row=1, sticky=tk.W)
+        ).grid(column=1, row=0, sticky=tk.W)
+        self.capture_button_txt = tk.StringVar(value="Capture Image")
+        self.capture_button = ttk.Button(
+            capture_frame,
+            textvariable=self.capture_button_txt,
+            command=self.capture,
+            width=13,
+        )
+        self.capture_button.grid(column=2, row=0, padx=10, pady=(10, 0), sticky=tk.E)
+        ttk.Label(capture_frame, text="Target Object").grid(
+            column=0, row=1, padx=10, sticky=tk.E
+        )
+        self.target_object = tk.StringVar()
+        ttk.Entry(capture_frame, textvariable=self.target_object, width=20).grid(
+            column=1, row=1, sticky=tk.W
+        )
         ttk.Button(capture_frame, text="Save", command=self.save_img, width=13).grid(
             column=2, row=1, padx=10, pady=(10, 0), sticky=tk.E
         )
@@ -203,9 +202,19 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         )
         if f:
             if self.config.camera_frame:
-                self.data_writer.write_fits_file(f, frame=self.config.camera_frame)
+                self.data_writer.write_fits_file(
+                    f,
+                    frame=self.config.camera_frame,
+                    obstype=self.obstype.get(),
+                    target=self.target_object.get(),
+                )
             else:
-                self.data_writer.write_fits_file(f, image=self.config.full_img)
+                self.data_writer.write_fits_file(
+                    f,
+                    image=self.config.full_img,
+                    obstype=self.obstype.get(),
+                    target=self.target_object.get(),
+                )
 
     def focus(self):
         """Start focus routine"""
