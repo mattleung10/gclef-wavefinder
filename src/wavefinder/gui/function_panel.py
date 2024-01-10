@@ -8,6 +8,7 @@ from ..devices.MightexBufCmos import Camera
 from ..functions.focus import Focuser
 from ..functions.image import variance_to_fwhm
 from ..functions.position import Positioner
+from ..functions.sequence import Sequencer
 from ..functions.writer import DataWriter
 from ..gui.config import Configuration
 from ..gui.utils import Cyclic
@@ -24,6 +25,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         camera: Camera | None,
         focuser: Focuser,
         positioner: Positioner,
+        sequencer: Sequencer,
         data_writer: DataWriter,
     ):
         super().__init__(parent, text="Functions", labelanchor=tk.N)
@@ -31,9 +33,9 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         self.camera = camera
         self.focuser = focuser
         self.positioner = positioner
+        self.sequencer = sequencer
         self.data_writer = data_writer
 
-        # Task variables
         self.tasks: set[asyncio.Task] = set()
 
         self.make_capture_buttons_slice()
@@ -43,14 +45,6 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         self.make_img_stats_slice()
         self.make_auto_buttons_slice()
         self.make_focus_slice()
-
-        # TODO: function to read in table of positions;
-        #       at each position:
-        #           move to position
-        #           center image
-        #           focus
-        #           take 3 images: [negative offset, on focus, positive offset]
-        #           save images and a table of data
 
     def make_capture_buttons_slice(self):
         capture_frame = ttk.Frame(self)
@@ -250,11 +244,12 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
 
     def select_sequence_file(self):
         """Select input file for automated sequence"""
-        pass
+        # TODO select input file dialog
+        self.sequencer.read_input_file()
 
     def run_sequence(self):
         """Run automated sequence"""
-        pass
+        self.sequencer.run_sequence()
 
     def focus(self):
         """Start focus routine"""

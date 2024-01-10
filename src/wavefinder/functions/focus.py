@@ -9,21 +9,24 @@ from .image import get_centroid_and_variance
 
 
 class Focuser:
-    def __init__(self,
-                 config: Configuration,
-                 camera: Camera | None,
-                 f_axis: Axis | None,
-                 focus_points_per_pass: int = 10,
-                 focus_frames_per_point: int = 3,
-                 minimum_move: float = 0.001) -> None:
+    def __init__(
+        self,
+        config: Configuration,
+        camera: Camera | None,
+        f_axis: Axis | None,
+        focus_points_per_pass: int = 10,
+        focus_frames_per_point: int = 3,
+        minimum_move: float = 0.001,
+    ) -> None:
         """Focuser class
-        
-        config: application configuration
-        camera: MightexBufCmos Camera device
-        f_axis: focal axis handle
-        focus_points_per_pass: number of focus steps per pass
-        focus_frames_per_point: number of frames to average per focus point
-        minimum_move: minimum movement in mm
+
+        Args:
+            config: application configuration
+            camera: MightexBufCmos Camera device
+            f_axis: focal axis handle
+            focus_points_per_pass: number of focus steps per pass
+            focus_frames_per_point: number of frames to average per focus point
+            minimum_move: minimum movement in mm
         """
         self.config = config
         self.camera = camera
@@ -48,9 +51,10 @@ class Focuser:
             else self.config.image_full_threshold
         )
 
-        focus_pos = 0.0
+        focus_pos = self.f_axis.position if self.f_axis else 0.0
         if self.camera and self.f_axis:
             # set camera to trigger mode
+            old_mode = self.camera.run_mode
             await self.camera.set_mode(run_mode=Camera.TRIGGER, write_now=True)
 
             # set up for first pass
@@ -73,7 +77,9 @@ class Focuser:
                         await self.camera.trigger()
 
                         # if this frame isn't the right trigger, wait
-                        exp_nTriggers = (frame_i+1) + self.frames_per_point*(point_i + self.points_per_pass*pass_i)
+                        exp_nTriggers = (frame_i + 1) + self.frames_per_point * (
+                            point_i + self.points_per_pass * pass_i
+                        )
                         frame = self.camera.get_newest_frame()
                         nT = frame.nTriggers
                         while nT < exp_nTriggers:
@@ -83,14 +89,19 @@ class Focuser:
                             nT = frame.nTriggers
 
                         # compute focus
-                        stats = get_centroid_and_variance(frame.img_array, frame.bits, threshold)
+                        stats = get_centroid_and_variance(
+                            frame.img_array, frame.bits, threshold
+                        )
                         # sqrt(var_x) * sqrt(var_y)
                         v = np.sqrt(stats[2]) * np.sqrt(stats[3])
                         sum += v
-                    focus_curve[pos] = sum / self.frames_per_point
+                    
+                    # ignore if no pixels above threshold
+                    if sum != 0:
+                        focus_curve[pos] = sum / self.frames_per_point
 
                 # find minimum along focus_curve
-                focus_pos = min(focus_curve, key=focus_curve.get) # type: ignore
+                focus_pos = min(focus_curve, key=focus_curve.get, default=focus_pos)  # type: ignore
 
                 # set up for next pass
                 travel_min = min(max(focus_pos - step_dist, limit_min), limit_max)
@@ -99,14 +110,12 @@ class Focuser:
                 step_dist = travel_dist / (self.points_per_pass - 1)
                 pass_i += 1
 
-            # move to focus position 
+            # move to focus position
             await self.f_axis.move_absolute(focus_pos)
-            
-            # set camera to stream mode
-            await self.camera.set_mode(run_mode=Camera.NORMAL, write_now=True)
+
+            # restore previous camera mode
+            await self.camera.set_mode(run_mode=old_mode, write_now=True)
 
         # return best position
         self.best_focus = focus_pos
         return focus_pos
-
-        

@@ -11,6 +11,7 @@ from ..devices.MightexBufCmos import Camera
 from ..devices.ZaberAdapter import ZaberAdapter
 from ..functions.focus import Focuser
 from ..functions.position import Positioner
+from ..functions.sequence import Sequencer
 from ..functions.writer import DataWriter
 from .camera_panel import CameraPanel
 from .config import Configuration
@@ -123,6 +124,7 @@ class App(ScrollableWindow):
             self.config.focus_frames_per_point,
             self.config.focus_minimum_move,
         )
+        self.sequencer = Sequencer(self.config)
         self.writer = DataWriter(
             self.config, self.camera, self.axes, self.positioner, self.focuser
         )
@@ -141,6 +143,7 @@ class App(ScrollableWindow):
             camera=self.camera,
             focuser=self.focuser,
             positioner=self.positioner,
+            sequencer=self.sequencer,
             data_writer=self.writer,
         )
         self.function_panel.grid(column=1, row=2, sticky=tk.NSEW)
