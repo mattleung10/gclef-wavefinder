@@ -135,7 +135,7 @@ def find_full_width_half_max(
             center_pixel[0] - d < 0
             or center_pixel[1] - d < 0
             or center_pixel[0] + d >= img_array.shape[0]
-            or center_pixel[1] + d >= center_pixel[1]
+            or center_pixel[1] + d >= img_array.shape[1]
         ):
             break
         # get sub-array and check how many fwhm pixels are in it
