@@ -1,6 +1,5 @@
 from ..devices.Axis import Axis
 from ..gui.config import Configuration
-from .image import get_centroid_and_variance
 
 
 class Positioner:

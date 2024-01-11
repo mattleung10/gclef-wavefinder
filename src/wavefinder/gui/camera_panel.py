@@ -14,7 +14,13 @@ from PIL import (
 )
 
 from ..devices.MightexBufCmos import Camera, Frame
-from ..functions.image import get_centroid_and_variance, variance_to_fwhm
+from ..functions.image import (
+    find_centroid,
+    find_full_width_half_max,
+    get_centroid_and_variance,
+    threshold_copy,
+    variance_to_fwhm,
+)
 from ..gui.config import Configuration
 from ..gui.utils import Cyclic
 from .utils import make_task, valid_float, valid_int
@@ -594,6 +600,9 @@ class CameraPanel(Cyclic):
         cen_x, cen_y, var_x, var_y, covar = get_centroid_and_variance(
             image, bits, threshold
         )
+        copy = threshold_copy(image, bits, threshold)
+        centroid = find_centroid(copy)
+        fwhm = find_full_width_half_max(copy, centroid)
 
         # translate to full-frame pixel coordinates
         if self.config.image_use_roi_stats:
@@ -601,6 +610,7 @@ class CameraPanel(Cyclic):
             cen_x += box[0]
             cen_y += box[1]
 
+        self.config.img_stats["fwhm"] = fwhm
         self.config.img_stats["size_x"] = size_x
         self.config.img_stats["size_y"] = size_y
         self.config.img_stats["cen_x"] = cen_x
@@ -619,9 +629,13 @@ class CameraPanel(Cyclic):
         ImageDraw.Draw(img).rectangle(
             roi_box, width=3, outline=ImageColor.getrgb("yellow")
         )
-        # draw FWHM
-        x_hwhm = variance_to_fwhm(self.config.img_stats["var_x"]) / 2
-        y_hwhm = variance_to_fwhm(self.config.img_stats["var_y"]) / 2
+        # draw FWHM # TODO clean up
+        # x_hwhm = variance_to_fwhm(self.config.img_stats["var_x"]) / 2
+        # y_hwhm = variance_to_fwhm(self.config.img_stats["var_y"]) / 2
+
+        x_hwhm = self.config.img_stats["fwhm"] / 2
+        y_hwhm = self.config.img_stats["fwhm"] / 2
+
         ImageDraw.Draw(img).ellipse(
             (
                 self.config.img_stats["cen_x"] - x_hwhm,
