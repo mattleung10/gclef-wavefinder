@@ -512,19 +512,43 @@ class CameraPanel(Cyclic):
             )
 
         # guidelines
+        # NOTE: the -3 keeps it on the canvas, probably something to do with borders
+        saturation_height = self.cc_x.winfo_reqheight() - 3
+        saturation_width = self.cc_y.winfo_reqwidth() - 3
+        threshold = (
+            self.config.image_roi_threshold
+            if self.config.image_use_roi_stats
+            else self.config.image_full_threshold
+        )
+        threshold_height = saturation_height * threshold / 100
+        threshold_width = saturation_width * threshold / 100
         self.cc_x.create_line(
             0,
-            self.cc_x.winfo_reqheight() - 3,
+            saturation_height,
             self.cc_x.winfo_reqwidth(),
-            self.cc_x.winfo_reqheight() - 3,
+            saturation_height,
             fill="red",
         )
         self.cc_y.create_line(
-            self.cc_y.winfo_reqwidth() - 3,
+            saturation_width,
             0,
-            self.cc_y.winfo_reqwidth() - 3,
+            saturation_width,
             self.cc_y.winfo_reqheight(),
             fill="red",
+        )
+        self.cc_x.create_line(
+            0,
+            threshold_height,
+            self.cc_x.winfo_reqwidth(),
+            threshold_height,
+            fill="blue",
+        )
+        self.cc_y.create_line(
+            threshold_width,
+            0,
+            threshold_width,
+            self.cc_y.winfo_reqheight(),
+            fill="blue",
         )
 
     def update_img_props(self, camera_frame: Frame):
@@ -565,7 +589,7 @@ class CameraPanel(Cyclic):
             image = image[box[1] : box[3], box[0] : box[2]]
             threshold = self.config.image_roi_threshold
         else:
-            threshold = self.config.image_roi_threshold
+            threshold = self.config.image_full_threshold
 
         cen_x, cen_y, var_x, var_y, covar = get_centroid_and_variance(
             image, bits, threshold
