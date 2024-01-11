@@ -282,10 +282,9 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
 
         cen_x = self.config.img_stats["cen_x"]
         cen_y = self.config.img_stats["cen_y"]
-        fwhm_x = variance_to_fwhm(self.config.img_stats["var_x"])
-        fwhm_y = variance_to_fwhm(self.config.img_stats["var_y"])
+        fwhm = self.config.img_stats["fwhm"]
         stats_txt += "Centroid: " + f"({cen_x:.2f}, {cen_y:.2f})"
-        stats_txt += "\nFWHM: " + f"({fwhm_x:.3f}, {fwhm_y:.3f})"
+        stats_txt += "\nFWHM: " + f"{fwhm:.3f}"
         stats_txt += "\nMax Pixel Value: " + str(self.config.img_stats["max"])
         stats_txt += "\nSaturated Pixels: " + str(self.config.img_stats["n_sat"])
         self.img_stats_txt.set(stats_txt)

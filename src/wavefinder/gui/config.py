@@ -47,9 +47,7 @@ class Configuration:
             "size_y": 0,
             "cen_x": 0.0,
             "cen_y": 0.0,
-            "var_x": 0.0,
-            "var_y": 0.0,
-            "covar": 0.0,
+            "fwhm": 0.0,
             "max": 0,
             "n_sat": 0,
         }

@@ -431,14 +431,14 @@ class CameraPanel(Cyclic):
             fill=ImageColor.getrgb("yellow"),
         )
         # draw FWHM
-        x_hwhm = variance_to_fwhm(self.config.img_stats["var_x"]) / 2
-        y_hwhm = variance_to_fwhm(self.config.img_stats["var_y"]) / 2
+        x_hwhm = self.config.img_stats["fwhm"] / 2
+        y_hwhm = self.config.img_stats["fwhm"] / 2
         ImageDraw.Draw(zoomed).ellipse(
             (  # NOTE not sure about the +1/2
-                z * (self.config.img_stats["cen_x"] - box[0] - x_hwhm + 1 / 2),
-                z * (self.config.img_stats["cen_y"] - box[1] - y_hwhm + 1 / 2),
-                z * (self.config.img_stats["cen_x"] - box[0] + x_hwhm + 1 / 2),
-                z * (self.config.img_stats["cen_y"] - box[1] + y_hwhm + 1 / 2),
+                z * (self.config.img_stats["cen_x"] - box[0] - x_hwhm),# + 1 / 2),
+                z * (self.config.img_stats["cen_y"] - box[1] - y_hwhm),# + 1 / 2),
+                z * (self.config.img_stats["cen_x"] - box[0] + x_hwhm),# + 1 / 2),
+                z * (self.config.img_stats["cen_y"] - box[1] + y_hwhm),# + 1 / 2),
             ),
             outline=ImageColor.getrgb("red"),
         )
@@ -597,12 +597,9 @@ class CameraPanel(Cyclic):
         else:
             threshold = self.config.image_full_threshold
 
-        cen_x, cen_y, var_x, var_y, covar = get_centroid_and_variance(
-            image, bits, threshold
-        )
         copy = threshold_copy(image, bits, threshold)
-        centroid = find_centroid(copy)
-        fwhm = find_full_width_half_max(copy, centroid)
+        cen_x, cen_y = find_centroid(copy)
+        fwhm = find_full_width_half_max(copy, (cen_x, cen_y))
 
         # translate to full-frame pixel coordinates
         if self.config.image_use_roi_stats:
@@ -615,9 +612,6 @@ class CameraPanel(Cyclic):
         self.config.img_stats["size_y"] = size_y
         self.config.img_stats["cen_x"] = cen_x
         self.config.img_stats["cen_y"] = cen_y
-        self.config.img_stats["var_x"] = var_x
-        self.config.img_stats["var_y"] = var_y
-        self.config.img_stats["covar"] = covar
         self.config.img_stats["max"] = np.max(image)
         self.config.img_stats["n_sat"] = np.count_nonzero(image == (1 << bits) - 1)
 
@@ -629,10 +623,8 @@ class CameraPanel(Cyclic):
         ImageDraw.Draw(img).rectangle(
             roi_box, width=3, outline=ImageColor.getrgb("yellow")
         )
-        # draw FWHM # TODO clean up
-        # x_hwhm = variance_to_fwhm(self.config.img_stats["var_x"]) / 2
-        # y_hwhm = variance_to_fwhm(self.config.img_stats["var_y"]) / 2
 
+        # draw FWHM
         x_hwhm = self.config.img_stats["fwhm"] / 2
         y_hwhm = self.config.img_stats["fwhm"] / 2
 

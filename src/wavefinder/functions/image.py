@@ -126,25 +126,22 @@ def find_full_width_half_max(
     remainder = (centroid[1] % 1, centroid[0] % 1)
 
     # starting from center pixel, grow a circle one pixel at a time until
-    # it contains all fwhm pixels
-    d = 0
-    v = 0
-    while v < v_t:
-        # bound circle to array
-        if (
-            center_pixel[0] - d < 0
-            or center_pixel[1] - d < 0
-            or center_pixel[0] + d >= img_array.shape[0]
-            or center_pixel[1] + d >= img_array.shape[1]
-        ):
-            break
+    # it contains all fwhm pixels or we hit the edge of the array
+    radius = 0
+    while (
+        center_pixel[0] - radius >= 0
+        and center_pixel[1] - radius >= 0
+        and center_pixel[0] + radius + 1 < img_array.shape[0]
+        and center_pixel[1] + radius + 1 < img_array.shape[1]
+    ):  
         # get sub-array and check how many fwhm pixels are in it
         subarray = img_array[
-            center_pixel[0] - d : center_pixel[0] + d,
-            center_pixel[1] - d : center_pixel[1] + d,
+            center_pixel[0] - radius : center_pixel[0] + radius + 1,
+            center_pixel[1] - radius : center_pixel[1] + radius + 1,
         ]
-        v = np.count_nonzero(subarray >= half_max)
-        d += 1
+        if np.count_nonzero(subarray >= half_max) >= v_t:
+            break
+        radius += 1
 
-    fwhm = d + max(remainder) + 1
+    fwhm = 1 + 2 * (radius)# + max(remainder))
     return fwhm
