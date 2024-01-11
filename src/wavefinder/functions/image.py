@@ -19,7 +19,7 @@ def get_centroid_and_variance(
     x_avg, y_avg, x_var, y_var, covar = 0.0, 0.0, 0.0, 0.0, 0.0
     t_val = ((1 << bits) - 1) * threshold / 100
 
-    # NOTE: thresholding affect original array, so make a copy
+    # NOTE: thresholding affects original array, so make a copy
     copied = np.copy(img_array)
     copied[img_array < t_val] = 0
 

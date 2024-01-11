@@ -39,7 +39,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         self.tasks: set[asyncio.Task] = set()
 
         self.make_capture_buttons_slice()
-        self.make_sequence_slice()
+        # self.make_sequence_slice() # TODO: implement
         self.make_mode_switch_slice()
         self.make_threshold_slice()
         self.make_img_stats_slice()
@@ -97,7 +97,6 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         ttk.Label(sequence_frame, textvariable=self.sequence_status).grid(
             column=0, row=1, padx=10, sticky=tk.E
         )
-
         sequence_frame.grid(column=0, row=1, columnspan=2, pady=10, sticky=tk.E)
 
     def make_mode_switch_slice(self):

@@ -12,8 +12,8 @@ freq_mode   = 0
 resolution  = {rows = 1280, columns = 960}
 bin_mode    = "NO_BIN"
 nBuffer     = 24
-exposure    = 50.0
-fps         = 10.0
+exposure    = 5.0
+fps         = 5.0
 gain        = 15
 
 [image]
@@ -23,7 +23,18 @@ roi_size        = {x = 50, y = 50}
 use_roi_stats   = false
 
 [motion.zaber]
-ports = ["COM3", "COM6"]
+ports = [
+    "COM1",
+    "COM2",
+    "COM3",
+    "COM4",
+    "COM5",
+    "COM6",
+    "COM7",
+    "COM8",
+    "COM9",
+    "COM10"
+]
 
 [motion.zaber.axis_names]
 "detector x"    = {sn = 33938,  keyword = "detxpos"}

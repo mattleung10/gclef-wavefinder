@@ -428,7 +428,7 @@ class CameraPanel(Cyclic):
         x_hwhm = variance_to_fwhm(self.config.img_stats["var_x"]) / 2
         y_hwhm = variance_to_fwhm(self.config.img_stats["var_y"]) / 2
         ImageDraw.Draw(zoomed).ellipse(
-            (  # NOTE FIXME not sure about the +1/2
+            (  # NOTE not sure about the +1/2
                 z * (self.config.img_stats["cen_x"] - box[0] - x_hwhm + 1 / 2),
                 z * (self.config.img_stats["cen_y"] - box[1] - y_hwhm + 1 / 2),
                 z * (self.config.img_stats["cen_x"] - box[0] + x_hwhm + 1 / 2),

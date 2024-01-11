@@ -29,8 +29,8 @@ class Configuration:
         self.camera_resolution = (1280, 960)
         self.camera_bin_mode = Camera.NO_BIN
         self.camera_nBuffer = 24
-        self.camera_exposure_time = 50.0
-        self.camera_fps = 10.0
+        self.camera_exposure_time = 5.0
+        self.camera_fps = 5.0
         self.camera_gain = 15
         self.camera_pixel_size = (3.75, 3.75)
         self.camera_frame: Frame | None = None
