@@ -89,6 +89,7 @@ class Focuser:
                             nT = frame.nTriggers
 
                         # compute focus
+                        # TODO use new fwhm methods
                         stats = get_centroid_and_variance(
                             frame.img_array, frame.bits, threshold
                         )

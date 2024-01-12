@@ -143,5 +143,8 @@ def find_full_width_half_max(
             break
         radius += 1
 
-    fwhm = 1 + 2 * (radius)# + max(remainder))
+    # [center pixel]
+    # + 2 * ([additional pixels to capture all half-max pixels]
+    #        + [maximum distance in x or y from the centroid to the position of the center pixel])
+    fwhm = 1 + 2 * (radius + max(remainder))
     return fwhm

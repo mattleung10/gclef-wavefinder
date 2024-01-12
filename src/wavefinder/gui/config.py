@@ -42,6 +42,7 @@ class Configuration:
         self.image_roi_threshold = 50.0
         self.roi_size = (50, 50)
         self.image_use_roi_stats = False
+        # TODO replace dict with individual vars for easier traceability and type checking
         self.img_stats = {
             "size_x": 0,
             "size_y": 0,

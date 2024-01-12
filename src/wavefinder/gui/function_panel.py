@@ -6,7 +6,6 @@ from astropy.time import Time
 
 from ..devices.MightexBufCmos import Camera
 from ..functions.focus import Focuser
-from ..functions.image import variance_to_fwhm
 from ..functions.position import Positioner
 from ..functions.sequence import Sequencer
 from ..functions.writer import DataWriter

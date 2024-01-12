@@ -100,6 +100,8 @@ class DataWriter:
         self, img_array: np.ndarray, bits: int
     ) -> dict[str, tuple[float | int | str, str]]:
         """Make headers from image"""
+
+        # TODO: don't get this from config; rather, store it with the frame/img upon save (??)
         threshold = (
             self.config.image_roi_threshold
             if self.config.image_use_roi_stats
@@ -119,6 +121,7 @@ class DataWriter:
         )
         headers["cenx"] = (stats[0], "[px] centroid along x axis")
         headers["ceny"] = (stats[1], "[px] centroid along y axis")
+        # TODO replace with new fwhm methods
         headers["fwhmx"] = (
             variance_to_fwhm(stats[2]),
             "[px] full width half maximum along x axis",

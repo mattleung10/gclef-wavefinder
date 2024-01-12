@@ -14,13 +14,7 @@ from PIL import (
 )
 
 from ..devices.MightexBufCmos import Camera, Frame
-from ..functions.image import (
-    find_centroid,
-    find_full_width_half_max,
-    get_centroid_and_variance,
-    threshold_copy,
-    variance_to_fwhm,
-)
+from ..functions.image import find_centroid, find_full_width_half_max, threshold_copy
 from ..gui.config import Configuration
 from ..gui.utils import Cyclic
 from .utils import make_task, valid_float, valid_int
@@ -433,12 +427,16 @@ class CameraPanel(Cyclic):
         # draw FWHM
         x_hwhm = self.config.img_stats["fwhm"] / 2
         y_hwhm = self.config.img_stats["fwhm"] / 2
+        # NOTE: when drawing the zoomed-in view for the ROI, add half a pixel to both x & y.
+        #       Pixels are drawn as boxes, where their position is nominally their top-left
+        #       corner, so adding half a pixel to both dimensions puts the pixel position in
+        #       the center of the pixel, which looks better.
         ImageDraw.Draw(zoomed).ellipse(
-            (  # NOTE not sure about the +1/2
-                z * (self.config.img_stats["cen_x"] - box[0] - x_hwhm),# + 1 / 2),
-                z * (self.config.img_stats["cen_y"] - box[1] - y_hwhm),# + 1 / 2),
-                z * (self.config.img_stats["cen_x"] - box[0] + x_hwhm),# + 1 / 2),
-                z * (self.config.img_stats["cen_y"] - box[1] + y_hwhm),# + 1 / 2),
+            (
+                z * (self.config.img_stats["cen_x"] - box[0] - x_hwhm + 1 / 2),
+                z * (self.config.img_stats["cen_y"] - box[1] - y_hwhm + 1 / 2),
+                z * (self.config.img_stats["cen_x"] - box[0] + x_hwhm + 1 / 2),
+                z * (self.config.img_stats["cen_y"] - box[1] + y_hwhm + 1 / 2),
             ),
             outline=ImageColor.getrgb("red"),
         )
