@@ -2,7 +2,9 @@
 
 import numpy as np
 
+# TODO encircled energy
 
+# TODO make this method work with threshold_copy and find_centroid
 def get_centroid_and_variance(
     img_array: np.ndarray, bits: int, threshold: float
 ) -> tuple[float, float, float, float, float]:
@@ -101,16 +103,22 @@ def find_full_width_half_max(
 ) -> float:
     """Find full-width half-maximum.
 
-    Find the diameter of the circle centered at the centroid which
-    encloses all pixels with values greater than
-    half of the maximum value of all pixels in the image.
-
     Args:
         img_array: numpy array of image pixels
         centroid: tuple of (u_x, u_y) giving the centroid of the img_array
 
     Returns:
         diameter of full-width half-max in pixels
+    """
+    return fwhm_encircle_pixels(img_array, centroid)
+
+
+def fwhm_encircle_pixels(
+    img_array: np.ndarray, centroid: tuple[float, float] | None = None
+) -> float:
+    """Find the diameter of the circle centered at the centroid which
+    encloses all pixels with values greater than
+    half of the maximum value of all pixels in the image.
     """
     if centroid is None:
         centroid = find_centroid(img_array)
@@ -133,7 +141,7 @@ def find_full_width_half_max(
         and center_pixel[1] - radius >= 0
         and center_pixel[0] + radius + 1 < img_array.shape[0]
         and center_pixel[1] + radius + 1 < img_array.shape[1]
-    ):  
+    ):
         # get sub-array and check how many fwhm pixels are in it
         subarray = img_array[
             center_pixel[0] - radius : center_pixel[0] + radius + 1,
@@ -148,3 +156,4 @@ def find_full_width_half_max(
     #        + [maximum distance in x or y from the centroid to the position of the center pixel])
     fwhm = 1 + 2 * (radius + max(remainder))
     return fwhm
+
