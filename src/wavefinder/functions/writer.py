@@ -1,3 +1,6 @@
+import copy
+import random
+
 import numpy as np
 from astropy.io import fits
 from astropy.time import Time
@@ -5,66 +8,41 @@ from PIL import Image
 
 from ..devices.Axis import Axis
 from ..devices.MightexBufCmos import Camera, Frame
-from ..functions.focus import Focuser
-from ..functions.image import get_centroid_and_variance, variance_to_fwhm
-from ..functions.position import Positioner
+from ..functions.image import find_centroid, find_full_width_half_max, threshold_copy
 from ..gui.config import Configuration
 
 
 class DataWriter:
     def __init__(
         self,
-        config: Configuration,
         camera: Camera | None,
         axes: dict[str, Axis],
-        positioner: Positioner,
-        focuser: Focuser,
     ) -> None:
-        self.config = config
         self.camera = camera
         self.axes = axes
-        self.positioner = positioner
-        self.focuser = focuser
 
-    def write_fits_file(
-        self,
-        filename: str,
-        frame: Frame | None = None,
-        image: Image.Image | None = None,
-        obstype: str = "",
-        target: str = "",
-        wavelength: float = 0.0,
-        order: int = 0
-    ):
+    def write_fits_file(self, filename: str, config: Configuration):
         """Write a FITS file using most recent image and telemetry
 
         Args:
             filename: name of fits file to be written
-            frame: write the given frame if not None, takes precedence over image
-            image: write the given image if not None
-            obstype: observation type; see config.py for list
-            target: name of target object
-            wavelength: input light source wavelength in nm
-            order: defraction order
+            config: configuration at time of save
         """
 
-        # set default obstype
-        if obstype == "":
-            obstype = self.config.writer_obstypes[0]
+        # make a copy of config so it doesn't change while writing
+        self.config = copy.deepcopy(config)
 
         hdu = fits.PrimaryHDU()
         hdu.header.update(self.make_general_headers())
-        hdu.header.update(self.make_science_headers(obstype, target, wavelength, order))
+        hdu.header.update(self.make_science_headers())
 
-        # use frame if provided, otherwise try img, otherwise make an img
-        if frame:
-            hdu.header.update(self.make_camera_frame_headers(frame))
-            hdu.data = frame.img_array
+        # use frame if possible, otherwise use full_image
+        if self.config.camera_frame:
+            hdu.header.update(self.make_camera_frame_headers(self.config.camera_frame))
+            hdu.data = self.config.camera_frame.img_array
         else:
-            if image is None:
-                image = Image.effect_noise(size=(1280, 960), sigma=100)
-            hdu.header.update(self.make_dummy_frame_headers(image))
-            hdu.data = np.array(image)
+            hdu.header.update(self.make_dummy_frame_headers(self.config.full_img))
+            hdu.data = np.array(self.config.full_img)
         hdu.header.update(self.make_axis_headers())
         hdu.add_checksum()
         hdu.writeto(filename, overwrite=True, output_verify="fix")
@@ -75,13 +53,13 @@ class DataWriter:
         """Make headers related to the camera image acquisition"""
         headers: dict[str, tuple[float | int | str, str]] = {}
         if self.camera:
-            headers["detector"] = ("Mightex " + self.camera.modelno, "detector name")
+            headers["detector"] = (f"Mightex {self.camera.modelno}", "detector name")
         else:
             headers["detector"] = ("not_found", "detector name")
         headers["date-obs"] = (frame.time.fits, "observation date and time")  # type: ignore
         headers["xposure"] = (frame.expTime / 1000, "[s] exposure time")
         headers["gain"] = (frame.gGain, "[dB] detector gain")
-        pxsizex, pxsizey = self.positioner.px_size
+        pxsizex, pxsizey = self.config.camera_pixel_size
         headers["pxsizex"] = (pxsizex, "[um] pixel size in x dimension")
         headers["pxsizey"] = (pxsizey, "[um] pixel size in y dimension")
         headers.update(self.make_image_headers(frame.img_array, frame.bits))
@@ -101,7 +79,6 @@ class DataWriter:
     ) -> dict[str, tuple[float | int | str, str]]:
         """Make headers from image"""
 
-        # TODO: don't get this from config; rather, store it with the frame/img upon save (??)
         threshold = (
             self.config.image_roi_threshold
             if self.config.image_use_roi_stats
@@ -109,7 +86,6 @@ class DataWriter:
         )
 
         headers: dict[str, tuple[float | int | str, str]] = {}
-        stats = get_centroid_and_variance(img_array, bits, threshold)
         headers["datamin"] = (float(0), "[counts] minimum possible pixel value")
         headers["datamax"] = (
             float((1 << bits) - 1),
@@ -119,17 +95,13 @@ class DataWriter:
             threshold,
             "[%] ignore pixels below this % of datamax",
         )
-        headers["cenx"] = (stats[0], "[px] centroid along x axis")
-        headers["ceny"] = (stats[1], "[px] centroid along y axis")
-        # TODO replace with new fwhm methods
-        headers["fwhmx"] = (
-            variance_to_fwhm(stats[2]),
-            "[px] full width half maximum along x axis",
-        )
-        headers["fwhmy"] = (
-            variance_to_fwhm(stats[3]),
-            "[px] full width half maximum along y axis",
-        )
+        # find centroid and FWHM
+        image_copy = threshold_copy(img_array, bits, threshold)
+        centroid = find_centroid(image_copy)
+        fwhm = find_full_width_half_max(image_copy, centroid)
+        headers["cenx"] = (centroid[0], "[px] centroid along x axis")
+        headers["ceny"] = (centroid[1], "[px] centroid along y axis")
+        headers["fwhm"] = (fwhm, "[px] full width half maximum")
         return headers
 
     def make_axis_headers(self) -> dict[str, tuple[float | int | str, str]]:
@@ -142,34 +114,28 @@ class DataWriter:
             )
         return headers
 
-    def make_science_headers(
-        self,
-        obstype: str = "",
-        target: str = "",
-        wavelength: float = 0.0,
-        order: int = 0,
-    ) -> dict[str, tuple[float | int | str, str]]:
-        """Make headers related to this specific experiment
-        
-        Args:
-            obstype: observation type; see config.py for list
-            target: name of target object
-            wavelength: input light source wavelength in nm
-            order: defraction order
-        """
+    def make_science_headers(self) -> dict[str, tuple[float | int | str, str]]:
+        """Make headers related to this specific experiment"""
         headers: dict[str, tuple[float | int | str, str]] = {}
-        headers["obstype"] = (obstype, "Type of observation taken")
-        headers["object"] = (target, "target of the observation")
-        headers["wavelen"] = (wavelength, "[nm] wavelength being measured")
-        headers["order"] = (order, "diffraction order")
-        if self.focuser.f_axis:
+        headers["obstype"] = (self.config.image_obstype, "Type of observation taken")
+        headers["object"] = (self.config.image_target, "target of the observation")
+        headers["wavelen"] = (
+            self.config.sequence_wavelength,
+            "[nm] wavelength being measured",
+        )
+        headers["order"] = (self.config.sequence_order, "diffraction order")
+        id = f"{self.config.sequence_order:03}"
+        id += f"-{round(self.config.sequence_wavelength):05}"
+        id += f"-{self.config.sequence_number:03}"
+        id += f"-{random.randrange(16**4):4x}"  # random hash for uniqueness
+        headers["obs_id"] = (id, "unique observation ID")
+        if self.config.focus_done:
             headers["focusz"] = (
-                self.focuser.best_focus,
+                self.config.focus_position,
                 "[mm] z-axis (focal axis) in-focus position",
             )
-            dfocusz = self.focuser.f_axis.position - self.focuser.best_focus
             headers["dfocusz"] = (
-                dfocusz,
+                self.axes[self.config.focus_axis].position - self.config.focus_position,
                 "[mm] z-axis position minus in-focus position",
             )
         return headers

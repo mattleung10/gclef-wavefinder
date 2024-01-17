@@ -384,6 +384,7 @@ class Camera(Cyclic):
             except usb.core.USBTimeoutError:
                 break
             try:
+                # TODO: use recorded time from trigger in trigger mode
                 frame = Frame(data, Time.now())
             except BufferError:
                 break

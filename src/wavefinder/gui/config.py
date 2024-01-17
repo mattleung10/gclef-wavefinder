@@ -42,11 +42,19 @@ class Configuration:
         self.image_roi_threshold = 50.0
         self.roi_size = (50, 50)
         self.image_use_roi_stats = False
-        self.image_size : tuple[int, int] = (0, 0)
+        self.image_size: tuple[int, int] = (0, 0)
         self.image_centroid = (0.0, 0.0)
         self.image_fwhm = 0.0
         self.image_max_value = 0
         self.image_n_saturated = 0
+        self.image_obstypes = [
+            "STANDARD",
+            "BIAS",
+            "DARK",
+            "FLAT",
+        ]
+        self.image_obstype = self.image_obstypes[0]
+        self.image_target = ""
 
         # motion defaults
         self.zaber_ports = [
@@ -97,19 +105,18 @@ class Configuration:
         self.camera_x_axis = "detector x"
         self.camera_y_axis = "detector y"
 
-        # focuser defaults
+        # focuser defaults and state
         self.focus_axis = "detector z"
         self.focus_points_per_pass = 10
         self.focus_frames_per_point = 3
         self.focus_minimum_move = 0.001
+        self.focus_done = False
+        self.focus_position = 0.0
 
-        # writer defaults
-        self.writer_obstypes = [
-            "STANDARD",
-            "BIAS",
-            "DARK",
-            "FLAT",
-        ]
+        # sequencer defaults and state
+        self.sequence_number = 0
+        self.sequence_order = 0
+        self.sequence_wavelength = 0.0
 
     def read_config_file(self, config_filename: str) -> None:
         """Read configuration file, validate input, overwrite defaults.

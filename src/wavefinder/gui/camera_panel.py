@@ -763,50 +763,8 @@ class CameraPanel(Cyclic):
             fill="blue",
         )
 
-    async def update_resolution(self):
-        """Update resolution from camera, matching newest frame"""
-        resolution: tuple[int, int] = (await self.camera.query_buffer())["resolution"]  # type: ignore
-        self.camera_res_x.set(str(resolution[0]))
-        self.camera_res_y.set(str(resolution[1]))
-        self.config.camera_resolution = resolution
-        self.update_resolution_flag = False
-
-    async def update(self):
-        """Update preview image in viewer"""
-        if self.camera:
-            # set camera info on first pass
-            if self.extra_init:
-                self.set_camera_info(await self.camera.get_camera_info())
-                self.extra_init = False
-
-            if not self.config.image_frozen:
-                try:
-                    self.config.camera_frame = self.camera.get_newest_frame()
-                    self.config.full_img = Image.fromarray(
-                        self.config.camera_frame.display_array
-                    )
-                    self.update_image_props(self.config.camera_frame)
-                    if self.update_resolution_flag:
-                        make_task(self.update_resolution(), self.tasks)
-                except IndexError:
-                    pass
-        else:  # no camera, testing purposes
-            if not self.config.image_frozen:
-                # image components
-                res = (int(self.camera_res_x.get()), int(self.camera_res_y.get()))
-                bk = Image.new(mode="L", size=res, color=0)  # black background
-                noise = ImageEnhance.Brightness(
-                    Image.effect_noise(size=res, sigma=50)  # dark noise
-                ).enhance(0.5)
-                gradient = ImageOps.invert(
-                    Image.radial_gradient(mode="L")  # gradient spot
-                )
-                bk.paste(gradient, (85, 400))
-                # dark noise with gradient spot overlay
-                self.config.full_img = ImageChops.add(noise, bk, 1.5, 10)
-
-        self.update_image_stats()
-        self.update_full_frame_preview()
+    def update_all_histograms(self):
+        """Update full frame and ROI histograms"""
         box = self.get_roi_box()
         if self.config.camera_frame:
             self.update_histogram(
@@ -838,7 +796,52 @@ class CameraPanel(Cyclic):
                 self.config.image_roi_threshold,
                 self.roi_threshold_hist.get(),
             )
-        self.update_roi_img()
+
+    async def update_resolution(self):
+        """Update resolution from camera, matching newest frame"""
+        resolution: tuple[int, int] = (await self.camera.query_buffer())["resolution"]  # type: ignore
+        self.camera_res_x.set(str(resolution[0]))
+        self.camera_res_y.set(str(resolution[1]))
+        self.config.camera_resolution = resolution
+        self.update_resolution_flag = False
+
+    async def update(self):
+        """Update preview image in viewer"""
+        if not self.config.image_frozen:
+            if self.camera:
+                # set camera info on first pass
+                if self.extra_init:
+                    self.set_camera_info(await self.camera.get_camera_info())
+                    self.extra_init = False
+
+                try:
+                    self.config.camera_frame = self.camera.get_newest_frame()
+                    self.config.full_img = Image.fromarray(
+                        self.config.camera_frame.display_array
+                    )
+                    self.update_image_props(self.config.camera_frame)
+                    if self.update_resolution_flag:
+                        make_task(self.update_resolution(), self.tasks)
+                except IndexError:
+                    pass
+            else:  # no camera, testing purposes
+                # build an image from components
+                res = (int(self.camera_res_x.get()), int(self.camera_res_y.get()))
+                bk = Image.new(mode="L", size=res, color=0)  # black background
+                noise = ImageEnhance.Brightness(
+                    Image.effect_noise(size=res, sigma=50)  # dark noise
+                ).enhance(0.5)
+                gradient = ImageOps.invert(
+                    Image.radial_gradient(mode="L")  # gradient spot
+                )
+                bk.paste(gradient, (85, 400))
+                # dark noise with gradient spot overlay
+                self.config.full_img = ImageChops.add(noise, bk, 1.5, 10)
+
+            self.update_image_stats()
+            self.update_full_frame_preview()
+            self.update_roi_img()
+            self.update_all_histograms()
 
     def close(self):
         """Close out all tasks"""

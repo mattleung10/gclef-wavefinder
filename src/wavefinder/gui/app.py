@@ -125,9 +125,7 @@ class App(ScrollableWindow):
             self.config.focus_minimum_move,
         )
         self.sequencer = Sequencer(self.config)
-        self.writer = DataWriter(
-            self.config, self.camera, self.axes, self.positioner, self.focuser
-        )
+        self.writer = DataWriter(self.camera, self.axes)
 
     def make_panels(self):
         """Make UI panels"""

@@ -50,14 +50,15 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         ttk.Label(capture_frame, text="Obs. Type").grid(
             column=0, row=0, padx=10, sticky=tk.E
         )
-        self.obstype = tk.StringVar(value=self.config.writer_obstypes[0])
-        ttk.Combobox(
+        self.obstype = tk.StringVar(value=self.config.image_obstypes[0])
+        self.obstype_selector = ttk.Combobox(
             capture_frame,
             textvariable=self.obstype,
-            values=self.config.writer_obstypes,
+            values=self.config.image_obstypes,
             state="readonly",
             width=10,
-        ).grid(column=1, row=0, sticky=tk.W)
+        )
+        self.obstype_selector.grid(column=1, row=0, sticky=tk.W)
         self.capture_button_txt = tk.StringVar(value="Capture Image")
         self.capture_button = ttk.Button(
             capture_frame,
@@ -69,10 +70,9 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         ttk.Label(capture_frame, text="Target Object").grid(
             column=0, row=1, padx=10, sticky=tk.E
         )
-        self.target_object = tk.StringVar()
-        ttk.Entry(capture_frame, textvariable=self.target_object, width=20).grid(
-            column=1, row=1, sticky=tk.W
-        )
+        self.target = tk.StringVar()
+        self.target_entry = ttk.Entry(capture_frame, textvariable=self.target, width=20)
+        self.target_entry.grid(column=1, row=1, sticky=tk.W)
         ttk.Button(capture_frame, text="Save", command=self.save_img, width=13).grid(
             column=2, row=1, padx=10, pady=(10, 0), sticky=tk.E
         )
@@ -213,32 +213,34 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
                 self.config.image_frozen = True
                 self.capture_button_txt.set("Resume")
 
+        # freeze and record obstype and target
+        self.obstype_selector.configure(state=tk.DISABLED)
+        self.target_entry.configure(state=tk.DISABLED)
+        self.config.image_obstype = self.obstype.get()
+        self.config.image_target = self.target.get()
+
     def save_img(self):
         """Save image dialog"""
+
+        # use current date as default filename
         t = Time.now()
         datestr = f"{t.ymdhms[0]:04}{t.ymdhms[1]:02}{t.ymdhms[2]:02}"
 
+        # select filename to save as
         f = filedialog.asksaveasfilename(
             initialdir="images/",
             initialfile=f"gclef_{datestr}_ait.fits",
             filetypes=(("FITS files", ["*.fits", "*.fts"]), ("all files", "*.*")),
             defaultextension=".fits",
         )
+
+        # if successful, write FITS file
         if f:
-            if self.config.camera_frame:
-                self.data_writer.write_fits_file(
-                    f,
-                    frame=self.config.camera_frame,
-                    obstype=self.obstype.get(),
-                    target=self.target_object.get(),
-                )
-            else:
-                self.data_writer.write_fits_file(
-                    f,
-                    image=self.config.full_img,
-                    obstype=self.obstype.get(),
-                    target=self.target_object.get(),
-                )
+            self.data_writer.write_fits_file(f, self.config)
+
+        # re-enable obstype and target UI elements
+        self.obstype_selector.configure(state=tk.NORMAL)
+        self.target_entry.configure(state=tk.NORMAL)
 
     def select_sequence_file(self):
         """Select input file for automated sequence"""
@@ -257,7 +259,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
 
     def after_focus(self, future: asyncio.Future):
         """Callback for after focus completes"""
-        self.focus_position.set(f"Best Focus: {future.result():.3f}")
+        self.focus_position.set(f"Best Focus: {self.config.focus_position:.3f}")
         self.focus_button.configure(state=tk.NORMAL)
 
     def center(self):

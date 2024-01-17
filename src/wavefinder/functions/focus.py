@@ -1,11 +1,9 @@
 import asyncio
 
-import numpy as np
-
 from ..devices.Axis import Axis
 from ..devices.MightexBufCmos import Camera
 from ..gui.config import Configuration
-from .image import get_centroid_and_variance
+from .image import find_centroid, find_full_width_half_max, threshold_copy
 
 
 class Focuser:
@@ -34,8 +32,6 @@ class Focuser:
         self.points_per_pass = focus_points_per_pass
         self.frames_per_point = focus_frames_per_point
         self.min_move = minimum_move
-
-        self.best_focus = 0.0
 
         if not self.f_axis:
             print("Camera focuser z-axis not found.")
@@ -88,15 +84,14 @@ class Focuser:
                             frame = self.camera.get_newest_frame()
                             nT = frame.nTriggers
 
-                        # compute focus
-                        # TODO use new fwhm methods
-                        stats = get_centroid_and_variance(
+                        # compute focus by centroid and FWHM
+                        image_copy = threshold_copy(
                             frame.img_array, frame.bits, threshold
                         )
-                        # sqrt(var_x) * sqrt(var_y)
-                        v = np.sqrt(stats[2]) * np.sqrt(stats[3])
-                        sum += v
-                    
+                        sum += find_full_width_half_max(
+                            image_copy, find_centroid(image_copy)
+                        )
+
                     # ignore if no pixels above threshold
                     if sum != 0:
                         focus_curve[pos] = sum / self.frames_per_point
@@ -118,5 +113,6 @@ class Focuser:
             await self.camera.set_mode(run_mode=old_mode, write_now=True)
 
         # return best position
-        self.best_focus = focus_pos
+        self.config.focus_done = True
+        self.config.focus_position = focus_pos
         return focus_pos
