@@ -42,16 +42,11 @@ class Configuration:
         self.image_roi_threshold = 50.0
         self.roi_size = (50, 50)
         self.image_use_roi_stats = False
-        # TODO replace dict with individual vars for easier traceability and type checking
-        self.img_stats = {
-            "size_x": 0,
-            "size_y": 0,
-            "cen_x": 0.0,
-            "cen_y": 0.0,
-            "fwhm": 0.0,
-            "max": 0,
-            "n_sat": 0,
-        }
+        self.image_size : tuple[int, int] = (0, 0)
+        self.image_centroid = (0.0, 0.0)
+        self.image_fwhm = 0.0
+        self.image_max_value = 0
+        self.image_n_saturated = 0
 
         # motion defaults
         self.zaber_ports = [

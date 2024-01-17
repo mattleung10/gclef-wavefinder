@@ -84,7 +84,7 @@ class DataWriter:
         pxsizex, pxsizey = self.positioner.px_size
         headers["pxsizex"] = (pxsizex, "[um] pixel size in x dimension")
         headers["pxsizey"] = (pxsizey, "[um] pixel size in y dimension")
-        headers.update(self.make_img_headers(frame.img_array, frame.bits))
+        headers.update(self.make_image_headers(frame.img_array, frame.bits))
         return headers
 
     def make_dummy_frame_headers(
@@ -93,10 +93,10 @@ class DataWriter:
         """Make fake camera headers"""
         headers: dict[str, tuple[float | int | str, str]] = {}
         headers["detector"] = ("simulated", "detector name")
-        headers.update(self.make_img_headers(np.array(img), 8))
+        headers.update(self.make_image_headers(np.array(img), 8))
         return headers
 
-    def make_img_headers(
+    def make_image_headers(
         self, img_array: np.ndarray, bits: int
     ) -> dict[str, tuple[float | int | str, str]]:
         """Make headers from image"""

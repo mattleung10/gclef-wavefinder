@@ -41,7 +41,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         # self.make_sequence_slice() # TODO: implement
         self.make_mode_switch_slice()
         self.make_threshold_slice()
-        self.make_img_stats_slice()
+        self.make_image_stats_slice()
         self.make_auto_buttons_slice()
         self.make_focus_slice()
 
@@ -161,13 +161,13 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         ).grid(column=3, row=0, rowspan=2, sticky=tk.W, pady=10, padx=10)
         threshold_frame.grid(column=0, row=3, columnspan=2, pady=10, sticky=tk.EW)
 
-    def make_img_stats_slice(self):
-        self.img_stats_header = tk.StringVar(value="Image Statistics")
+    def make_image_stats_slice(self):
+        self.image_stats_header = tk.StringVar(value="Image Statistics")
         ttk.Label(
-            self, textvariable=self.img_stats_header, font="TkDefaultFont 9 underline"
+            self, textvariable=self.image_stats_header, font="TkDefaultFont 9 underline"
         ).grid(column=0, row=4, sticky=tk.W)
-        self.img_stats_txt = tk.StringVar(value="B\nC\nD\nE")
-        ttk.Label(self, textvariable=self.img_stats_txt).grid(
+        self.image_stats_txt = tk.StringVar(value="B\nC\nD\nE")
+        ttk.Label(self, textvariable=self.image_stats_txt).grid(
             column=0, row=5, rowspan=4, sticky=tk.W
         )
 
@@ -270,27 +270,26 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         """Callback for after center completes"""
         self.center_button.configure(state=tk.NORMAL)
 
-    def update_img_stats_txt(self):
+    def update_image_stats_txt(self):
         """Update image statistics"""
         stats_txt = ""
 
         if self.config.image_use_roi_stats:
-            self.img_stats_header.set("Region of Interest Image Statistics")
+            self.image_stats_header.set("Region of Interest Image Statistics")
         else:
-            self.img_stats_header.set("Full Frame Image Statistics")
+            self.image_stats_header.set("Full Frame Image Statistics")
 
-        cen_x = self.config.img_stats["cen_x"]
-        cen_y = self.config.img_stats["cen_y"]
-        fwhm = self.config.img_stats["fwhm"]
-        stats_txt += "Centroid: " + f"({cen_x:.2f}, {cen_y:.2f})"
-        stats_txt += "\nFWHM: " + f"{fwhm:.3f}"
-        stats_txt += "\nMax Pixel Value: " + str(self.config.img_stats["max"])
-        stats_txt += "\nSaturated Pixels: " + str(self.config.img_stats["n_sat"])
-        self.img_stats_txt.set(stats_txt)
+        cen_x = self.config.image_centroid[0]
+        cen_y = self.config.image_centroid[1]
+        stats_txt += f"Centroid: ({cen_x:.2f}, {cen_y:.2f})\n"
+        stats_txt += f"FWHM: {self.config.image_fwhm:.3f}\n"
+        stats_txt += f"Max Pixel Value: {self.config.image_max_value}\n"
+        stats_txt += f"Saturated Pixels: {self.config.image_n_saturated}"
+        self.image_stats_txt.set(stats_txt)
 
     async def update(self):
         """Update UI"""
-        self.update_img_stats_txt()
+        self.update_image_stats_txt()
 
     def close(self):
         """Close out all tasks"""

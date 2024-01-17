@@ -406,8 +406,9 @@ class CameraPanel(Cyclic):
 
     def update_roi_img(self):
         """Update the region of interest image"""
-        box = self.get_roi_box()
+
         # crop to ROI, then blow up ROI by zoom factor
+        box = self.get_roi_box()
         x = box[2] - box[0]
         y = box[3] - box[1]
         z = self.roi_zoom
@@ -415,6 +416,7 @@ class CameraPanel(Cyclic):
         zoomed = roi_img.resize(
             size=(z * x, z * y), resample=Image.Resampling.NEAREST
         ).convert("RGB")
+
         # draw crosshairs
         ImageDraw.Draw(zoomed).line(
             [(0, z * (y // 2) + z // 2), (z * x, z * (y // 2) + z // 2)],
@@ -424,19 +426,19 @@ class CameraPanel(Cyclic):
             [(z * (x // 2) + z // 2, 0), (z * (x // 2) + z // 2, z * y)],
             fill=ImageColor.getrgb("yellow"),
         )
+
         # draw FWHM
-        x_hwhm = self.config.img_stats["fwhm"] / 2
-        y_hwhm = self.config.img_stats["fwhm"] / 2
         # NOTE: when drawing the zoomed-in view for the ROI, add half a pixel to both x & y.
         #       Pixels are drawn as boxes, where their position is nominally their top-left
         #       corner, so adding half a pixel to both dimensions puts the pixel position in
         #       the center of the pixel, which looks better.
+        hwhm = self.config.image_fwhm / 2
         ImageDraw.Draw(zoomed).ellipse(
             (
-                z * (self.config.img_stats["cen_x"] - box[0] - x_hwhm + 1 / 2),
-                z * (self.config.img_stats["cen_y"] - box[1] - y_hwhm + 1 / 2),
-                z * (self.config.img_stats["cen_x"] - box[0] + x_hwhm + 1 / 2),
-                z * (self.config.img_stats["cen_y"] - box[1] + y_hwhm + 1 / 2),
+                z * (self.config.image_centroid[0] - hwhm - box[0] + 1 / 2),
+                z * (self.config.image_centroid[1] - hwhm - box[1] + 1 / 2),
+                z * (self.config.image_centroid[0] + hwhm - box[0] + 1 / 2),
+                z * (self.config.image_centroid[1] + hwhm - box[1] + 1 / 2),
             ),
             outline=ImageColor.getrgb("red"),
         )
@@ -555,7 +557,7 @@ class CameraPanel(Cyclic):
             fill="blue",
         )
 
-    def update_img_props(self, camera_frame: Frame):
+    def update_image_props(self, camera_frame: Frame):
         """Update image properties"""
         prop_str = ""
         for p in [
@@ -574,7 +576,7 @@ class CameraPanel(Cyclic):
             prop_str += str(p) + ": " + str(getattr(camera_frame, p)) + "\n"
         self.img_props.set(prop_str.strip())
 
-    def update_img_stats(self):
+    def update_image_stats(self):
         """Update image statistics"""
         if self.config.camera_frame:
             image = self.config.camera_frame.img_array
@@ -584,8 +586,7 @@ class CameraPanel(Cyclic):
             bits = 8
 
         # full frame size
-        size_x = np.size(image, 1)
-        size_y = np.size(image, 0)
+        self.config.image_size = (np.size(image, 1), np.size(image, 0))
 
         # use ROI if selected
         if self.config.image_use_roi_stats:
@@ -595,9 +596,10 @@ class CameraPanel(Cyclic):
         else:
             threshold = self.config.image_full_threshold
 
-        copy = threshold_copy(image, bits, threshold)
-        cen_x, cen_y = find_centroid(copy)
-        fwhm = find_full_width_half_max(copy, (cen_x, cen_y))
+        # find centroid and FWHM
+        image_copy = threshold_copy(image, bits, threshold)
+        cen_x, cen_y = find_centroid(image_copy)
+        self.config.image_fwhm = find_full_width_half_max(image_copy, (cen_x, cen_y))
 
         # translate to full-frame pixel coordinates
         if self.config.image_use_roi_stats:
@@ -605,13 +607,10 @@ class CameraPanel(Cyclic):
             cen_x += box[0]
             cen_y += box[1]
 
-        self.config.img_stats["fwhm"] = fwhm
-        self.config.img_stats["size_x"] = size_x
-        self.config.img_stats["size_y"] = size_y
-        self.config.img_stats["cen_x"] = cen_x
-        self.config.img_stats["cen_y"] = cen_y
-        self.config.img_stats["max"] = np.max(image)
-        self.config.img_stats["n_sat"] = np.count_nonzero(image == (1 << bits) - 1)
+        # store centroid, find maximum value and number of saturated pixels
+        self.config.image_centroid = (cen_x, cen_y)
+        self.config.image_max_value = int(np.max(image))
+        self.config.image_n_saturated = np.count_nonzero(image == (1 << bits) - 1)
 
     def update_full_frame_preview(self):
         """Update the full frame preview"""
@@ -623,15 +622,13 @@ class CameraPanel(Cyclic):
         )
 
         # draw FWHM
-        x_hwhm = self.config.img_stats["fwhm"] / 2
-        y_hwhm = self.config.img_stats["fwhm"] / 2
-
+        hwhm = self.config.image_fwhm / 2
         ImageDraw.Draw(img).ellipse(
             (
-                self.config.img_stats["cen_x"] - x_hwhm,
-                self.config.img_stats["cen_y"] - y_hwhm,
-                self.config.img_stats["cen_x"] + x_hwhm,
-                self.config.img_stats["cen_y"] + y_hwhm,
+                self.config.image_centroid[0] - hwhm,
+                self.config.image_centroid[1] - hwhm,
+                self.config.image_centroid[0] + hwhm,
+                self.config.image_centroid[1] + hwhm,
             ),
             width=3,
             outline=ImageColor.getrgb("red"),
@@ -788,7 +785,7 @@ class CameraPanel(Cyclic):
                     self.config.full_img = Image.fromarray(
                         self.config.camera_frame.display_array
                     )
-                    self.update_img_props(self.config.camera_frame)
+                    self.update_image_props(self.config.camera_frame)
                     if self.update_resolution_flag:
                         make_task(self.update_resolution(), self.tasks)
                 except IndexError:
@@ -808,7 +805,7 @@ class CameraPanel(Cyclic):
                 # dark noise with gradient spot overlay
                 self.config.full_img = ImageChops.add(noise, bk, 1.5, 10)
 
-        self.update_img_stats()
+        self.update_image_stats()
         self.update_full_frame_preview()
         box = self.get_roi_box()
         if self.config.camera_frame:

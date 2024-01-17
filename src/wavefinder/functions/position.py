@@ -16,7 +16,7 @@ class Positioner:
         y_axis: device that moves the image in the y direction
         px_size: pixel size as (x, y) in micrometers
         """
-        self.img_stats = config.img_stats
+        self.config = config
         self.x_axis = x_axis
         self.y_axis = y_axis
         self.px_size = config.camera_pixel_size
@@ -37,11 +37,11 @@ class Positioner:
         center = (0, 0)
         if self.x_axis and self.y_axis:
             img_center = (
-                self.img_stats["size_x"] / 2,
-                self.img_stats["size_y"] / 2,
+                self.config.image_size[0] / 2,
+                self.config.image_size[1] / 2,
             )
-            move_x_px = -(self.img_stats["cen_x"] - img_center[0])
-            move_y_px = self.img_stats["cen_y"] - img_center[1]
+            move_x_px = -(self.config.image_centroid[0] - img_center[0])
+            move_y_px = self.config.image_centroid[1] - img_center[1]
 
             await self.x_axis.move_relative((move_x_px * self.px_size[0]) / 1000)
             await self.y_axis.move_relative((move_y_px * self.px_size[1]) / 1000)
