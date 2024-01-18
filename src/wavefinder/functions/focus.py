@@ -3,7 +3,7 @@ import asyncio
 from ..devices.Axis import Axis
 from ..devices.MightexBufCmos import Camera
 from ..gui.config import Configuration
-from .image import find_centroid, find_full_width_half_max, threshold_copy
+from .image import find_full_width_half_max, threshold_copy
 
 
 class Focuser:
@@ -88,9 +88,7 @@ class Focuser:
                         image_copy = threshold_copy(
                             frame.img_array, frame.bits, threshold
                         )
-                        sum += find_full_width_half_max(
-                            image_copy, find_centroid(image_copy)
-                        )
+                        sum += find_full_width_half_max(image_copy)
 
                     # ignore if no pixels above threshold
                     if sum != 0:
