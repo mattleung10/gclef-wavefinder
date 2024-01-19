@@ -1,5 +1,7 @@
 import asyncio
 
+import numpy as np
+
 from ..devices.Axis import Axis
 from ..devices.MightexBufCmos import Camera
 from ..gui.config import Configuration
@@ -84,14 +86,15 @@ class Focuser:
                             frame = self.camera.get_newest_frame()
                             nT = frame.nTriggers
 
-                        # compute focus by centroid and FWHM
+                        # use fwhm of thresholded image as metric for focus quality
+                        # if fwhm is NaN, sum will be NaN and thrown out
                         image_copy = threshold_copy(
                             frame.img_array, frame.bits, threshold
                         )
                         sum += find_full_width_half_max(image_copy)
 
-                    # ignore if no pixels above threshold
-                    if sum != 0:
+                    # insert average fwhm into focus curve if it exists
+                    if not np.isnan(sum):
                         focus_curve[pos] = sum / self.frames_per_point
 
                 # find minimum along focus_curve

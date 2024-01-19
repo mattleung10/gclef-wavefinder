@@ -28,23 +28,26 @@ def find_centroid(img_array: np.ndarray) -> tuple[float, float]:
         img_array: numpy array of image pixels
 
     Returns:
-        (u_x, u_y) in pixels
+        (u_x, u_y) in pixels or (NaN, NaN) if does not exist
     """
+
+    # if image is all dark, fwhm does not exist
+    if np.sum(img_array) == 0:
+        return (np.nan, np.nan)
+
     # make a grid of pixel coordinates in the x and y dimensions, e.g.:
     #   xx, yy = np.meshgrid(np.arange(2), np.arange(3))
     #   xx = array([[0, 1],     yy = array([[0, 0],
     #               [0, 1],                 [1, 1],
     #               [0, 1]])                [2, 2]])
     xx, yy = np.meshgrid(np.arange(img_array.shape[1]), np.arange(img_array.shape[0]))
-    u_x, u_y = 0.0, 0.0
-
     try:
         # take the weighted average of the pixel coordinates, using the pixel values as weights
         u_x = float(np.average(xx, weights=img_array))
         u_y = float(np.average(yy, weights=img_array))
+        return (u_x, u_y)
     except ZeroDivisionError:
-        pass
-    return (u_x, u_y)
+        return (np.nan, np.nan)
 
 
 def find_full_width_half_max(
@@ -61,8 +64,16 @@ def find_full_width_half_max(
     Returns:
         diameter of full-width half-max in pixels
     """
+
+    # if image is all dark, fwhm does not exist
+    if np.sum(img_array) == 0:
+        return np.nan
+
+    # get centroid if not provided; return NaN if centroid is NaN
     if centroid is None:
         centroid = find_centroid(img_array)
+    if np.isnan(centroid[0]) or np.isnan(centroid[1]):
+        return np.nan
 
     # NOTE: select fwhm method here
     # fwhm = fwhm_by_variance(img_array, centroid)
@@ -186,8 +197,10 @@ def fwhm_by_weighted_encircled_energy(
     all pixels in the image.
     """
 
-    # total energy in image
+    # total energy in image, can't be zero
     total_e = np.sum(img_array)
+    if total_e == 0:
+        return np.nan
 
     # find center of pixel which contains centroid and save the remainder
     # NOTE: numpy array x and y are flipped from how they are displayed

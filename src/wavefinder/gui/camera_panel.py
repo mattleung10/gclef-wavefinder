@@ -621,18 +621,24 @@ class CameraPanel(Cyclic):
             roi_box, width=3, outline=ImageColor.getrgb("yellow")
         )
 
-        # draw FWHM
-        hwhm = self.config.image_fwhm / 2
-        ImageDraw.Draw(img).ellipse(
-            (
-                self.config.image_centroid[0] - hwhm,
-                self.config.image_centroid[1] - hwhm,
-                self.config.image_centroid[0] + hwhm,
-                self.config.image_centroid[1] + hwhm,
-            ),
-            width=3,
-            outline=ImageColor.getrgb("red"),
-        )
+        # draw FWHM if it exists
+        if not (
+            np.isnan(self.config.image_centroid[0])
+            or np.isnan(self.config.image_centroid[1])
+        ):
+            hwhm = self.config.image_fwhm / 2
+            if np.isnan(hwhm):
+                hwhm = 0
+            ImageDraw.Draw(img).ellipse(
+                (
+                    self.config.image_centroid[0] - hwhm,
+                    self.config.image_centroid[1] - hwhm,
+                    self.config.image_centroid[0] + hwhm,
+                    self.config.image_centroid[1] + hwhm,
+                ),
+                width=3,
+                outline=ImageColor.getrgb("red"),
+            )
         # display
         disp_img = ImageTk.PhotoImage(img.resize((img.width // 4, img.height // 4)))
         self.full_frame_preview.img = disp_img  # type: ignore # protect from garbage collect
