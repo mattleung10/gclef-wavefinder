@@ -213,9 +213,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
                 self.config.image_frozen = True
                 self.capture_button_txt.set("Resume")
 
-        # freeze and record obstype and target
-        self.obstype_selector.configure(state=tk.DISABLED)
-        self.target_entry.configure(state=tk.DISABLED)
+        # record obstype and target
         self.config.image_obstype = self.obstype.get()
         self.config.image_target = self.target.get()
 
@@ -237,10 +235,6 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         # if successful, write FITS file
         if f:
             self.data_writer.write_fits_file(f, self.config)
-
-        # re-enable obstype and target UI elements
-        self.obstype_selector.configure(state=tk.NORMAL)
-        self.target_entry.configure(state=tk.NORMAL)
 
     def select_sequence_file(self):
         """Select input file for automated sequence"""
