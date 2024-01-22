@@ -98,7 +98,9 @@ class DataWriter:
         # find centroid and FWHM
         image_copy = threshold_copy(img_array, bits, threshold)
         centroid = find_centroid(image_copy)
-        fwhm = find_full_width_half_max(image_copy, centroid)
+        fwhm = find_full_width_half_max(
+            image_copy, centroid, self.config.image_fwhm_method
+        )
         headers["cenx"] = (centroid[0], "[px] centroid along x axis")
         headers["ceny"] = (centroid[1], "[px] centroid along y axis")
         headers["fwhm"] = (fwhm, "[px] full width half maximum")

@@ -91,7 +91,9 @@ class Focuser:
                         image_copy = threshold_copy(
                             frame.img_array, frame.bits, threshold
                         )
-                        sum += find_full_width_half_max(image_copy)
+                        sum += find_full_width_half_max(
+                            image_copy, method=self.config.image_fwhm_method
+                        )
 
                     # insert average fwhm into focus curve if it exists
                     if not np.isnan(sum):

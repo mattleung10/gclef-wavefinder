@@ -599,7 +599,9 @@ class CameraPanel(Cyclic):
         # find centroid and FWHM
         image_copy = threshold_copy(image, bits, threshold)
         cen_x, cen_y = find_centroid(image_copy)
-        self.config.image_fwhm = find_full_width_half_max(image_copy, (cen_x, cen_y))
+        self.config.image_fwhm = find_full_width_half_max(
+            image_copy, (cen_x, cen_y), self.config.image_fwhm_method
+        )
 
         # translate to full-frame pixel coordinates
         if self.config.image_use_roi_stats:

@@ -21,6 +21,7 @@ full_threshold  = 50.0
 roi_threshold   = 50.0
 roi_size        = {x = 50, y = 50}
 use_roi_stats   = false
+fwhm_method     = "variance"
 
 [motion.zaber]
 ports = [
@@ -90,6 +91,9 @@ minimum_move        =  0.001
 # roi_size:         size of ROI bounding box in pixels, default [{x = 50, y = 50}]
 # use_roi_stats:    true to use the region of interest for all image processing,
 #                       false to use the full frame
+# fwhm_method:      full-width half-maximum calculation method is one of
+#                       ["variance"], "encircled_pixels", "encircled_energy",
+#                       "weighted_encircled_energy"
 #
 # [camera]
 # run_mode:     ["NORMAL"] (streaming video) or "TRIGGER" (single exposure)

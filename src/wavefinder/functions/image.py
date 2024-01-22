@@ -51,7 +51,9 @@ def find_centroid(img_array: np.ndarray) -> tuple[float, float]:
 
 
 def find_full_width_half_max(
-    img_array: np.ndarray, centroid: tuple[float, float] | None = None
+    img_array: np.ndarray,
+    centroid: tuple[float, float] | None = None,
+    method: str = "variance",
 ) -> float:
     """Find full-width half-maximum.
 
@@ -60,6 +62,9 @@ def find_full_width_half_max(
     Args:
         img_array: numpy array of image pixels
         centroid: tuple of (u_x, u_y) giving the centroid of the img_array
+        method: fwhm calculation method, defaults to "variance"
+                other choices are: "encircled_pixels", "encircled_energy",
+                "weighted_encircled_energy"
 
     Returns:
         diameter of full-width half-max in pixels
@@ -75,11 +80,18 @@ def find_full_width_half_max(
     if np.isnan(centroid[0]) or np.isnan(centroid[1]):
         return np.nan
 
-    # NOTE: select fwhm method here
-    # fwhm = fwhm_by_variance(img_array, centroid)
-    # fwhm = fwhm_by_encircled_pixels(img_array, centroid)
-    # fwhm = fwhm_by_encircled_energy(img_array, centroid)
-    fwhm = fwhm_by_weighted_encircled_energy(img_array, centroid)
+    # select fwhm method
+    match method:
+        case "variance":
+            fwhm = fwhm_by_variance(img_array, centroid)
+        case "encircled_pixels":
+            fwhm = fwhm_by_encircled_pixels(img_array, centroid)
+        case "encircled_energy":
+            fwhm = fwhm_by_encircled_energy(img_array, centroid)
+        case "weighted_encircled_energy":
+            fwhm = fwhm_by_weighted_encircled_energy(img_array, centroid)
+        case _:
+            fwhm = fwhm_by_variance(img_array, centroid)
     return fwhm
 
 
