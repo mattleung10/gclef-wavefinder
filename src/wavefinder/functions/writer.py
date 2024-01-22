@@ -147,7 +147,10 @@ class DataWriter:
         headers: dict[str, tuple[str, str]] = {}
         headers["date"] = (Time.now().fits, "time this file was created, in UTC")  # type: ignore
         headers["origin"] = ("CfA", "institution which created this file")
-        headers["creator"] = ("gclef-wavefinder", "software which created this file")
+        headers["creator"] = (
+            f"gclef-wavefinder v{self.config.version}",
+            "software which created this file",
+        )
         headers["instrume"] = ("G-CLEF_AIT", "instrument name")
         headers["timesys"] = ("UTC", "time coordinate system")
         headers["timeunit"] = ("s", "time unit")

@@ -19,6 +19,8 @@ class Configuration:
 
     def set_defaults(self):
         "Set configuration to default."
+        self.version = "?"
+
         # task defaults
         self.interval = 1 / 60  # seconds
 

@@ -4,6 +4,7 @@ import platform
 import sys
 import tkinter as tk
 import traceback
+from importlib.metadata import PackageNotFoundError, version
 
 from ..devices.Axis import Axis
 from ..devices.GalilAdapter import GalilAdapter
@@ -44,11 +45,18 @@ class App(ScrollableWindow):
         self.tasks: set[asyncio.Task] = set()
         self.cyclics: set[Cyclic] = set()
 
-        # UI variables and setup
-        self.title("G-CLEF Wavefinder")
-        self.grid()
-        self.configure(padx=10, pady=10)
+        # get version string and print intro
+        try:
+            self.config.version = version("wavefinder")
+        except PackageNotFoundError:
+            self.config.version = "?"
+        print(f"--- G-CLEF Wavefinder v{self.config.version} ---")
 
+        # UI setup
+        self.title(f"G-CLEF Wavefinder v{self.config.version}")
+        self.grid()
+
+        # start application
         self.create_devices()
         self.make_functions()
         self.make_panels()
@@ -146,10 +154,9 @@ class App(ScrollableWindow):
         )
         self.function_panel.grid(column=1, row=2, sticky=tk.NSEW)
 
-        # pad all panels
+        # pad between all panels
         for f in self.frame.winfo_children():
-            f.configure(padding="3 3 12 12")  # type: ignore
-            f.grid_configure(padx=3, pady=(10, 0))
+            f.grid_configure(padx=3, pady=5)
 
         # add panels to cyclic tasks
         self.cyclics.update([self.camera_panel, self.motion_panel, self.function_panel])
@@ -165,7 +172,6 @@ class App(ScrollableWindow):
 
     def run(self):
         """Run the loop"""
-        print("--- Starting Application ---")
         self.protocol("WM_DELETE_WINDOW", self.close)  # bind close
         try:
             self.loop.run_forever()
