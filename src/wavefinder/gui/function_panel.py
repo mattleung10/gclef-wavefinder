@@ -1,4 +1,6 @@
 import asyncio
+import os
+import string
 import tkinter as tk
 from tkinter import filedialog, ttk
 
@@ -38,7 +40,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         self.tasks: set[asyncio.Task] = set()
 
         self.make_capture_buttons_slice()
-        # self.make_sequence_slice() # TODO: implement
+        self.make_sequence_slice()
         self.make_mode_switch_slice()
         self.make_threshold_slice()
         self.make_image_stats_slice()
@@ -219,31 +221,54 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
 
     def save_img(self):
         """Save image dialog"""
-
         # use current date as default filename
         t = Time.now()
         datestr = f"{t.ymdhms[0]:04}{t.ymdhms[1]:02}{t.ymdhms[2]:02}"
-
-        # select filename to save as
-        f = filedialog.asksaveasfilename(
+        filename = filedialog.asksaveasfilename(
             initialdir="images/",
             initialfile=f"gclef_{datestr}_ait.fits",
             filetypes=(("FITS files", ["*.fits", "*.fts"]), ("all files", "*.*")),
             defaultextension=".fits",
         )
-
-        # if successful, write FITS file
-        if f:
-            self.data_writer.write_fits_file(f, self.config)
+        if filename:
+            self.data_writer.write_fits_file(filename, self.config)
 
     def select_sequence_file(self):
         """Select input file for automated sequence"""
-        # TODO select input file dialog
-        self.sequencer.read_input_file()
+        filename = filedialog.askopenfilename(
+            initialfile=f"sequence.csv",
+            filetypes=(("CSV files", "*.csv"), ("all files", "*.*")),
+        )
+        if filename:
+            self.sequencer.read_input_file(filename)
 
     def run_sequence(self):
-        """Run automated sequence"""
-        self.sequencer.run_sequence()
+        """Run automated sequence
+
+        First select the output directory and make a subdirectory for the data,
+        then run the sequence.
+        """
+        directory = ""
+        parent_dir = filedialog.askdirectory(
+            title="Select Parent Directory to Save Data", mustexist=False
+        )
+        if parent_dir:
+            # use current date as subdirectory name
+            t = Time.now()
+            datestr = f"{t.ymdhms[0]:04}{t.ymdhms[1]:02}{t.ymdhms[2]:02}"
+            subdir = ""
+            # add suffix a, b, c, etc.
+            for l in string.ascii_letters:
+                subdir = f"{datestr}_{l}"
+                try:
+                    directory = os.path.join(parent_dir, subdir)
+                    os.makedirs(directory)
+                    break
+                except FileExistsError:
+                    # if this one exists, try the next letter
+                    continue
+        if os.path.exists(directory):
+            self.sequencer.run_sequence(directory)
 
     def focus(self):
         """Start focus routine"""
