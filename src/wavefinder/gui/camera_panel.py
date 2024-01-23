@@ -641,8 +641,11 @@ class CameraPanel(Cyclic):
                 width=3,
                 outline=ImageColor.getrgb("red"),
             )
-        # display
-        disp_img = ImageTk.PhotoImage(img.resize((img.width // 4, img.height // 4)))
+        # display, scale to screen resolution
+        # NOTE: arbitrary width of 6 * 12 characters of size 6 font, height scaled to same ratio
+        font_width = font.Font(font="TkDefaultFont 6").measure(text="123456")
+        ratio = img.width // (font_width * 12)
+        disp_img = ImageTk.PhotoImage(img.resize((img.width // ratio, img.height // ratio)))
         self.full_frame_preview.img = disp_img  # type: ignore # protect from garbage collect
         self.full_frame_preview.configure(image=disp_img)
 
