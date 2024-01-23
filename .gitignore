@@ -1,7 +1,7 @@
 .venv
 .vscode
 __pycache__
-images
+./images
 *.egg-info
 build
 */build
