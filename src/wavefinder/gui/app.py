@@ -132,7 +132,7 @@ class App(ScrollableWindow):
             self.config.focus_frames_per_point,
             self.config.focus_minimum_move,
         )
-        self.sequencer = Sequencer(self.config)
+        self.sequencer = Sequencer(self.config, self.axes)
         self.writer = DataWriter(self.camera, self.axes)
 
     def make_panels(self):

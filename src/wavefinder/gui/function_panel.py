@@ -94,7 +94,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         ttk.Button(
             sequence_frame, text="Run", command=self.run_sequence, width=13
         ).grid(column=2, row=0, padx=10, pady=(10, 0), sticky=tk.E)
-        self.sequence_status = tk.StringVar(value="Progress")
+        self.sequence_status = tk.StringVar(value="Need Input File")
         ttk.Label(sequence_frame, textvariable=self.sequence_status).grid(
             column=0, row=1, padx=10, sticky=tk.E
         )
@@ -241,6 +241,9 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         )
         if filename:
             self.sequencer.read_input_file(filename)
+            self.sequence_status.set(
+                f"Loaded {os.path.basename(filename)}\nReady to Run"
+            )
 
     def run_sequence(self):
         """Run automated sequence

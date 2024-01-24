@@ -14,7 +14,6 @@ class Positioner:
         config: application configuration
         x_axis: device that moves the image in the x direction
         y_axis: device that moves the image in the y direction
-        px_size: pixel size as (x, y) in micrometers
         """
         self.config = config
         self.x_axis = x_axis
