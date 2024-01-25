@@ -101,9 +101,12 @@ class DataWriter:
         fwhm = find_full_width_half_max(
             image_copy, centroid, self.config.image_fwhm_method
         )
-        headers["cenx"] = (centroid[0], "[px] centroid along x axis")
-        headers["ceny"] = (centroid[1], "[px] centroid along y axis")
-        headers["fwhm"] = (fwhm, "[px] full width half maximum")
+        # skip if NaN
+        if not np.isnan(centroid).any():
+            headers["cenx"] = (centroid[0], "[px] centroid along x axis")
+            headers["ceny"] = (centroid[1], "[px] centroid along y axis")
+        if not np.isnan(fwhm):
+            headers["fwhm"] = (fwhm, "[px] full width half maximum")
         return headers
 
     def make_axis_headers(self) -> dict[str, tuple[float | int | str, str]]:
