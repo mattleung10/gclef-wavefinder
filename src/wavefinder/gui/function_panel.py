@@ -24,16 +24,12 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         parent: ttk.Frame,
         config: Configuration,
         camera: Camera | None,
-        focuser: Focuser,
-        positioner: Positioner,
         sequencer: Sequencer,
         data_writer: DataWriter,
     ):
         super().__init__(parent, text="Functions", labelanchor=tk.N)
         self.config = config
         self.camera = camera
-        self.focuser = focuser
-        self.positioner = positioner
         self.sequencer = sequencer
         self.data_writer = data_writer
 
@@ -85,15 +81,21 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         ttk.Label(sequence_frame, text="Automated Sequence").grid(
             column=0, row=0, padx=10, sticky=tk.E
         )
-        ttk.Button(
+        self.select_sequence_button = ttk.Button(
             sequence_frame,
             text="Select Input File",
             command=self.select_sequence_file,
             width=13,
-        ).grid(column=1, row=0, padx=10, pady=(10, 0), sticky=tk.W)
-        ttk.Button(
+        )
+        self.select_sequence_button.grid(
+            column=1, row=0, padx=10, pady=(10, 0), sticky=tk.W
+        )
+        self.run_sequence_button = ttk.Button(
             sequence_frame, text="Run", command=self.run_sequence, width=13
-        ).grid(column=2, row=0, padx=10, pady=(10, 0), sticky=tk.E)
+        )
+        self.run_sequence_button.grid(
+            column=2, row=0, padx=10, pady=(10, 0), sticky=tk.E
+        )
         self.sequence_status = tk.StringVar(value="Need Input File")
         ttk.Label(sequence_frame, textvariable=self.sequence_status).grid(
             column=0, row=1, padx=10, sticky=tk.E
@@ -271,11 +273,21 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
                     # if this one exists, try the next letter
                     continue
         if os.path.exists(directory):
-            self.sequencer.run_sequence(directory)
+            t, _ = make_task(
+                self.sequencer.run_sequence(directory, self.sequence_status), self.tasks
+            )
+            t.add_done_callback(self.after_sequence)
+            self.run_sequence_button.configure(state=tk.DISABLED)
+            self.select_sequence_button.configure(state=tk.DISABLED)
+
+    def after_sequence(self, future: asyncio.Future):
+        """Callback for after sequence completes"""
+        self.run_sequence_button.configure(state=tk.NORMAL)
+        self.select_sequence_button.configure(state=tk.NORMAL)
 
     def focus(self):
         """Start focus routine"""
-        t, _ = make_task(self.focuser.focus(), self.tasks)
+        t, _ = make_task(self.sequencer.focus(), self.tasks)
         t.add_done_callback(self.after_focus)
         self.focus_button.configure(state=tk.DISABLED)
 
@@ -286,7 +298,10 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
 
     def center(self):
         """Center the image"""
-        t, _ = make_task(self.positioner.center(), self.tasks)
+        t, _ = make_task(
+            self.sequencer.center(self.config.image_size, self.config.image_centroid),
+            self.tasks,
+        )
         t.add_done_callback(self.after_center)
         self.center_button.configure(state=tk.DISABLED)
 

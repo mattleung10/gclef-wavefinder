@@ -49,7 +49,7 @@ class Focuser:
             else self.config.image_full_threshold
         )
 
-        focus_pos = self.f_axis.position if self.f_axis else 0.0
+        focus_pos = self.f_axis.position if self.f_axis else np.nan
         if self.camera and self.f_axis:
             # set camera to trigger mode
             old_mode = self.camera.run_mode
@@ -71,20 +71,19 @@ class Focuser:
                     await self.f_axis.move_absolute(pos)
                     sum = 0
 
-                    for frame_i in range(self.frames_per_point):
+                    for _ in range(self.frames_per_point):
+                        await self.camera.clear_buffer()
                         await self.camera.trigger()
 
-                        # if this frame isn't the right trigger, wait
-                        exp_nTriggers = (frame_i + 1) + self.frames_per_point * (
-                            point_i + self.points_per_pass * pass_i
-                        )
-                        frame = self.camera.get_newest_frame()
-                        nT = frame.nTriggers
-                        while nT < exp_nTriggers:
-                            # sleep is necessary to give other tasks time to process
-                            await asyncio.sleep(0.1)
-                            frame = self.camera.get_newest_frame()
-                            nT = frame.nTriggers
+                        # wait for frame
+                        while True:
+                            try:
+                                frame = self.camera.get_newest_frame()
+                                break
+                            except IndexError:
+                                # sleep is necessary to give other tasks time to process
+                                await asyncio.sleep(0.1)
+                                continue
 
                         # use fwhm of thresholded image as metric for focus quality
                         # if fwhm is NaN, sum will be NaN and thrown out
@@ -116,6 +115,5 @@ class Focuser:
             await self.camera.set_mode(run_mode=old_mode, write_now=True)
 
         # return best position
-        self.config.focus_done = True
         self.config.focus_position = focus_pos
         return focus_pos

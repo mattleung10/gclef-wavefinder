@@ -134,13 +134,14 @@ class DataWriter:
         id += f"-{self.config.sequence_number:03}"
         id += f"-{random.randrange(16**4):4x}"  # random hash for uniqueness
         headers["obs_id"] = (id, "unique observation ID")
-        if self.config.focus_done:
+        if not np.isnan(self.config.focus_position):
             headers["focusz"] = (
                 self.config.focus_position,
                 "[mm] z-axis (focal axis) in-focus position",
             )
             headers["dfocusz"] = (
-                self.axes[self.config.focus_axis].position - self.config.focus_position,
+                self.axes[self.config.sequencer_z_axis].position
+                - self.config.focus_position,
                 "[mm] z-axis position minus in-focus position",
             )
         return headers

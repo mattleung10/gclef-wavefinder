@@ -1,6 +1,7 @@
 import tomllib
 
 from PIL import Image
+import numpy as np
 
 from ..devices.MightexBufCmos import Camera, Frame
 
@@ -104,19 +105,14 @@ class Configuration:
             "cfm2 elevation": {"min": -30.0, "max": 30.0},
         }
 
-        # positioner defaults
-        self.camera_x_axis = "detector x"
-        self.camera_y_axis = "detector y"
-
-        # focuser defaults and state
-        self.focus_axis = "detector z"
+        # sequencer and focus defaults and state
+        self.sequencer_x_axis = "detector x"
+        self.sequencer_y_axis = "detector y"
+        self.sequencer_z_axis = "detector z"
         self.focus_points_per_pass = 10
         self.focus_frames_per_point = 3
         self.focus_minimum_move = 0.001
-        self.focus_done = False
-        self.focus_position = 0.0
-
-        # sequencer defaults and state
+        self.focus_position = np.nan
         self.sequence_number = 0
         self.sequence_order = 0
         self.sequence_wavelength = 0.0
@@ -249,26 +245,26 @@ class Configuration:
                 if "limits" in c["motion"]:
                     if isinstance(c["motion"]["limits"], dict):
                         self.motion_limits = c["motion"]["limits"]
-            if "positioner" in c:
-                if "x_axis" in c["positioner"]:
-                    if isinstance(c["positioner"]["x_axis"], str):
-                        self.camera_x_axis = c["positioner"]["x_axis"]
-                if "y_axis" in c["positioner"]:
-                    if isinstance(c["positioner"]["y_axis"], str):
-                        self.camera_y_axis = c["positioner"]["y_axis"]
-            if "focuser" in c:
-                if "focus_axis" in c["focuser"]:
-                    if isinstance(c["focuser"]["focus_axis"], str):
-                        self.focus_axis = c["focuser"]["focus_axis"]
-                if "points_per_pass" in c["focuser"]:
-                    if c["focuser"]["points_per_pass"] > 0:
-                        self.focus_points_per_pass = c["focuser"]["points_per_pass"]
-                if "frames_per_point" in c["focuser"]:
-                    if c["focuser"]["frames_per_point"] > 0:
-                        self.focus_frames_per_point = c["focuser"]["frames_per_point"]
-                if "minimum_move" in c["focuser"]:
-                    if c["focuser"]["minimum_move"] > 0:
-                        self.focus_minimum_move = c["focuser"]["minimum_move"]
+            if "sequencer" in c:
+                if "x_axis" in c["sequencer"]:
+                    if isinstance(c["sequencer"]["x_axis"], str):
+                        self.sequencer_x_axis = str(c["sequencer"]["x_axis"])
+                if "y_axis" in c["sequencer"]:
+                    if isinstance(c["sequencer"]["y_axis"], str):
+                        self.sequencer_y_axis = str(c["sequencer"]["y_axis"])
+                if "z_axis" in c["sequencer"]:
+                    if isinstance(c["sequencer"]["z_axis"], str):
+                        self.sequencer_y_axis = str(c["sequencer"]["z_axis"])
+                if "focus" in c["sequencer"]:
+                    if "points_per_pass" in c["sequencer"]["focus"]:
+                        if c["sequencer"]["focus"]["points_per_pass"] > 0:
+                            self.focus_points_per_pass = int(c["sequencer"]["focus"]["points_per_pass"])
+                    if "frames_per_point" in c["sequencer"]["focus"]:
+                        if c["sequencer"]["focus"]["frames_per_point"] > 0:
+                            self.focus_frames_per_point = int(c["sequencer"]["focus"]["frames_per_point"])
+                    if "minimum_move" in c["sequencer"]["focus"]:
+                        if c["sequencer"]["focus"]["minimum_move"] > 0:
+                            self.focus_minimum_move = float(c["sequencer"]["focus"]["minimum_move"])
         except Exception as e:
             print(f"Error parsing config file {config_filename}, using defaults\n{e}")
             self.set_defaults()

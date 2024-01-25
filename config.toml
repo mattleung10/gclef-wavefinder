@@ -66,12 +66,12 @@ drive_cnts_deg  =   10000
 "cfm2 azimuth"      = {min = -30.0, max = 30.0}
 "cfm2 elevation"    = {min = -30.0, max = 30.0}
 
-[positioner]
+[sequencer]
 x_axis      = "detector x"
 y_axis      = "detector y"
+z_axis      = "detector z"
 
-[focuser]
-focus_axis          = "detector z"
+[sequencer.focus]
 points_per_pass     = 10
 frames_per_point    =  3
 minimum_move        =  0.001
@@ -137,12 +137,12 @@ minimum_move        =  0.001
 # "focal_z" = {min =   0.0, max = 15.0}
 # "cfm1_az" = {min = -10.0, max = 10.0}
 #
-# [positioner]
+# [sequencer]
 # x_axis: name of axis to use as x-axis when positioning camera
 # y_axis: name of axis to use as y-axis when positioning camera
+# z_axis: name of axis to use as z-axis when focusing camera
 #
-# [focuser]
-# focus_axis:       name of axis to use as z-axis when focusing camera
+# [sequencer.focus]
 # points_per_pass:  number of focus points per focusing pass [10]
 # frames_per_point: number of frames to measure at each point (averaged) [3]
 # minimum_move:     minimum focus movement resolution, in mm [0.001]

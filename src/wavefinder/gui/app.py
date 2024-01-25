@@ -118,21 +118,7 @@ class App(ScrollableWindow):
 
     def make_functions(self):
         """Make function units"""
-
-        x_axis = self.axes.get(self.config.camera_x_axis, None)
-        y_axis = self.axes.get(self.config.camera_y_axis, None)
-        z_axis = self.axes.get(self.config.focus_axis, None)
-
-        self.positioner = Positioner(self.config, x_axis, y_axis)
-        self.focuser = Focuser(
-            self.config,
-            self.camera,
-            z_axis,
-            self.config.focus_points_per_pass,
-            self.config.focus_frames_per_point,
-            self.config.focus_minimum_move,
-        )
-        self.sequencer = Sequencer(self.config, self.axes)
+        self.sequencer = Sequencer(self.config, self.camera, self.axes)
         self.writer = DataWriter(self.camera, self.axes)
 
     def make_panels(self):
@@ -147,8 +133,6 @@ class App(ScrollableWindow):
             self.frame,
             self.config,
             camera=self.camera,
-            focuser=self.focuser,
-            positioner=self.positioner,
             sequencer=self.sequencer,
             data_writer=self.writer,
         )
