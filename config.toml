@@ -115,6 +115,7 @@ minimum_move        =  0.001
 # [motion.zaber.axis_names]
 # list all zaber axes as "name" = {sn = serial_number, keyword = "kw"}, e.g.
 # "detector x" = {sn = 33938,  keyword = "detxpos"}
+# keyword is for FITS header, limited to 8 chars
 #
 # [motion.galil]
 # address:      IP address of Newmark controller ["192.168.1.19"]
@@ -128,6 +129,7 @@ minimum_move        =  0.001
 # [motion.galil.axis_names]
 # list all galil/newmark axes as "name" = {ch = "channel letter", keyword = "kw"}, e.g.
 # "cfm1 azimuth" = {ch = "A", keyword = "cfm1az"}
+# keyword is for FITS header, limited to 8 chars
 #
 # [motion.limits]
 # list all motion limits (both zaber & galil) as "name" = {min = XX, max = XX}
