@@ -586,6 +586,7 @@ class CameraPanel(Cyclic):
             bits = 8
 
         # full frame size
+        # TODO: this is only used for centering, so we can probably remove it
         self.config.image_size = (np.size(image, 1), np.size(image, 0))
 
         # use ROI if selected
@@ -597,6 +598,9 @@ class CameraPanel(Cyclic):
             threshold = self.config.image_full_threshold
 
         # find centroid and FWHM
+        # TODO: move this to image.py
+        # TODO: add a config parameter to skip this image math
+        #       when we're doing focus and sequence, maybe also during centering
         image_copy = threshold_copy(image, bits, threshold)
         cen_x, cen_y = find_centroid(image_copy)
         self.config.image_fwhm = find_full_width_half_max(
@@ -645,7 +649,9 @@ class CameraPanel(Cyclic):
         # NOTE: arbitrary width of 6 * 12 characters of size 6 font, height scaled to same ratio
         font_width = font.Font(font="TkDefaultFont 6").measure(text="123456")
         ratio = round(img.width / (font_width * 12))
-        disp_img = ImageTk.PhotoImage(img.resize((img.width // ratio, img.height // ratio)))
+        disp_img = ImageTk.PhotoImage(
+            img.resize((img.width // ratio, img.height // ratio))
+        )
         self.full_frame_preview.img = disp_img  # type: ignore # protect from garbage collect
         self.full_frame_preview.configure(image=disp_img)
 

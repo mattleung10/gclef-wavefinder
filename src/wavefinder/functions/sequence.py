@@ -69,22 +69,17 @@ class Sequencer:
         centered_position = (np.nan, np.nan)
 
         if (
-            image_size[0] > 0
-            and image_size[1] > 0
-            and centroid[0] > 0
-            and centroid[1] > 0
-            and px_size[0] > 0
-            and px_size[1] > 0
+            np.greater(image_size, 0).all()
+            and not np.isnan(centroid).any()
+            and np.greater(px_size, 0).all()
             and x_axis
             and y_axis
         ):
             img_center = (image_size[0] / 2, image_size[1] / 2)
-            move_x_px = -(centroid[0] - img_center[0])
+            move_x_px = -(centroid[0] - img_center[0])  # X is mirrored
             move_y_px = centroid[1] - img_center[1]
-
             await x_axis.move_relative((move_x_px * px_size[0]) / 1000)
             await y_axis.move_relative((move_y_px * px_size[1]) / 1000)
-
             centered_position = (x_axis.position, y_axis.position)
         return centered_position
 

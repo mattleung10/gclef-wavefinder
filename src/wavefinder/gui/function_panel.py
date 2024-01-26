@@ -296,10 +296,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
 
     def center(self):
         """Center the image"""
-        t, _ = make_task(
-            self.sequencer.center(self.config.image_size, self.config.image_centroid),
-            self.tasks,
-        )
+        t, _ = make_task(self.sequencer.center(), self.tasks)
         t.add_done_callback(self.after_center)
         self.center_button.configure(state=tk.DISABLED)
 
