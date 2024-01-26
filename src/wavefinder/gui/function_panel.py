@@ -7,8 +7,6 @@ from tkinter import filedialog, ttk
 from astropy.time import Time
 
 from ..devices.MightexBufCmos import Camera
-from ..functions.focus import Focuser
-from ..functions.position import Positioner
 from ..functions.sequence import Sequencer
 from ..functions.writer import DataWriter
 from ..gui.config import Configuration

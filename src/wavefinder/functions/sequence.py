@@ -1,3 +1,4 @@
+import asyncio
 import tkinter as tk
 
 import numpy as np
@@ -29,16 +30,145 @@ class Sequencer:
             axes: dict of all motion axes
         """
         self.config = config
-        self.sequence: list[dict[str, float]] = list()
+        self.camera = camera
         self.axes = axes
+        self.sequence: list[dict[str, float]] = list()
+
+        # check for axes
+        if not self.config.sequencer_x_axis in self.axes:
+            print("Sequencer x-axis not found.")
+        if not self.config.sequencer_y_axis in self.axes:
+            print("Sequencer y-axis not found.")
+        if not self.config.sequencer_z_axis in self.axes:
+            print("Sequencer z-axis not found.")
+
+    async def center(
+        self,
+        image_size: tuple[int, int] | None = None,
+        centroid: tuple[float, float] | None = None,
+    ) -> tuple[float, float]:
+        """Move the x and y axes to center the centroid
+
+        X is mirrored. Dones nothing on error.
+
+        Args:
+            image_size: tuple of (int, int) giving the size of the image;
+                        if not provided, use config.image_size
+            centroid: tuple of (float, float) giving the computed centroid of the image;
+                        if not provided, use config.image_centroid
+
+        Returns center position in mm
+        """
+        if not image_size:
+            image_size = self.config.image_size
+        if not centroid:
+            centroid = self.config.image_centroid
+        px_size = self.config.camera_pixel_size
+        x_axis = self.axes.get(self.config.sequencer_x_axis)
+        y_axis = self.axes.get(self.config.sequencer_y_axis)
+        centered_position = (np.nan, np.nan)
+
+        if (
+            image_size[0] > 0
+            and image_size[1] > 0
+            and centroid[0] > 0
+            and centroid[1] > 0
+            and px_size[0] > 0
+            and px_size[1] > 0
+            and x_axis
+            and y_axis
+        ):
+            img_center = (image_size[0] / 2, image_size[1] / 2)
+            move_x_px = -(centroid[0] - img_center[0])
+            move_y_px = centroid[1] - img_center[1]
+
+            await x_axis.move_relative((move_x_px * px_size[0]) / 1000)
+            await y_axis.move_relative((move_y_px * px_size[1]) / 1000)
+
+            centered_position = (x_axis.position, y_axis.position)
+        return centered_position
 
     async def focus(self) -> float:
-        return np.nan
-    
-    async def center(
-        self, image_size: tuple[int, int], centroid: tuple[float, float]
-    ) -> tuple[float, float]:
-        return (np.nan, np.nan)
+        """Start the automatic focus routine
+
+        returns the best focus position
+        """
+        z_axis = self.axes.get(self.config.sequencer_z_axis)
+        fpp = self.config.focus_frames_per_point
+        ppp = self.config.focus_points_per_pass
+        min_move = self.config.focus_minimum_move
+        threshold = (
+            self.config.image_roi_threshold
+            if self.config.image_use_roi_stats
+            else self.config.image_full_threshold
+        )
+        focus_pos = z_axis.position if z_axis else np.nan
+
+        if self.camera and z_axis:
+            # set camera to trigger mode
+            old_mode = self.camera.run_mode
+            await self.camera.set_mode(run_mode=Camera.TRIGGER, write_now=True)
+
+            # set up for first pass
+            limit_min, limit_max = await z_axis.get_limits()
+            travel_min = limit_min
+            travel_max = limit_max
+            travel_dist = travel_max - travel_min
+            step_dist = travel_dist / (ppp - 1)
+            pass_i = 0
+
+            while step_dist >= min_move:
+                focus_curve: dict[float, float] = {}
+
+                for point_i in range(ppp):
+                    pos = travel_min + point_i * step_dist
+                    await z_axis.move_absolute(pos)
+                    sum = 0
+
+                    for _ in range(fpp):
+                        await self.camera.clear_buffer()
+                        await self.camera.trigger()
+                        # wait for frame
+                        while True:
+                            try:
+                                frame = self.camera.get_newest_frame()
+                                break
+                            except IndexError:
+                                # sleep is necessary to give other tasks time to process
+                                await asyncio.sleep(0.1)
+                                continue
+
+                        # use fwhm of thresholded image as metric for focus quality
+                        # if fwhm is NaN, sum will be NaN and thrown out
+                        image_copy = threshold_copy(
+                            frame.img_array, frame.bits, threshold
+                        )
+                        sum += find_full_width_half_max(
+                            image_copy, method=self.config.image_fwhm_method
+                        )
+
+                    # insert average fwhm into focus curve if it exists
+                    if not np.isnan(sum):
+                        focus_curve[pos] = sum / fpp
+
+                # find minimum along focus_curve
+                focus_pos = min(focus_curve, key=focus_curve.get, default=focus_pos)  # type: ignore
+
+                # set up for next pass
+                travel_min = min(max(focus_pos - step_dist, limit_min), limit_max)
+                travel_max = min(max(focus_pos + step_dist, limit_min), limit_max)
+                travel_dist = travel_max - travel_min
+                step_dist = travel_dist / (ppp - 1)
+                pass_i += 1
+
+            # move to focus position
+            await z_axis.move_absolute(focus_pos)
+            # restore previous camera mode
+            await self.camera.set_mode(run_mode=old_mode, write_now=True)
+
+        # return best position
+        self.config.focus_position = focus_pos
+        return focus_pos
 
     def read_input_file(self, filename: str):
         """Read input sequence file

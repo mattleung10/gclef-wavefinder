@@ -9,12 +9,21 @@ class GalilAxis(Axis):
     # Galil implementation of Axis superclass
     # See Axis for abstract function descriptions.
 
-    def __init__(self, name: str, keyword: str, channel: str, connection: py, accel: int = 2000000,
-                 decel: int = 2000000, speed: int = 100000, homing_speed: int = 5000,
-                 encoder_counts_per_degree: int = 800,
-                 drive_counts_per_degree: int = 10000) -> None:
+    def __init__(
+        self,
+        name: str,
+        keyword: str,
+        channel: str,
+        connection: py,
+        accel: int = 2000000,
+        decel: int = 2000000,
+        speed: int = 100000,
+        homing_speed: int = 5000,
+        encoder_counts_per_degree: int = 800,
+        drive_counts_per_degree: int = 10000,
+    ) -> None:
         """Zaber motion control axis
-        
+
         Args:
             name: human-readable name of axis
             keyword: FITS keyword
@@ -36,7 +45,7 @@ class GalilAxis(Axis):
         self.hspeed = homing_speed
         self.encoder_scale = encoder_counts_per_degree
         self.drive_scale = drive_counts_per_degree
-        self.units = ("deg", "arc degrees") # NOTE: hardcoded units
+        self.units = ("deg", "arc degrees")  # NOTE: hardcoded units
 
         # enable axis with "Servo Here"
         self.g.GCommand(f"SH{self.ch}")
@@ -75,7 +84,7 @@ class GalilAxis(Axis):
             await self.update_status()
         except GclibError:
             self.status = Axis.ERROR
-    
+
     async def move_absolute(self, distance: float):
         # NOTE: seems to undershoot by 50 drive counts when moving in the positive direction
         #       takes 10050 counts to get to 10.0mm; but only -10000 to get to -10.0mm, from zero
@@ -92,7 +101,7 @@ class GalilAxis(Axis):
 
     async def wait_for_motion_complete(self, ch: str):
         """Async wait for motion to be complete
-        
+
         Args:
             ch: channel name of axis, e.g. "A"
         """
@@ -111,12 +120,12 @@ class GalilAxis(Axis):
             await self.update_status()
         except GclibError:
             self.status = Axis.ERROR
-    
+
     async def update_position(self) -> float:
         p = float(self.g.GCommand(f"TP{self.ch}"))
         self.position = p / self.encoder_scale
         return self.position
-    
+
     async def update_status(self) -> int:
         try:
             if self.status == Axis.ERROR:
@@ -139,8 +148,10 @@ class GalilAxis(Axis):
         except GclibError:
             self.status = Axis.ERROR
         return self.status
-    
-    async def set_limits(self, low_limit: float | None = None, high_limit: float | None = None):
+
+    async def set_limits(
+        self, low_limit: float | None = None, high_limit: float | None = None
+    ):
         try:
             if low_limit is not None:
                 self.g.GCommand(f"BL{self.ch}={low_limit * self.drive_scale}")
@@ -148,15 +159,13 @@ class GalilAxis(Axis):
                 self.g.GCommand(f"FL{self.ch}={high_limit * self.drive_scale}")
         except GclibError:
             self.status = Axis.ERROR
-    
+
     async def get_limits(self) -> tuple[float, float]:
-        l = 0.
-        h = 0.
+        l = 0.0
+        h = 0.0
         try:
             l = float(self.g.GCommand(f"BL{self.ch}=?")) / self.drive_scale
             h = float(self.g.GCommand(f"FL{self.ch}=?")) / self.drive_scale
         except GclibError:
             self.status = Axis.ERROR
         return (l, h)
-
-    

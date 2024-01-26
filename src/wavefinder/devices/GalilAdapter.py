@@ -7,11 +7,17 @@ from .GalilAxis import GalilAxis
 class GalilAdapter(Cyclic):
     """Interface adapter between application and galil"""
 
-    def __init__(self, address: str, axis_names: dict[str, dict[str, str]],
-                 accel: int = 2000000, decel: int = 2000000,
-                 speed: int = 100000, homing_speed: int = 5000,
-                 encoder_counts_per_degree: int = 800,
-                 drive_counts_per_degree: int = 10000) -> None:
+    def __init__(
+        self,
+        address: str,
+        axis_names: dict[str, dict[str, str]],
+        accel: int = 2000000,
+        decel: int = 2000000,
+        speed: int = 100000,
+        homing_speed: int = 5000,
+        encoder_counts_per_degree: int = 800,
+        drive_counts_per_degree: int = 10000,
+    ) -> None:
         """Set up adapter with all devices' axes visible from controller
 
         Args:
@@ -25,12 +31,12 @@ class GalilAdapter(Cyclic):
             encoder_counts_per_degree: encoder counts per degree
             encoder_counts_per_degree: drive counts per degree
         """
-
+        # TODO: we're not using any of the input parameters
         self.address = address
         self.axis_names = axis_names
         self.axes: dict[str, GalilAxis] = {}
-        
-        print(f"Connecting to Galil devices on {address}... ", end='', flush=True)
+
+        print(f"Connecting to Galil devices on {address}... ", end="", flush=True)
         try:
             self.g = py()
             # connect in direct mode, subscribe to all unsolicited
@@ -40,17 +46,17 @@ class GalilAdapter(Cyclic):
             return
         else:
             print("connected.")
-        
+
         for name in self.axis_names.keys():
-            ch = self.axis_names[name]["ch"] # channel
+            ch = self.axis_names[name]["ch"]  # channel
             kw = self.axis_names[name]["keyword"]
-            print(f"Finding {name} on channel {ch}... ", end='', flush=True)
+            print(f"Finding {name} on channel {ch}... ", end="", flush=True)
             try:
                 self.axes[name] = GalilAxis(name, kw, ch, self.connection)
             except GclibError:
-                print("not found.") # device not found
+                print("not found.")  # device not found
             except Exception as e:
-                print(e) # can't make Axis, other errors
+                print(e)  # can't make Axis, other errors
             else:
                 print("OK.")
 
