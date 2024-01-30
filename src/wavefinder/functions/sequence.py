@@ -6,7 +6,7 @@ import numpy as np
 from ..devices.Axis import Axis
 from ..devices.MightexBufCmos import Camera
 from ..gui.config import Configuration
-from .image import find_full_width_half_max, threshold_copy
+from .image import get_roi_box, image_math, roi_copy
 
 
 class Sequencer:
@@ -44,7 +44,7 @@ class Sequencer:
 
     async def center(
         self,
-        image_size: tuple[int, int] | None = None,
+        image_size: tuple[int, int],
         centroid: tuple[float, float] | None = None,
     ) -> tuple[float, float]:
         """Move the x and y axes to center the centroid
@@ -52,15 +52,12 @@ class Sequencer:
         X is mirrored. Dones nothing on error.
 
         Args:
-            image_size: tuple of (int, int) giving the size of the image;
-                        if not provided, use config.image_size
+            image_size: (x_size, y_size) full image size
             centroid: tuple of (float, float) giving the computed centroid of the image;
                         if not provided, use config.image_centroid
 
         Returns center position in mm
         """
-        if not image_size:
-            image_size = self.config.image_size
         if not centroid:
             centroid = self.config.image_centroid
         px_size = self.config.camera_pixel_size
@@ -92,17 +89,14 @@ class Sequencer:
         fpp = self.config.focus_frames_per_point
         ppp = self.config.focus_points_per_pass
         min_move = self.config.focus_minimum_move
-        threshold = (
-            self.config.image_roi_threshold
-            if self.config.image_use_roi_stats
-            else self.config.image_full_threshold
-        )
+
         focus_pos = z_axis.position if z_axis else np.nan
 
         if self.camera and z_axis:
             # set camera to trigger mode
             old_mode = self.camera.run_mode
             await self.camera.set_mode(run_mode=Camera.TRIGGER, write_now=True)
+            self.config.image_math_in_function = True
 
             # set up for first pass
             limit_min, limit_max = await z_axis.get_limits()
@@ -113,14 +107,17 @@ class Sequencer:
             pass_i = 0
 
             while step_dist >= min_move:
+                # keep focusing until each move is min_move distance
                 focus_curve: dict[float, float] = {}
 
                 for point_i in range(ppp):
+                    # for each point in this pass
                     pos = travel_min + point_i * step_dist
                     await z_axis.move_absolute(pos)
                     sum = 0
 
                     for _ in range(fpp):
+                        # for each frame at this point
                         await self.camera.clear_buffer()
                         await self.camera.trigger()
                         # wait for frame
@@ -132,15 +129,38 @@ class Sequencer:
                                 # sleep is necessary to give other tasks time to process
                                 await asyncio.sleep(0.1)
                                 continue
+                        # use ROI if selected
+                        if self.config.image_use_roi_stats:
+                            image_array = roi_copy(
+                                frame.img_array, self.config.roi_size
+                            )
+                            threshold = self.config.image_roi_threshold
+                        else:
+                            image_array = frame.img_array
+                            threshold = self.config.image_full_threshold
+
+                        # compute image stats
+                        centroid, fwhm, max_value, n_saturated = image_math(
+                            image_array,
+                            frame.bits,
+                            threshold,
+                            self.config.image_fwhm_method,
+                        )
+                        # translate to full-frame pixel coordinates
+                        if self.config.image_use_roi_stats:
+                            box = get_roi_box(
+                                (frame.rows, frame.cols), self.config.roi_size
+                            )
+                            centroid = (centroid[0] + box[0], centroid[1] + box[1])
+                        # store values for GUI to see
+                        self.config.image_centroid = centroid
+                        self.config.image_fwhm = fwhm
+                        self.config.image_max_value = max_value
+                        self.config.image_n_saturated = n_saturated
 
                         # use fwhm of thresholded image as metric for focus quality
                         # if fwhm is NaN, sum will be NaN and thrown out
-                        image_copy = threshold_copy(
-                            frame.img_array, frame.bits, threshold
-                        )
-                        sum += find_full_width_half_max(
-                            image_copy, method=self.config.image_fwhm_method
-                        )
+                        sum += fwhm
 
                     # insert average fwhm into focus curve if it exists
                     if not np.isnan(sum):
@@ -160,6 +180,7 @@ class Sequencer:
             await z_axis.move_absolute(focus_pos)
             # restore previous camera mode
             await self.camera.set_mode(run_mode=old_mode, write_now=True)
+            self.config.image_math_in_function = False
 
         # return best position
         self.config.focus_position = focus_pos

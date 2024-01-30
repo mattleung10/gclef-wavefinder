@@ -3,6 +3,62 @@
 import numpy as np
 
 
+def image_math(
+    image_array: np.ndarray, bits: int, threshold: float, fwhm_method: str
+) -> tuple[tuple[float, float], float, int, int]:
+    """Calculate all image statistics
+
+    Args:
+        img_array: numpy array of image pixels
+        bits: bits per pixel
+        threshold: drop pixels with values below [threshold]% of max pixel value
+        fwhm_method: full-width half-maximum calculation method, defaults to "variance"
+                        other choices are: "encircled_pixels", "encircled_energy",
+                        "weighted_encircled_energy"
+
+    Returns:
+        centroid, fwhm, max_value, n_saturated
+    """
+    image_copy = threshold_copy(image_array, bits, threshold)
+    centroid = find_centroid(image_copy)
+    fwhm = find_full_width_half_max(image_copy, centroid, fwhm_method)
+    max_value = int(np.max(image_array))
+    n_saturated = np.count_nonzero(image_array == (1 << bits) - 1)
+    return centroid, fwhm, max_value, n_saturated
+
+
+def roi_copy(image_array: np.ndarray, roi_size: tuple[int, int]) -> np.ndarray:
+    """Return a copy of the array cropped to the region of interest
+
+    Args:
+        img_array: numpy array of image pixels
+        roi_size: (x_size, y_size) of region of interest
+    """
+    copied = np.copy(image_array)
+    # remember numpy arrays are flipped x & y
+    box = get_roi_box((copied.shape[1], copied.shape[0]), roi_size)
+    return copied[box[1] : box[3], box[0] : box[2]]
+
+
+def get_roi_box(
+    image_size: tuple[int, int], roi_size: tuple[int, int]
+) -> tuple[int, int, int, int]:
+    """Return the (left, lower, right, upper) box representing the region of interest
+
+    Args:
+        image_size: (x_size, y_size) full image size
+        roi_size: (x_size, y_size) region of interest size
+    """
+    size_x = roi_size[0]
+    size_y = roi_size[1]
+    f_size_x = image_size[0]
+    f_size_y = image_size[1]
+    left = f_size_x // 2 - size_x // 2
+    lower = f_size_y // 2 - size_y // 2
+    box = (left, lower, left + size_x, lower + size_y)
+    return box
+
+
 def threshold_copy(img_array: np.ndarray, bits: int, threshold: float) -> np.ndarray:
     """Return a copy of the array with pixels below the threshold set to zero.
 

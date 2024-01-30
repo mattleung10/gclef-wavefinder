@@ -45,8 +45,8 @@ class Configuration:
         self.image_roi_threshold = 50.0
         self.roi_size = (50, 50)
         self.image_use_roi_stats = False
+        self.image_math_in_function = False
         self.image_fwhm_method = "variance"
-        self.image_size: tuple[int, int] = (0, 0)
         self.image_centroid = (np.nan, np.nan)
         self.image_fwhm = 0.0
         self.image_max_value = 0

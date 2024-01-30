@@ -14,7 +14,7 @@ from PIL import (
 )
 
 from ..devices.MightexBufCmos import Camera, Frame
-from ..functions.image import find_centroid, find_full_width_half_max, threshold_copy
+from ..functions.image import get_roi_box, image_math, roi_copy
 from ..gui.config import Configuration
 from ..gui.utils import Cyclic
 from .utils import make_task, valid_float, valid_int
@@ -54,8 +54,6 @@ class CameraPanel(Cyclic):
 
         # camera variables
         self.camera = camera
-        self.roi_size_x = int(self.roi_x_entry.get())
-        self.roi_size_y = int(self.roi_y_entry.get())
         self.roi_zoom = int(self.roi_zoom_entry.get())
         self.update_resolution_flag = False
 
@@ -383,8 +381,7 @@ class CameraPanel(Cyclic):
         # get inputs and clip to valid, then write back valid values
         size_x = min(max(int(self.roi_x_entry.get()), 1), int(self.camera_res_x.get()))
         size_y = min(max(int(self.roi_y_entry.get()), 1), int(self.camera_res_y.get()))
-        self.roi_size_x = size_x
-        self.roi_size_y = size_y
+        self.config.roi_size = (size_x, size_y)
         self.roi_x_entry.set(str(size_x))
         self.roi_y_entry.set(str(size_y))
         self.roi_zoom = int(self.roi_zoom_entry.get())
@@ -395,14 +392,9 @@ class CameraPanel(Cyclic):
         """Return the (left, lower, right, upper)
         box representing the region of interest
         """
-        size_x = self.roi_size_x
-        size_y = self.roi_size_y
         f_size_x = self.config.full_img.size[0]
         f_size_y = self.config.full_img.size[1]
-        left = f_size_x // 2 - size_x // 2
-        lower = f_size_y // 2 - size_y // 2
-        box = (left, lower, left + size_x, lower + size_y)
-        return box
+        return get_roi_box((f_size_x, f_size_y), self.config.roi_size)
 
     def update_roi_img(self):
         """Update the region of interest image"""
@@ -578,45 +570,39 @@ class CameraPanel(Cyclic):
 
     def update_image_stats(self):
         """Update image statistics"""
-        if self.config.camera_frame:
-            image = self.config.camera_frame.img_array
-            bits = self.config.camera_frame.bits
-        else:
-            image = np.array(self.config.full_img)
-            bits = 8
 
-        # full frame size
-        # TODO: this is only used for centering, so we can probably remove it
-        self.config.image_size = (np.size(image, 1), np.size(image, 0))
+        # do image math unless it's being computed in another function
+        if not self.config.image_math_in_function:
+            # if the camera is present, use its frame;
+            # otherwise, use "full_img" which is likely a simulated image
+            if self.config.camera_frame:
+                image = self.config.camera_frame.img_array
+                bits = self.config.camera_frame.bits
+            else:
+                image = np.array(self.config.full_img)
+                bits = 8
 
-        # use ROI if selected
-        if self.config.image_use_roi_stats:
-            box = self.get_roi_box()
-            image = image[box[1] : box[3], box[0] : box[2]]
-            threshold = self.config.image_roi_threshold
-        else:
-            threshold = self.config.image_full_threshold
+            # use ROI if selected
+            if self.config.image_use_roi_stats:
+                image = roi_copy(image, self.config.roi_size)
+                threshold = self.config.image_roi_threshold
+            else:
+                threshold = self.config.image_full_threshold
 
-        # find centroid and FWHM
-        # TODO: move this to image.py
-        # TODO: add a config parameter to skip this image math
-        #       when we're doing focus and sequence, maybe also during centering
-        image_copy = threshold_copy(image, bits, threshold)
-        cen_x, cen_y = find_centroid(image_copy)
-        self.config.image_fwhm = find_full_width_half_max(
-            image_copy, (cen_x, cen_y), self.config.image_fwhm_method
-        )
+            centroid, fwhm, max_value, n_saturated = image_math(
+                image, bits, threshold, self.config.image_fwhm_method
+            )
 
-        # translate to full-frame pixel coordinates
-        if self.config.image_use_roi_stats:
-            box = self.get_roi_box()
-            cen_x += box[0]
-            cen_y += box[1]
+            # translate to full-frame pixel coordinates
+            if self.config.image_use_roi_stats:
+                box = self.get_roi_box()
+                centroid = (centroid[0] + box[0], centroid[1] + box[1])
 
-        # store centroid, find maximum value and number of saturated pixels
-        self.config.image_centroid = (cen_x, cen_y)
-        self.config.image_max_value = int(np.max(image))
-        self.config.image_n_saturated = np.count_nonzero(image == (1 << bits) - 1)
+            # store values
+            self.config.image_centroid = centroid
+            self.config.image_fwhm = fwhm
+            self.config.image_max_value = max_value
+            self.config.image_n_saturated = n_saturated
 
     def update_full_frame_preview(self):
         """Update the full frame preview"""

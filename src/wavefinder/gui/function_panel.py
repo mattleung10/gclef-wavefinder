@@ -296,7 +296,18 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
 
     def center(self):
         """Center the image"""
-        t, _ = make_task(self.sequencer.center(), self.tasks)
+
+        # if the camera is present, use its frame;
+        # otherwise, use "full_img" which is likely a simulated image
+        if self.config.camera_frame:
+            image_size = (
+                self.config.camera_frame.img_array.shape[1],
+                self.config.camera_frame.img_array.shape[0],
+            )
+        else:
+            image_size = (self.config.full_img.size[0], self.config.full_img.size[1])
+
+        t, _ = make_task(self.sequencer.center(image_size), self.tasks)
         t.add_done_callback(self.after_center)
         self.center_button.configure(state=tk.DISABLED)
 
