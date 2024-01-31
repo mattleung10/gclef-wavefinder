@@ -1,17 +1,24 @@
 import asyncio
+import os
 import tkinter as tk
 
 import numpy as np
+from astropy.time import Time
 
 from ..devices.Axis import Axis
 from ..devices.MightexBufCmos import Camera
+from ..functions.writer import DataWriter
 from ..gui.config import Configuration
 from .image import get_roi_box, image_math, roi_copy
 
 
 class Sequencer:
     def __init__(
-        self, config: Configuration, camera: Camera | None, axes: dict[str, Axis]
+        self,
+        config: Configuration,
+        camera: Camera | None,
+        axes: dict[str, Axis],
+        data_writer: DataWriter,
     ) -> None:
         """Multi-function sequencer class has methods to:
 
@@ -28,19 +35,21 @@ class Sequencer:
             config: application configuration
             camera: MightexBufCmos Camera device
             axes: dict of all motion axes
+            data_writer: DataWriter object
         """
         self.config = config
         self.camera = camera
         self.axes = axes
+        self.data_writer = data_writer
         self.sequence: list[dict[str, float]] = list()
 
         # check for axes
         if not self.config.sequencer_x_axis in self.axes:
-            print("Sequencer x-axis not found.")
+            print("Sequencer x axis not found.")
         if not self.config.sequencer_y_axis in self.axes:
-            print("Sequencer y-axis not found.")
+            print("Sequencer y axis not found.")
         if not self.config.sequencer_z_axis in self.axes:
-            print("Sequencer z-axis not found.")
+            print("Sequencer z axis not found.")
 
     async def center(
         self,
@@ -93,7 +102,7 @@ class Sequencer:
         focus_pos = z_axis.position if z_axis else np.nan
 
         if self.camera and z_axis:
-            # set camera to trigger mode
+            # set camera to trigger mode and take over image math
             old_mode = self.camera.run_mode
             await self.camera.set_mode(run_mode=Camera.TRIGGER, write_now=True)
             self.config.image_math_in_function = True
@@ -178,7 +187,7 @@ class Sequencer:
 
             # move to focus position
             await z_axis.move_absolute(focus_pos)
-            # restore previous camera mode
+            # restore previous camera mode and reliquish image math
             await self.camera.set_mode(run_mode=old_mode, write_now=True)
             self.config.image_math_in_function = False
 
@@ -216,17 +225,92 @@ class Sequencer:
             status_text: Tk StringVar to update with status
         """
 
-        # TODO set camera to trigger mode
-        # old_mode = self.camera.run_mode
-        # await self.camera.set_mode(run_mode=Camera.TRIGGER, write_now=True)
+        # check for necessary devices and sequence
+        if not self.camera or len(self.sequence) == 0:
+            return
+
+        # set camera to trigger mode and take over image math
+        old_mode = self.camera.run_mode
+        await self.camera.set_mode(run_mode=Camera.TRIGGER, write_now=True)
+        self.config.image_math_in_function = True
 
         for i, row in enumerate(self.sequence):
-            print(self.axes)
-            # 1) move to position
+            ## 0) update parameters and status text
+            order = int(row["order"] or row["Order"])
+            wavel = row["wavelength"] or row["Wavelength"]
+            self.config.sequence_number = i
+            self.config.sequence_order = order
+            self.config.sequence_wavelength = wavel
+            status_text.set(
+                f"processing {i} of {len(self.sequence)}\norder = {order} wavelength = {wavel}"
+            )
+
+            ## 1) move to position
             for col in row:
                 # match header with motion axis, then move to position
                 a = self.axes.get(col)
                 if a:
                     await a.move_absolute(row[col])
-            # 2) center image
-            # TODO: clear buffer, take image
+
+            ## 2) take image
+            await self.camera.clear_buffer()
+            await self.camera.trigger()
+            # wait for frame
+            while True:
+                try:
+                    frame = self.camera.get_newest_frame()
+                    break
+                except IndexError:
+                    # sleep is necessary to give other tasks time to process
+                    await asyncio.sleep(0.1)
+                    continue
+
+            ## 3) compute image statistics
+            # use ROI if selected
+            if self.config.image_use_roi_stats:
+                image_array = roi_copy(frame.img_array, self.config.roi_size)
+                threshold = self.config.image_roi_threshold
+            else:
+                image_array = frame.img_array
+                threshold = self.config.image_full_threshold
+
+            centroid, fwhm, max_value, n_saturated = image_math(
+                image_array,
+                frame.bits,
+                threshold,
+                self.config.image_fwhm_method,
+            )
+            # translate to full-frame pixel coordinates
+            if self.config.image_use_roi_stats:
+                box = get_roi_box((frame.rows, frame.cols), self.config.roi_size)
+                centroid = (centroid[0] + box[0], centroid[1] + box[1])
+            # store values for GUI to see
+            self.config.image_centroid = centroid
+            self.config.image_fwhm = fwhm
+            self.config.image_max_value = max_value
+            self.config.image_n_saturated = n_saturated
+
+            ## 4) center image
+            image_size = (frame.img_array.shape[1], frame.img_array.shape[0])
+            await self.center(image_size, centroid)
+
+            ## 5) focus image and save
+            await self.focus()
+            t = Time.now()
+            datestr = f"{t.ymdhms[0]:04}{t.ymdhms[1]:02}{t.ymdhms[2]:02}"
+            # example name "gclef_20240131_ait_007_08500_005_f.fits"
+            # means date is 2024-01-31, order = 7, wavelen = 8500nm
+            #       5th observation in sequence, "f" for in-focus
+            basename = f"gclef_{datestr}_ait_{order:03}_{round(wavel):05}_{i:03}_f.fits"
+            filename = os.path.join(output_dir, basename)
+            self.data_writer.write_fits_file(filename, self.config)
+
+            ## 6) TODO: intra-focus
+
+            ## 7) TODO: extra-focus
+
+        # restore previous camera mode and reliquish image math
+        await self.camera.set_mode(run_mode=old_mode, write_now=True)
+        self.config.image_math_in_function = False
+
+        status_text.set(f"Sequence complete!")

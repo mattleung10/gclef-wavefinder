@@ -116,8 +116,8 @@ class App(ScrollableWindow):
 
     def make_functions(self):
         """Make function units"""
-        self.sequencer = Sequencer(self.config, self.camera, self.axes)
         self.writer = DataWriter(self.camera, self.axes)
+        self.sequencer = Sequencer(self.config, self.camera, self.axes, self.writer)
 
     def make_panels(self):
         """Make UI panels"""
