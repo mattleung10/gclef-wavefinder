@@ -85,16 +85,22 @@ class GalilAxis(Axis):
         except GclibError:
             self.status = Axis.ERROR
 
-    async def move_absolute(self, distance: float):
-        # NOTE: seems to undershoot by 50 drive counts when moving in the positive direction
-        #       takes 10050 counts to get to 10.0mm; but only -10000 to get to -10.0mm, from zero
-        # TODO: use "YR" command to correct this error after each move
+    async def move_absolute(self, position: float):
         try:
             self.status = Axis.MOVING
-            counts = round(distance * self.drive_scale)
+            counts = round(position * self.drive_scale)
             self.g.GCommand(f"PA{self.ch}={counts};BG{self.ch}")
             await self.wait_for_motion_complete(self.ch)
             await self.update_position()
+            # NOTE: drive is not using encoder as feedback, so friction can cause an small error;
+            # correct that error here. Limit to 3 tries.
+            tries = 0
+            while tries < 3 and self.position != position:
+                counts = round((position - self.position) * self.drive_scale)
+                self.g.GCommand(f"YR{self.ch}={counts}")
+                await self.wait_for_motion_complete(self.ch)
+                await self.update_position()
+                tries += 1
             await self.update_status()
         except GclibError:
             self.status = Axis.ERROR

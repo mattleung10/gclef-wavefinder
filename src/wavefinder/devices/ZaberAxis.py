@@ -10,7 +10,7 @@ class ZaberAxis(Axis):
 
     def __init__(self, name: str, keyword: str, axis_handle: ZAxis) -> None:
         """Zaber motion control axis
-        
+
         Args:
             name: human-readable name of axis
             keyword: FITS keyword
@@ -18,7 +18,7 @@ class ZaberAxis(Axis):
         """
         super().__init__(name, keyword)
         self.axis = axis_handle
-        self.units = ("mm", "millimeters") # NOTE: hardcoded units
+        self.units = ("mm", "millimeters")  # NOTE: hardcoded units
 
         # check that this axis is working
         self.axis.get_position()
@@ -30,7 +30,7 @@ class ZaberAxis(Axis):
     @property
     def axis_number(self) -> int:
         return self.axis.axis_number
-    
+
     async def home(self):
         try:
             self.status = Axis.BUSY
@@ -49,10 +49,10 @@ class ZaberAxis(Axis):
         except MotionLibException:
             self.status = Axis.ERROR
 
-    async def move_absolute(self, distance: float):
+    async def move_absolute(self, position: float):
         try:
             self.status = Axis.MOVING
-            await self.axis.move_absolute_async(distance, Units.LENGTH_MILLIMETRES)
+            await self.axis.move_absolute_async(position, Units.LENGTH_MILLIMETRES)
             await self.update_position()
             await self.update_status()
         except MotionLibException:
@@ -72,7 +72,7 @@ class ZaberAxis(Axis):
         except MotionLibException:
             self.status = Axis.ERROR
         return self.position
-      
+
     async def update_status(self) -> int:
         try:
             if self.status == Axis.ERROR:
@@ -91,22 +91,32 @@ class ZaberAxis(Axis):
         except MotionLibException:
             self.status = Axis.ERROR
         return self.status
-    
-    async def set_limits(self, low_limit: float | None = None, high_limit: float | None = None):
+
+    async def set_limits(
+        self, low_limit: float | None = None, high_limit: float | None = None
+    ):
         try:
             if low_limit is not None:
-                await self.axis.settings.set_async('limit.min', low_limit,  Units.LENGTH_MILLIMETRES)
+                await self.axis.settings.set_async(
+                    "limit.min", low_limit, Units.LENGTH_MILLIMETRES
+                )
             if high_limit is not None:
-                await self.axis.settings.set_async('limit.max', high_limit, Units.LENGTH_MILLIMETRES)
+                await self.axis.settings.set_async(
+                    "limit.max", high_limit, Units.LENGTH_MILLIMETRES
+                )
         except MotionLibException:
             self.status = Axis.ERROR
 
     async def get_limits(self) -> tuple[float, float]:
-        l = 0.
-        h = 0.
+        l = 0.0
+        h = 0.0
         try:
-            l = await self.axis.settings.get_async('limit.min', Units.LENGTH_MILLIMETRES)
-            h = await self.axis.settings.get_async('limit.max', Units.LENGTH_MILLIMETRES)
+            l = await self.axis.settings.get_async(
+                "limit.min", Units.LENGTH_MILLIMETRES
+            )
+            h = await self.axis.settings.get_async(
+                "limit.max", Units.LENGTH_MILLIMETRES
+            )
         except MotionLibException:
             self.status = Axis.ERROR
         return (l, h)

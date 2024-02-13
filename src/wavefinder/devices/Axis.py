@@ -4,16 +4,16 @@ from abc import ABC, abstractmethod
 class Axis(ABC):
     """Model holds information about genetic Axis"""
 
-    READY   = 0
-    MOVING  = 1
-    BUSY    = 2
-    ERROR   = 3
+    READY = 0
+    MOVING = 1
+    BUSY = 2
+    ERROR = 3
     STATES = [READY, MOVING, BUSY, ERROR]
 
     def __init__(self, name: str, keyword: str) -> None:
         self.name = name
-        self.keyword = keyword[:8] # limit to 8 chars
-        self.position = 0.
+        self.keyword = keyword[:8]  # limit to 8 chars
+        self.position = 0.0
         self.status = Axis.BUSY
         self.is_homed = False
         self.units: tuple[str, str] = ("", "")
@@ -26,18 +26,18 @@ class Axis(ABC):
     @abstractmethod
     async def move_relative(self, distance: float):
         """Relative position move
-        
+
         Args:
             distance: in millimeters or degrees
         """
         pass
 
     @abstractmethod
-    async def move_absolute(self, distance: float):
+    async def move_absolute(self, position: float):
         """Absolute position move
-            
-            Args:
-                distance: in millimeters or degrees
+
+        Args:
+            position: in millimeters or degrees
         """
         pass
 
@@ -50,16 +50,18 @@ class Axis(ABC):
     async def update_position(self) -> float:
         """Update application model of position by querying device"""
         return self.position
-    
-    @abstractmethod    
+
+    @abstractmethod
     async def update_status(self) -> int:
         """Update application model of status by querying device"""
         return self.status
-    
+
     @abstractmethod
-    async def set_limits(self, low_limit: float | None = None, high_limit: float | None = None):
+    async def set_limits(
+        self, low_limit: float | None = None, high_limit: float | None = None
+    ):
         """Set axis low and high movement limits
-        
+
         Args:
             low_limit: minimum movement limit in mm or degrees or None to not set
             high_limit: maximum movement limit in mm or degrees or None to not set

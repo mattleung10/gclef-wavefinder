@@ -8,8 +8,9 @@ from .ZaberAxis import ZaberAxis
 class ZaberAdapter(Cyclic):
     """Interface adapter between application and zaber library"""
 
-    def __init__(self, port_names: list[str] | str,
-                 axis_names: dict[str, dict[str, int | str]]) -> None:
+    def __init__(
+        self, port_names: list[str] | str, axis_names: dict[str, dict[str, int | str]]
+    ) -> None:
         """Set up adapter with all devices' axes visible from port
 
         Args:
@@ -25,7 +26,7 @@ class ZaberAdapter(Cyclic):
         self.axes: dict[str, ZaberAxis] = {}
 
         for p in self.port_names:
-            print(f"Connecting to Zaber devices on {p}... ", end='', flush=True)
+            print(f"Connecting to Zaber devices on {p}... ", end="", flush=True)
             try:
                 c = Connection.open_serial_port(p, direct=True)
                 c.enable_alerts()
@@ -36,29 +37,30 @@ class ZaberAdapter(Cyclic):
                 continue
             else:
                 print("connected.")
-        
+
         if len(self.device_list) == 0:
             return
 
         for name in self.axis_names.keys():
-            sn = int(self.axis_names[name]["sn"]) # serial number
+            sn = int(self.axis_names[name]["sn"])  # serial number
             kw = str(self.axis_names[name]["keyword"])
-            print(f"Finding {name} ({sn})...", end='', flush=True)
+            print(f"Finding {name} ({sn})...", end="", flush=True)
             try:
-                device: Device = next(filter(lambda d: d.serial_number == sn,
-                                             self.device_list))
+                device: Device = next(
+                    filter(lambda d: d.serial_number == sn, self.device_list)
+                )
                 # NOTE: we always use axis #1 because all our devices have only one axis,
                 #       but if you want to change that, do that here.
                 axis = device.get_axis(1)
                 self.axes[name] = ZaberAxis(name, kw, axis)
             except StopIteration:
-                print("not found.") # device not found
+                print("not found.")  # device not found
             except ValueError:
-                print("not found.") # axis number bad
+                print("not found.")  # axis number bad
             except MotionLibException:
-                print("not found.") # axis not functional
+                print("not found.")  # axis not functional
             except Exception as e:
-                print(e) # can't make Axis, other errors
+                print(e)  # can't make Axis, other errors
             else:
                 print("OK.")
 
