@@ -57,8 +57,8 @@ class Sequencer:
         centroid: tuple[float, float] | None = None,
     ) -> tuple[float, float]:
         """Move the x and y axes to center the centroid
-
-        X is mirrored. Dones nothing on error.
+        
+        Dones nothing on error.
 
         Args:
             image_size: (x_size, y_size) full image size
@@ -82,7 +82,7 @@ class Sequencer:
             and y_axis
         ):
             img_center = (image_size[0] / 2, image_size[1] / 2)
-            move_x_px = -(centroid[0] - img_center[0])  # X is mirrored
+            move_x_px = centroid[0] - img_center[0]
             move_y_px = centroid[1] - img_center[1]
             await x_axis.move_relative((move_x_px * px_size[0]) / 1000)
             await y_axis.move_relative((move_y_px * px_size[1]) / 1000)
@@ -307,6 +307,8 @@ class Sequencer:
             self.data_writer.write_fits_file(filename, self.config)
 
             ## 6) TODO: intra-focus
+            # for p in row["dfocusz"]:
+            #     pass
 
             ## 7) TODO: extra-focus
 

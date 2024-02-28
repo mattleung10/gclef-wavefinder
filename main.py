@@ -12,8 +12,3 @@ if __name__ == "__main__":
     )
     cf = parser.parse_args().config_file
     app = App(cf)
-
-
-### TODO list
-# read in input configuration and table of wavelengths
-# rotation axis position/hysteresis correction

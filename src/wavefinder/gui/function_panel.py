@@ -235,6 +235,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
 
     def select_sequence_file(self):
         """Select input file for automated sequence"""
+        # TODO: add example sequence file to repo
         filename = filedialog.askopenfilename(
             initialfile=f"sequence.csv",
             filetypes=(("CSV files", "*.csv"), ("all files", "*.*")),
@@ -251,6 +252,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         First select the output directory and make a subdirectory for the data,
         then run the sequence.
         """
+        # TODO: do nothing or disable if sequence is empty, not loaded
         directory = ""
         parent_dir = filedialog.askdirectory(
             title="Select Parent Directory to Save Data", mustexist=False
