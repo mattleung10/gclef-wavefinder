@@ -41,7 +41,7 @@ class Sequencer:
         self.camera = camera
         self.axes = axes
         self.data_writer = data_writer
-        self.sequence: list[dict[str, float]] = list()
+        self.sequence: list[dict[str, list[float]]] = list()
 
         # check for axes
         if not self.config.sequencer_x_axis in self.axes:
@@ -205,16 +205,17 @@ class Sequencer:
             # reset the sequence
             self.sequence = list()
             # set headers, strip whitespace from header names
+            # set headers to lowercase
             header_line = f.readline()
-            headers = [h.strip() for h in header_line.split(",")]
+            headers = [h.strip().lower() for h in header_line.split(",")]
 
             # this loop will start with the 2nd line because the previous
-            # readline has advanced the buffer's iterator0
+            # readline has advanced the buffer's iterator
             for line in f:
                 # make a dict, using the header values
-                d: dict[str, float] = {}
-                for i, n in enumerate(line.split(",")):
-                    d[headers[i]] = float(n)
+                d: dict[str, list[float]] = {}
+                for i, col in enumerate(line.split(",")):
+                    d[headers[i]] = [float(x) for x in col.split()]
                 self.sequence.append(d)
 
     async def run_sequence(self, output_dir: str, status_text: tk.StringVar):
@@ -236,8 +237,8 @@ class Sequencer:
 
         for i, row in enumerate(self.sequence):
             ## 0) update parameters and status text
-            order = int(row["order"] or row["Order"])
-            wavel = row["wavelength"] or row["Wavelength"]
+            order = int(row["order"][0])
+            wavel = row["wavelength"][0]
             self.config.sequence_number = i
             self.config.sequence_order = order
             self.config.sequence_wavelength = wavel
@@ -250,7 +251,7 @@ class Sequencer:
                 # match header with motion axis, then move to position
                 a = self.axes.get(col)
                 if a:
-                    await a.move_absolute(row[col])
+                    await a.move_absolute(row[col][0])
 
             ## 2) take image
             await self.camera.clear_buffer()
