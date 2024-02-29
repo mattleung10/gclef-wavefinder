@@ -6,7 +6,7 @@ import numpy as np
 from astropy.time import Time
 
 from ..devices.Axis import Axis
-from ..devices.MightexBufCmos import Camera
+from ..devices.MightexBufCmos import Camera, Frame
 from ..functions.writer import DataWriter
 from ..gui.config import Configuration
 from .image import get_roi_box, image_math, roi_copy
@@ -41,7 +41,7 @@ class Sequencer:
         self.camera = camera
         self.axes = axes
         self.data_writer = data_writer
-        self.sequence: list[dict[str, float]] = list()
+        self.sequence: list[dict[str, list[float]]] = list()
 
         # check for axes
         if not self.config.sequencer_x_axis in self.axes:
@@ -57,7 +57,7 @@ class Sequencer:
         centroid: tuple[float, float] | None = None,
     ) -> tuple[float, float]:
         """Move the x and y axes to center the centroid
-        
+
         Dones nothing on error.
 
         Args:
@@ -206,16 +206,17 @@ class Sequencer:
             # reset the sequence
             self.sequence = list()
             # set headers, strip whitespace from header names
+            # set headers to lowercase
             header_line = f.readline()
-            headers = [h.strip() for h in header_line.split(",")]
+            headers = [h.strip().lower() for h in header_line.split(",")]
 
             # this loop will start with the 2nd line because the previous
-            # readline has advanced the buffer's iterator0
+            # readline has advanced the buffer's iterator
             for line in f:
                 # make a dict, using the header values
-                d: dict[str, float] = {}
-                for i, n in enumerate(line.split(",")):
-                    d[headers[i]] = float(n)
+                d: dict[str, list[float]] = {}
+                for i, col in enumerate(line.split(",")):
+                    d[headers[i]] = [float(x) for x in col.split()]
                 self.sequence.append(d)
 
     async def run_sequence(self, output_dir: str, status_text: tk.StringVar):
@@ -235,11 +236,12 @@ class Sequencer:
         await self.camera.set_mode(run_mode=Camera.TRIGGER, write_now=True)
         self.config.image_math_in_function = True
 
+        j = 1  # image sequence number
         for i, row in enumerate(self.sequence):
             ## 0) update parameters and status text
-            order = int(row["order"] or row["Order"])
-            wavel = row["wavelength"] or row["Wavelength"]
-            self.config.sequence_number = i
+            order = int(row["order"][0])
+            wavel = row["wavelength"][0]
+            self.config.sequence_number = j
             self.config.sequence_order = order
             self.config.sequence_wavelength = wavel
             status_text.set(
@@ -251,69 +253,107 @@ class Sequencer:
                 # match header with motion axis, then move to position
                 a = self.axes.get(col)
                 if a:
-                    await a.move_absolute(row[col])
+                    await a.move_absolute(row[col][0])
 
             ## 2) take image
-            await self.camera.clear_buffer()
-            await self.camera.trigger()
-            # wait for frame
-            while True:
-                try:
-                    frame = self.camera.get_newest_frame()
-                    break
-                except IndexError:
-                    # sleep is necessary to give other tasks time to process
-                    await asyncio.sleep(0.1)
-                    continue
+            frame = await self.take_image(self.camera)
 
             ## 3) compute image statistics
-            # use ROI if selected
-            if self.config.image_use_roi_stats:
-                image_array = roi_copy(frame.img_array, self.config.roi_size)
-                threshold = self.config.image_roi_threshold
-            else:
-                image_array = frame.img_array
-                threshold = self.config.image_full_threshold
-
-            centroid, fwhm, max_value, n_saturated = image_math(
-                image_array,
-                frame.bits,
-                threshold,
-                self.config.image_fwhm_method,
-            )
-            # translate to full-frame pixel coordinates
-            if self.config.image_use_roi_stats:
-                box = get_roi_box((frame.rows, frame.cols), self.config.roi_size)
-                centroid = (centroid[0] + box[0], centroid[1] + box[1])
-            # store values for GUI to see
-            self.config.image_centroid = centroid
-            self.config.image_fwhm = fwhm
-            self.config.image_max_value = max_value
-            self.config.image_n_saturated = n_saturated
+            centroid, _, _, _ = self.compute_image_stats(frame)
 
             ## 4) center image
             image_size = (frame.img_array.shape[1], frame.img_array.shape[0])
             await self.center(image_size, centroid)
 
-            ## 5) focus image and save
+            ## 5) focus image and save and increment sequence
             await self.focus()
             t = Time.now()
             datestr = f"{t.ymdhms[0]:04}{t.ymdhms[1]:02}{t.ymdhms[2]:02}"
-            # example name "gclef_20240131_ait_007_08500_005_f.fits"
+            # example name "gclef_20240131_ait_007_08500_0005_f.fits"
             # means date is 2024-01-31, order = 7, wavelen = 8500nm
             #       5th observation in sequence, "f" for in-focus
-            basename = f"gclef_{datestr}_ait_{order:03}_{round(wavel):05}_{i:03}_f.fits"
+            letter = "f"
+            basename = f"gclef_ait_{datestr}_{order:03}_{round(wavel):05}_{j:03}_{letter}.fits"
             filename = os.path.join(output_dir, basename)
             self.data_writer.write_fits_file(filename, self.config)
+            j += 1
 
-            ## 6) TODO: intra-focus
-            # for p in row["dfocusz"]:
-            #     pass
-
-            ## 7) TODO: extra-focus
+            ## 6) intra- and extra- focus positions
+            z_axis = self.axes.get(self.config.sequencer_z_axis)
+            if z_axis:
+                # for each z position in the delta focus list
+                for p in row["dfocusz"]:
+                    ### 6.1) move to position
+                    await z_axis.move_absolute(p + self.config.focus_position)
+                    ### 6.2) take image
+                    frame = await self.take_image(self.camera)
+                    ### 6.3) compute image statistics
+                    centroid, _, _, _ = self.compute_image_stats(frame)
+                    ### 6.4) save and increment sequence
+                    # "i" for intra-focus (dfocusz > 0); "e" for extra-focus
+                    letter = "f" if p == 0 else "i" if p < 0 else "e"
+                    basename = f"gclef_ait_{datestr}_{order:03}_{round(wavel):05}_{j:03}_{letter}.fits"
+                    filename = os.path.join(output_dir, basename)
+                    self.data_writer.write_fits_file(filename, self.config)
+                    j += 1
 
         # restore previous camera mode and reliquish image math
         await self.camera.set_mode(run_mode=old_mode, write_now=True)
         self.config.image_math_in_function = False
 
         status_text.set(f"Sequence complete!")
+
+    async def take_image(self, camera: Camera):
+        """Take image for use in sequencer.
+
+        Args:
+            camera: Camera, not None
+
+        Returns frame
+        """
+        await camera.clear_buffer()
+        await camera.trigger()
+        # wait for frame
+        while True:
+            try:
+                frame = camera.get_newest_frame()
+                break
+            except IndexError:
+                # sleep is necessary to give other tasks time to process
+                await asyncio.sleep(0.1)
+                continue
+        return frame
+
+    def compute_image_stats(self, frame: Frame):
+        """Compute image statistics for use in sequencer.
+
+        Args:
+            frame: captured image frame
+
+        Returns centroid, fwhm, max_value, n_saturated
+        """
+        # use ROI if selected
+        if self.config.image_use_roi_stats:
+            image_array = roi_copy(frame.img_array, self.config.roi_size)
+            threshold = self.config.image_roi_threshold
+        else:
+            image_array = frame.img_array
+            threshold = self.config.image_full_threshold
+
+        centroid, fwhm, max_value, n_saturated = image_math(
+            image_array,
+            frame.bits,
+            threshold,
+            self.config.image_fwhm_method,
+        )
+        # translate to full-frame pixel coordinates
+        if self.config.image_use_roi_stats:
+            box = get_roi_box((frame.rows, frame.cols), self.config.roi_size)
+            centroid = (centroid[0] + box[0], centroid[1] + box[1])
+        # store values for GUI to see
+        self.config.image_centroid = centroid
+        self.config.image_fwhm = fwhm
+        self.config.image_max_value = max_value
+        self.config.image_n_saturated = n_saturated
+
+        return centroid, fwhm, max_value, n_saturated

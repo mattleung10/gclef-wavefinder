@@ -226,7 +226,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         datestr = f"{t.ymdhms[0]:04}{t.ymdhms[1]:02}{t.ymdhms[2]:02}"
         filename = filedialog.asksaveasfilename(
             initialdir="images/",
-            initialfile=f"gclef_{datestr}_ait.fits",
+            initialfile=f"gclef_ait_{datestr}.fits",
             filetypes=(("FITS files", ["*.fits", "*.fts"]), ("all files", "*.*")),
             defaultextension=".fits",
         )
@@ -235,7 +235,6 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
 
     def select_sequence_file(self):
         """Select input file for automated sequence"""
-        # TODO: add example sequence file to repo
         filename = filedialog.askopenfilename(
             initialfile=f"sequence.csv",
             filetypes=(("CSV files", "*.csv"), ("all files", "*.*")),
