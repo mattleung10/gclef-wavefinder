@@ -96,7 +96,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         )
         self.sequence_status = tk.StringVar(value="Need Input File")
         ttk.Label(sequence_frame, textvariable=self.sequence_status).grid(
-            column=0, row=1, padx=10, sticky=tk.E
+            column=0, row=1, columnspan=2, padx=10, sticky=tk.E
         )
         sequence_frame.grid(column=0, row=1, columnspan=2, pady=10, sticky=tk.E)
 
@@ -252,6 +252,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         then run the sequence.
         """
         # TODO: do nothing or disable if sequence is empty, not loaded
+        # TODO: abort sequence button
         directory = ""
         parent_dir = filedialog.askdirectory(
             title="Select Parent Directory to Save Data", mustexist=False

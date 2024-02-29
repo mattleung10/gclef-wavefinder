@@ -249,7 +249,7 @@ class Sequencer:
             self.config.sequence_order = order
             self.config.sequence_wavelength = wavel
             status_text.set(
-                f"processing {i} of {len(self.sequence)}\norder = {order} wavelength = {wavel}"
+                f"processing {i+1} of {len(self.sequence)}\norder = {order} wavelength = {wavel}"
             )
 
             ## 1) move to position
