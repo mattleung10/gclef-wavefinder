@@ -38,8 +38,8 @@ ports = [
 ]
 
 [motion.zaber.axis_names]
-"detector x"    = {sn = 33938,  keyword = "detxpos"}
-"detector y"    = {sn = 33937,  keyword = "detypos"}
+"detector x"    = {sn = 122711,  keyword = "detxpos"}
+"detector y"    = {sn = 122712,  keyword = "detypos"}
 "detector z"    = {sn = 33939,  keyword = "detzpos"}
 "cfm2 x"        = {sn = 110098, keyword = "cfm2xpos"}
 "cfm2 y"        = {sn = 113059, keyword = "cfm2ypos"}

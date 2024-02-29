@@ -83,7 +83,8 @@ class Sequencer:
         ):
             img_center = (image_size[0] / 2, image_size[1] / 2)
             move_x_px = centroid[0] - img_center[0]
-            move_y_px = centroid[1] - img_center[1]
+            # y is mirrored
+            move_y_px = -(centroid[1] - img_center[1])
             await x_axis.move_relative((move_x_px * px_size[0]) / 1000)
             await y_axis.move_relative((move_y_px * px_size[1]) / 1000)
             centered_position = (x_axis.position, y_axis.position)

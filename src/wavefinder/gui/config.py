@@ -254,7 +254,7 @@ class Configuration:
                         self.sequencer_y_axis = str(c["sequencer"]["y_axis"])
                 if "z_axis" in c["sequencer"]:
                     if isinstance(c["sequencer"]["z_axis"], str):
-                        self.sequencer_y_axis = str(c["sequencer"]["z_axis"])
+                        self.sequencer_z_axis = str(c["sequencer"]["z_axis"])
                 if "focus" in c["sequencer"]:
                     if "points_per_pass" in c["sequencer"]["focus"]:
                         if c["sequencer"]["focus"]["points_per_pass"] > 0:
