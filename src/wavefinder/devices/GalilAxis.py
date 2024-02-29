@@ -93,10 +93,10 @@ class GalilAxis(Axis):
             await self.wait_for_motion_complete(self.ch)
             await self.update_position()
             # NOTE: drive is not using encoder as feedback, so friction can cause an small error;
-            # correct that error here. Limit to 3 tries.
+            # correct that error here. Limit to 10 tries.
             tries = 0
-            while tries < 3 and self.position != position:
-                counts = round((position - self.position) * self.drive_scale)
+            while tries < 10 and self.position != position:
+                counts = int((position - self.position) * self.drive_scale)
                 self.g.GCommand(f"YR{self.ch}={counts}")
                 await self.wait_for_motion_complete(self.ch)
                 await self.update_position()

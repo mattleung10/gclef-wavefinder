@@ -124,6 +124,10 @@ class Sequencer:
                     # for each point in this pass
                     pos = travel_min + point_i * step_dist
                     await z_axis.move_absolute(pos)
+                    # check for error
+                    if z_axis.status == Axis.ERROR:
+                        print("Error in focus routine!")
+                        return -1
                     sum = 0
 
                     for _ in range(fpp):
