@@ -5,3 +5,4 @@ images
 *.egg-info
 build
 */build
+*.fits
