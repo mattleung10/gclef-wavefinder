@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wavefinder"
-version = "0.8.3"
+version = "0.9.0"
 authors = [
   { name="Cem Onyuksel", email="cem.onyuksel@cfa.harvard.edu" },
   { name="Colby Jergenson", email="colby.jurgenson@cfa.harvard.edu" }
