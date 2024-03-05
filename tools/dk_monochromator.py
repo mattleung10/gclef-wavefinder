@@ -16,13 +16,17 @@ class MonochromAdapter:
                     self.port.close()
                     break
                 if cmd:
+                    # read in list of ints, convert to byte array
                     cmd_list = [int(n) for n in cmd.split()]
                     msg = bytearray(cmd_list)
+                    # echo byte array and send to device
                     print("> 0x" + msg.hex())
                     self.port.write(msg)
 
+                    # read bytes until timeout
                     res = self.port.read_until()
                     if res:
+                        # echo raw byte array and array of converted ints
                         print("< 0x" + res.hex())
                         print("< " + str([int(n) for n in bytearray(res)]))
                     else:
