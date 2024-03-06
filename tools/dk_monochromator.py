@@ -2,7 +2,7 @@ import serial
 
 
 # RS-232 Interface to Spectal Products DK Series Monochromator
-class MonochromAdapter:
+class DkAdapter:
     def __init__(self, dev: str) -> None:
         self.port = serial.Serial(
             port=dev, baudrate=9600, bytesize=8, parity="N", stopbits=1, timeout=2, rtscts=True, dsrdtr=True
@@ -36,5 +36,5 @@ class MonochromAdapter:
 
 
 if __name__ == "__main__":
-    mono = MonochromAdapter("COM6")
+    mono = DkAdapter("COM6")
     mono.terminal()

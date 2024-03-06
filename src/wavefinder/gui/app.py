@@ -5,6 +5,9 @@ import sys
 import tkinter as tk
 import traceback
 from importlib.metadata import PackageNotFoundError, version
+from wavefinder.devices.DkMonochromator import DkMonochromator
+
+from wavefinder.gui.monochrom_panel import MonochromPanel
 
 from ..devices.Axis import Axis
 from ..devices.GalilAdapter import GalilAdapter
@@ -81,6 +84,9 @@ class App(ScrollableWindow):
             print(e)
             self.camera = None
 
+        # monochromator
+        self.dk = DkMonochromator()
+
         # motion axes
         self.axes: dict[str, Axis] = {}
         self.zaber_adapter = ZaberAdapter(
@@ -124,8 +130,11 @@ class App(ScrollableWindow):
         self.camera_panel = CameraPanel(self.frame, self.config, self.camera)
         # internal frames of camera panel manage their own grid
 
+        self.monochrom_panel = MonochromPanel(self.frame, self.config, self.dk)
+        self.monochrom_panel.grid(column=0, row=1, sticky=tk.NSEW)
+
         self.motion_panel = MotionPanel(self.frame, self.axes)
-        self.motion_panel.grid(column=0, row=1, rowspan=2, sticky=tk.NSEW)
+        self.motion_panel.grid(column=0, row=2, rowspan=2, sticky=tk.NSEW)
 
         self.function_panel = FunctionPanel(
             self.frame,

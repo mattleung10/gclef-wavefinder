@@ -16,6 +16,7 @@ dependencies = [
   "astropy",
   "numpy",
   "Pillow",
+  "pyserial",
   "pyusb",
   "libusb",
   "zaber-motion"
