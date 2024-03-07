@@ -60,6 +60,9 @@ class Configuration:
         self.image_obstype = self.image_obstypes[0]
         self.image_target = ""
 
+        # monochromator defaults and state
+        self.monochrom_port = "COM1"
+
         # motion defaults
         self.zaber_ports = [
             "COM1",
@@ -201,6 +204,10 @@ class Configuration:
                 if "fwhm_method" in c["image"]:
                     if isinstance(c["image"]["fwhm_method"], str):
                         self.image_fwhm_method = c["image"]["fwhm_method"]
+            if "monochromator" in c:
+                if "port" in c["monochromator"]:
+                    if isinstance(c["monochromator"]["port"], str):
+                        self.monochrom_port = c["monochromator"]["port"]
             if "motion" in c:
                 if "zaber" in c["motion"]:
                     if "ports" in c["motion"]["zaber"]:

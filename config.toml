@@ -23,6 +23,9 @@ roi_size        = {x = 50, y = 50}
 use_roi_stats   = false
 fwhm_method     = "variance"
 
+[monochromator]
+port = "COM6"
+
 [motion.zaber]
 ports = [
     "COM1",
@@ -108,6 +111,9 @@ minimum_move        =  0.001
 # fps:          "NORMAL" mode target frames per second, default [10.0]
 # gain:         6 to 41 dB, inclusive, [15] dB recommended for "NO_BIN" mode,
 #                   lower to 6-8 for binning modes
+#
+# [monochromator]
+# port:         port to look for monochromator, COM or tty
 #
 # [motion.zaber]
 # ports:        list of serial ports to scan [all]

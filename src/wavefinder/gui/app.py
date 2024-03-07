@@ -85,7 +85,7 @@ class App(ScrollableWindow):
             self.camera = None
 
         # monochromator
-        self.dk = DkMonochromator()
+        self.dk = DkMonochromator(self.config.monochrom_port)
 
         # motion axes
         self.axes: dict[str, Axis] = {}
@@ -116,9 +116,10 @@ class App(ScrollableWindow):
 
         # add devices to cyclic tasks
         # NOTE self.camera may be None if camera is not found, so only add it if not None
+        # TODO: instead of allowing camera to be None, add a "connected" parameter
         if self.camera:
             self.cyclics.add(self.camera)
-        self.cyclics.update([self.zaber_adapter, self.galil_adapter])
+        self.cyclics.update([self.dk, self.zaber_adapter, self.galil_adapter])
 
     def make_functions(self):
         """Make function units"""
@@ -150,7 +151,14 @@ class App(ScrollableWindow):
             f.grid_configure(padx=3, pady=5)
 
         # add panels to cyclic tasks
-        self.cyclics.update([self.camera_panel, self.motion_panel, self.function_panel])
+        self.cyclics.update(
+            [
+                self.camera_panel,
+                self.monochrom_panel,
+                self.motion_panel,
+                self.function_panel,
+            ]
+        )
 
     def create_tasks(self):
         """Start cyclic update loops
