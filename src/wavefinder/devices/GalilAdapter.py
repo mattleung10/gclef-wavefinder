@@ -39,8 +39,8 @@ class GalilAdapter(Cyclic):
         print(f"Connecting to Galil devices on {address}... ", end="", flush=True)
         try:
             self.g = py()
-            # connect in direct mode, subscribe to all unsolicited
-            self.g.GOpen(f"{self.address} -d -s ALL")
+            # connect in direct mode, subscribe to all unsolicited, 1000ms second timeout
+            self.g.GOpen(f"{self.address} -d -s ALL -t 1000")
         except GclibError as e:
             print(e)
             return

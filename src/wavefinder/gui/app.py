@@ -5,8 +5,8 @@ import sys
 import tkinter as tk
 import traceback
 from importlib.metadata import PackageNotFoundError, version
-from wavefinder.devices.DkMonochromator import DkMonochromator
 
+from wavefinder.devices.DkMonochromator import DkMonochromator
 from wavefinder.gui.monochrom_panel import MonochromPanel
 
 from ..devices.Axis import Axis
@@ -132,10 +132,10 @@ class App(ScrollableWindow):
         # internal frames of camera panel manage their own grid
 
         self.monochrom_panel = MonochromPanel(self.frame, self.config, self.dk)
-        self.monochrom_panel.grid(column=0, row=1, sticky=tk.NSEW)
+        self.monochrom_panel.grid(column=0, row=1, rowspan=2, sticky=tk.NSEW)
 
         self.motion_panel = MotionPanel(self.frame, self.axes)
-        self.motion_panel.grid(column=0, row=2, rowspan=2, sticky=tk.NSEW)
+        self.motion_panel.grid(column=0, row=3, sticky=tk.NSEW)
 
         self.function_panel = FunctionPanel(
             self.frame,
@@ -144,11 +144,11 @@ class App(ScrollableWindow):
             sequencer=self.sequencer,
             data_writer=self.writer,
         )
-        self.function_panel.grid(column=1, row=2, sticky=tk.NSEW)
+        self.function_panel.grid(column=1, row=2, rowspan=2, sticky=tk.NSEW)
 
         # pad between all panels
         for f in self.frame.winfo_children():
-            f.grid_configure(padx=3, pady=5)
+            f.grid_configure(padx=3, pady=5, ipady=5, ipadx=3)
 
         # add panels to cyclic tasks
         self.cyclics.update(

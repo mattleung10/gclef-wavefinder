@@ -15,9 +15,8 @@ from PIL import (
 
 from ..devices.MightexBufCmos import Camera, Frame
 from ..functions.image import get_roi_box, image_math, roi_copy
-from ..gui.config import Configuration
-from ..gui.utils import Cyclic
-from .utils import make_task, valid_float, valid_int
+from .config import Configuration
+from .utils import Cyclic, make_task, valid_float, valid_int
 
 
 class CameraPanel(Cyclic):
@@ -95,7 +94,7 @@ class CameraPanel(Cyclic):
         ttk.Label(parent, textvariable=self.camera_model).grid(
             column=1, row=0, columnspan=2, sticky=tk.W
         )
-        ttk.Label(parent, text="Serial").grid(column=0, row=1, sticky=tk.E, padx=10)
+        ttk.Label(parent, text="Serial #").grid(column=0, row=1, sticky=tk.E, padx=10)
         ttk.Label(parent, textvariable=self.camera_serial).grid(
             column=1, row=1, columnspan=2, sticky=tk.W
         )
