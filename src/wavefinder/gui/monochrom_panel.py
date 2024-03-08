@@ -2,6 +2,8 @@ import asyncio
 import tkinter as tk
 from tkinter import ttk
 
+from serial import SerialException, SerialTimeoutException
+
 from ..devices.DkMonochromator import DkMonochromator
 from .config import Configuration
 from .utils import Cyclic, make_task, valid_float
@@ -78,10 +80,11 @@ class MonochromPanel(Cyclic, ttk.LabelFrame):
         """Update UI"""
         # set DK info on first pass
         if self.extra_init:
-            sn = await self.dk.get_sn()
-            if sn != 0:
-                self.dk_serial.set(str(sn))
-            self.wavelength_entry.set(str(await self.dk.get_current_wavelength()))
+            try:
+                self.dk_serial.set(str(await self.dk.get_sn()))
+                self.wavelength_entry.set(str(await self.dk.get_current_wavelength()))
+            except (SerialException, SerialTimeoutException):
+                pass
             self.extra_init = False
         self.status_txt.set(MonochromPanel.STATUS[self.dk.status])
         self.status_light.configure(background=MonochromPanel.COLORS[self.dk.status])
