@@ -58,13 +58,12 @@ class MonochromPanel(Cyclic, ttk.LabelFrame):
         self.jog_less.grid(column=1, row=2, pady=(10, 0), padx=2)
         self.jog_more = ttk.Button(self, text="►", command=self.jog, width=3)
         self.jog_more.grid(column=2, row=2, pady=(10, 0), padx=2)
-
         g = ttk.Button(self, text="Go", command=self.set_wavelength)
         g.grid(column=3, row=2, pady=(10, 0), padx=10)
 
     def set_wavelength(self):
         self.dk.target_wavelength = float(self.wavelength_entry.get())
-        # TODO: command action
+        make_task(self.dk.go_to_wavelength(self.dk.target_wavelength), self.tasks)
 
     def jog(self):
         """Jog when button is pressed"""
@@ -82,7 +81,8 @@ class MonochromPanel(Cyclic, ttk.LabelFrame):
         if self.extra_init:
             try:
                 self.dk_serial.set(str(await self.dk.get_sn()))
-                self.wavelength_entry.set(str(await self.dk.get_current_wavelength()))
+                self.dk.target_wavelength = await self.dk.get_current_wavelength()
+                self.wavelength_entry.set(str(self.dk.target_wavelength))
             except (SerialException, SerialTimeoutException) as e:
                 pass
             self.extra_init = False

@@ -207,8 +207,6 @@ class DkMonochromator(Cyclic):
             # latch error until good command
             if self.status != DkMonochromator.ERROR:
                 self.current_wavelength = await self.get_current_wavelength()
-            if self.current_wavelength != self.target_wavelength:
-                await self.go_to_wavelength(self.target_wavelength)
         except (SerialException, SerialTimeoutException) as e:
             self.status = DkMonochromator.ERROR
 
