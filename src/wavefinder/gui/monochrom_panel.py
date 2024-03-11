@@ -83,7 +83,7 @@ class MonochromPanel(Cyclic, ttk.LabelFrame):
             try:
                 self.dk_serial.set(str(await self.dk.get_sn()))
                 self.wavelength_entry.set(str(await self.dk.get_current_wavelength()))
-            except (SerialException, SerialTimeoutException):
+            except (SerialException, SerialTimeoutException) as e:
                 pass
             self.extra_init = False
         self.status_txt.set(MonochromPanel.STATUS[self.dk.status])

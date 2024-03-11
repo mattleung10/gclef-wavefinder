@@ -38,6 +38,7 @@ class DkMonochromator(Cyclic):
             print(e)
         else:
             # establish connection
+            self.status = DkMonochromator.BUSY
             if self.ping():
                 self.status = DkMonochromator.READY
                 print("connected.")
@@ -46,7 +47,7 @@ class DkMonochromator(Cyclic):
                 self.port.close()
                 print("monochromater not found.")
 
-    async def read_bytes(self, n: int = 1, timeout: float = 1) -> bytes:
+    async def read_bytes(self, n: int = 1, timeout: float = 5) -> bytes:
         """Read n bytes, async"""
         timeout = max(timeout, 0.1)
         result = bytes()
@@ -55,7 +56,7 @@ class DkMonochromator(Cyclic):
                 raise SerialException("read timeout")
             b = self.port.read(n)
             if b:
-                n -= 1
+                n -= len(b)
                 result = result + b
             else:
                 timeout -= 0.1
@@ -64,11 +65,13 @@ class DkMonochromator(Cyclic):
 
     async def read_status_end(self, timeout: float = 1):
         """Read status byte and cancel/end byte
-        
+
         Raises SerialException if status is not zero or end byte is wrong
         """
         s = await self.read_bytes(2, timeout)
-        if s[0] == 0 and s[1] == int(24).to_bytes():
+        # NOTE: Python yields an int when taking a slice of a bytes object...
+        #       so work in ints for bitwise ops.
+        if s[0] & int.from_bytes(b"\x80") == 0 and s[1] == 24:
             self.status = DkMonochromator.READY
         else:
             self.status = DkMonochromator.ERROR
@@ -84,7 +87,9 @@ class DkMonochromator(Cyclic):
             return False
         try:
             self.port.write(int(27).to_bytes())
-            b = self.read_bytes(1)
+            self.port.timeout = 5
+            b = self.port.read(1)
+            self.port.timeout = 0
             if b == int(27).to_bytes():
                 return True
             else:
@@ -110,8 +115,7 @@ class DkMonochromator(Cyclic):
             raise SerialException("bad data")
         # read 5 bytes and form the sn
         sn_bytes = await self.read_bytes(5)
-        for b in sn_bytes:
-            sn = 10 * sn + int(b)
+        sn = int(sn_bytes.decode())
         # status & end bytes
         await self.read_status_end()
         return sn
@@ -132,9 +136,7 @@ class DkMonochromator(Cyclic):
         if ack != int(29).to_bytes():
             raise SerialException("bad data")
         # read 3 bytes and form the wavelength
-        self.current_wavelength = (
-            float.fromhex((await self.read_bytes(3)).hex()) / 100
-        )
+        self.current_wavelength = float.fromhex((await self.read_bytes(3)).hex()) / 100
         # status & end bytes
         await self.read_status_end()
         return self.current_wavelength
@@ -162,7 +164,7 @@ class DkMonochromator(Cyclic):
         b = int(round(wavelength * 100)).to_bytes(3)
         self.port.write(b)
         # status & end bytes
-        await self.read_status_end()
+        await self.read_status_end(timeout=30)
 
     async def step_up(self):
         """Move grating one step towards IR"""
@@ -181,7 +183,7 @@ class DkMonochromator(Cyclic):
             raise SerialException("bad data")
         # status & end bytes
         await self.read_status_end()
-    
+
     async def step_down(self):
         """Move grating one step towards UV"""
         # do nothing if port is closed
@@ -207,7 +209,7 @@ class DkMonochromator(Cyclic):
                 self.current_wavelength = await self.get_current_wavelength()
             if self.current_wavelength != self.target_wavelength:
                 await self.go_to_wavelength(self.target_wavelength)
-        except (SerialException, SerialTimeoutException):
+        except (SerialException, SerialTimeoutException) as e:
             self.status = DkMonochromator.ERROR
 
     def close(self):
