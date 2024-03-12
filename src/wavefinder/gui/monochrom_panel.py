@@ -2,11 +2,9 @@ import asyncio
 import tkinter as tk
 from tkinter import ttk
 
-from serial import SerialException, SerialTimeoutException
-
 from ..devices.DkMonochromator import DkMonochromator
 from .config import Configuration
-from .utils import Cyclic, make_task, valid_float
+from .utils import Cyclic, valid_float
 
 
 class MonochromPanel(Cyclic, ttk.LabelFrame):
@@ -37,13 +35,18 @@ class MonochromPanel(Cyclic, ttk.LabelFrame):
 
     def make_info_slice(self):
         ttk.Label(self, text="Serial #").grid(column=0, row=0, padx=10, sticky=tk.E)
-        ttk.Label(self, textvariable=self.dk_serial).grid(column=1, columnspan=2, row=0, sticky=tk.W)
+        ttk.Label(self, textvariable=self.dk_serial).grid(
+            column=1, columnspan=2, row=0, sticky=tk.W
+        )
         self.status_light.grid(column=3, row=0, padx=10, pady=10)
 
     def make_wavelength_slice(self):
         ttk.Label(self, text="Wavelength (nm)").grid(
-            column=0, row=1, padx=10, sticky=tk.E)
-        ttk.Label(self, textvariable=self.wavelength_txt).grid(column=1, columnspan=2, row=1, padx=10)
+            column=0, row=1, padx=10, sticky=tk.E
+        )
+        ttk.Label(self, textvariable=self.wavelength_txt).grid(
+            column=1, columnspan=2, row=1, padx=10
+        )
         ttk.Entry(
             self,
             width=8,
@@ -54,23 +57,27 @@ class MonochromPanel(Cyclic, ttk.LabelFrame):
         ).grid(column=3, row=1)
 
     def make_buttons_slice(self):
-        self.jog_less = ttk.Button(self, text="◄", command=self.jog, width=3)
+        self.jog_less = ttk.Button(self, text="◄", command=self.step_down, width=3)
         self.jog_less.grid(column=1, row=2, pady=(10, 0), padx=2)
-        self.jog_more = ttk.Button(self, text="►", command=self.jog, width=3)
+        self.jog_more = ttk.Button(self, text="►", command=self.step_up, width=3)
         self.jog_more.grid(column=2, row=2, pady=(10, 0), padx=2)
         g = ttk.Button(self, text="Go", command=self.set_wavelength)
         g.grid(column=3, row=2, pady=(10, 0), padx=10)
 
     def set_wavelength(self):
-        self.dk.target_wavelength = float(self.wavelength_entry.get())
-        make_task(self.dk.go_to_wavelength(self.dk.target_wavelength), self.tasks)
+        if self.dk.comm_up:
+            self.dk.target_wavelength = float(self.wavelength_entry.get())
+            self.dk.q.put(self.dk.go_to_target_wavelength)
 
-    def jog(self):
-        """Jog when button is pressed"""
-        if self.jog_less.instate(["active"]):
-            make_task(self.dk.step_down(), self.tasks)
-        elif self.jog_more.instate(["active"]):
-            make_task(self.dk.step_up(), self.tasks)
+    def step_up(self):
+        """Move grating one step towards IR"""
+        if self.dk.comm_up:
+            self.dk.q.put(self.dk.step_up)
+
+    def step_down(self):
+        """Move grating one step towards UV"""
+        if self.dk.comm_up:
+            self.dk.q.put(self.dk.step_down)
 
     def restore_wavelength_entry(self):
         self.wavelength_entry.set(str(self.dk.target_wavelength))
@@ -78,13 +85,10 @@ class MonochromPanel(Cyclic, ttk.LabelFrame):
     async def update(self):
         """Update UI"""
         # set DK info on first pass
-        if self.extra_init:
-            try:
-                self.dk_serial.set(str(await self.dk.get_sn()))
-                self.dk.target_wavelength = await self.dk.get_current_wavelength()
-                self.wavelength_entry.set(str(self.dk.target_wavelength))
-            except (SerialException, SerialTimeoutException) as e:
-                pass
+        if self.extra_init and self.dk.comm_up:
+            self.dk_serial.set(str(self.dk.serial_number))
+            self.dk.target_wavelength = self.dk.current_wavelength
+            self.wavelength_entry.set(str(self.dk.target_wavelength))
             self.extra_init = False
         self.status_txt.set(MonochromPanel.STATUS[self.dk.status])
         self.status_light.configure(background=MonochromPanel.COLORS[self.dk.status])

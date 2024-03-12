@@ -204,7 +204,7 @@ class CameraPanel(Cyclic):
         ttk.Button(parent, text="Write to Camera", command=self.set_cam_ctrl).grid(
             column=0, row=12, columnspan=3, pady=(10, 0), padx=10, sticky=tk.S
         )
-        # # NOTE secret reset button
+        # # NOTE: secret reset button
         # ttk.Button(parent, text="Reset Camera", command=self.reset_camera).grid(
         #     column=0, row=13, columnspan=3, pady=(10, 0), padx=10
         # )

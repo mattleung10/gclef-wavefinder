@@ -115,7 +115,7 @@ class App(ScrollableWindow):
                 )
 
         # add devices to cyclic tasks
-        # NOTE self.camera may be None if camera is not found, so only add it if not None
+        # NOTE: self.camera may be None if camera is not found, so only add it if not None
         # TODO: instead of allowing camera to be None, add a "connected" parameter
         if self.camera:
             self.cyclics.add(self.camera)
