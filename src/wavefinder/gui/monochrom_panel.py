@@ -85,7 +85,11 @@ class MonochromPanel(Cyclic, ttk.LabelFrame):
     async def update(self):
         """Update UI"""
         # set DK info on first pass
-        if self.extra_init and self.dk.comm_up:
+        if (
+            self.extra_init
+            and self.dk.comm_up
+            and self.dk.status == DkMonochromator.READY
+        ):
             self.dk_serial.set(str(self.dk.serial_number))
             self.dk.target_wavelength = self.dk.current_wavelength
             self.wavelength_entry.set(str(self.dk.target_wavelength))

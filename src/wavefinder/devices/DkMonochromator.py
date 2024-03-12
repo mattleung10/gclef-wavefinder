@@ -36,7 +36,7 @@ class DkMonochromator(Cyclic):
         self.current_wavelength = 0.0
 
         try:
-            print(f"Connecting to monochromator on {port}... ", end="", flush=True)
+            print(f"Connecting to monochromator on {port}... ", flush=True)
             self.port.open()
         except (SerialException, ValueError) as e:
             self.status = DkMonochromator.ERROR
@@ -91,9 +91,11 @@ class DkMonochromator(Cyclic):
 
         Returns True if communication is established.
         """
+        # TODO: resend if nothing received after a while
         self.port.write(int(27).to_bytes())
         b = await self.read_bytes(1, None)
         if b == int(27).to_bytes():
+            # TODO: print something on success
             return True
         else:
             raise SerialException("bad data")
@@ -135,9 +137,10 @@ class DkMonochromator(Cyclic):
             b = int(round(self.target_wavelength * 100)).to_bytes(3)
         except OverflowError:
             # cancel
-            # TODO: test this
+            # FIXME: how to cancel?
             self.port.write(int(24).to_bytes())
-        self.port.write(b)
+        else:
+            self.port.write(b)
         await self.read_status_end(timeout=30)
 
     async def step_up(self):
