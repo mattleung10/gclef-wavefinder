@@ -81,7 +81,7 @@ class CameraPanel(Cyclic):
         self.make_roi_input_slice(roi_frame)
         self.make_roi_preview_slice(roi_frame)
         self.make_roi_histogram(roi_frame)
-        roi_frame.grid(column=2, row=0, rowspan=3, sticky=tk.NSEW)
+        roi_frame.grid(column=2, row=0, rowspan=4, sticky=tk.NSEW)
 
         # update UI to match camera object
         self.restore_camera_entries()
