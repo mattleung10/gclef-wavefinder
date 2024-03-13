@@ -93,9 +93,9 @@ class DkMonochromator(Cyclic):
         """
         while self.port.is_open:
             try:
-                # send ECHO and wait 60 seconds for reply
+                # send ECHO and wait 30 seconds for reply
                 self.port.write(int(27).to_bytes())
-                b = await self.read_bytes(1, 60)
+                b = await self.read_bytes(1, 30)
                 if b == int(27).to_bytes():
                     print("monochromator communication established")
                     return True
@@ -166,13 +166,15 @@ class DkMonochromator(Cyclic):
             if self.comm_up:
                 # process commands from queue
                 try:
-                    cmd = self.q.get_nowait()
-                    self.status = DkMonochromator.BUSY
-                    await cmd()
-                    self.status = DkMonochromator.READY
-                except Empty:
-                    # nothing in queue, get current wavelength
-                    self.current_wavelength = await self.get_current_wavelength()
+                    try:
+                        cmd = self.q.get_nowait()
+                    except Empty:
+                        # nothing in queue, get current wavelength
+                        self.current_wavelength = await self.get_current_wavelength()
+                    else:
+                        self.status = DkMonochromator.BUSY
+                        await cmd()
+                        self.status = DkMonochromator.READY
                 except (SerialException, ValueError):
                     self.status = DkMonochromator.ERROR
             else:

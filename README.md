@@ -23,6 +23,7 @@ G-CLEF Wavefinder is graphical software for G-CLEF camera assembly, integration,
   - Fine motion jog
   - Homing functions
   - Axis status and error detection
+* Spectral Products DK240 Monochromator interface
 * Region of Interest visualization
 * Cross-cuts
 * Histogram
