@@ -118,7 +118,7 @@ class Configuration:
         self.focus_position = np.nan
         self.sequence_number = 0
         self.sequence_order = 0
-        self.sequence_wavelength = 0.0
+        self.sequence_substep = ""
 
     def read_config_file(self, config_filename: str) -> None:
         """Read configuration file, validate input, overwrite defaults.

@@ -86,19 +86,22 @@ class DkMonochromator(Cyclic):
         if s[1] != 24:
             raise SerialException("bad data")
 
-    async def comm_check(self) -> bool:
+    async def establish_connection(self) -> bool:
         """Send ECHO command, look for reply
 
-        Returns True if communication is established.
+        Returns True when communication is established.
         """
-        # TODO: resend if nothing received after a while
-        self.port.write(int(27).to_bytes())
-        b = await self.read_bytes(1, None)
-        if b == int(27).to_bytes():
-            # TODO: print something on success
-            return True
-        else:
-            raise SerialException("bad data")
+        while self.port.is_open:
+            try:
+                # send ECHO and wait 60 seconds for reply
+                self.port.write(int(27).to_bytes())
+                b = await self.read_bytes(1, 60)
+                if b == int(27).to_bytes():
+                    print("monochromator communication established")
+                    return True
+            except SerialException:
+                continue # try again
+        raise SerialException("serial port is closed")
 
     async def get_sn(self) -> int:
         """Read serial number from monochromator"""
@@ -128,19 +131,18 @@ class DkMonochromator(Cyclic):
 
     async def go_to_target_wavelength(self):
         """Command monochromater to go to target_wavelength"""
+        # maximum 3-byte number is 0xFFFFFF = 16777215,
+        # so max wavelength is 167772.15nm
+        if self.target_wavelength > 167772.15:
+            self.target_wavelength = self.current_wavelength
+            raise ValueError("wavelength out of range")
         self.port.write(int(16).to_bytes())
         ack = await self.read_bytes()
         if ack != int(16).to_bytes():
             raise SerialException("bad ack")
         # convert wavelength to 3 bytes and send
-        try:
-            b = int(round(self.target_wavelength * 100)).to_bytes(3)
-        except OverflowError:
-            # cancel
-            # FIXME: how to cancel?
-            self.port.write(int(24).to_bytes())
-        else:
-            self.port.write(b)
+        b = int(round(self.target_wavelength * 100)).to_bytes(3)
+        self.port.write(b)
         await self.read_status_end(timeout=30)
 
     async def step_up(self):
@@ -171,13 +173,13 @@ class DkMonochromator(Cyclic):
                 except Empty:
                     # nothing in queue, get current wavelength
                     self.current_wavelength = await self.get_current_wavelength()
-                except SerialException:
+                except (SerialException, ValueError):
                     self.status = DkMonochromator.ERROR
             else:
                 # wait until comm up, then do some setup
                 try:
                     self.status = DkMonochromator.BUSY
-                    self.comm_up = await self.comm_check()
+                    self.comm_up = await self.establish_connection()
                     self.serial_number = await self.get_sn()
                     self.current_wavelength = await self.get_current_wavelength()
                     self.status = DkMonochromator.READY

@@ -6,10 +6,8 @@ import tkinter as tk
 import traceback
 from importlib.metadata import PackageNotFoundError, version
 
-from wavefinder.devices.DkMonochromator import DkMonochromator
-from wavefinder.gui.monochrom_panel import MonochromPanel
-
 from ..devices.Axis import Axis
+from ..devices.DkMonochromator import DkMonochromator
 from ..devices.GalilAdapter import GalilAdapter
 from ..devices.MightexBufCmos import Camera
 from ..devices.ZaberAdapter import ZaberAdapter
@@ -18,6 +16,7 @@ from ..functions.writer import DataWriter
 from .camera_panel import CameraPanel
 from .config import Configuration
 from .function_panel import FunctionPanel
+from .monochrom_panel import MonochromPanel
 from .motion_panel import MotionPanel
 from .scrollable_container import ScrollableWindow
 from .utils import Cyclic, make_task
@@ -123,8 +122,10 @@ class App(ScrollableWindow):
 
     def make_functions(self):
         """Make function units"""
-        self.writer = DataWriter(self.camera, self.axes)
-        self.sequencer = Sequencer(self.config, self.camera, self.axes, self.writer)
+        self.writer = DataWriter(self.camera, self.axes, self.dk)
+        self.sequencer = Sequencer(
+            self.config, self.camera, self.axes, self.dk, self.writer
+        )
 
     def make_panels(self):
         """Make UI panels"""

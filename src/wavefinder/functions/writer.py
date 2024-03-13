@@ -6,6 +6,8 @@ from astropy.io import fits
 from astropy.time import Time
 from PIL import Image
 
+from ..devices.DkMonochromator import DkMonochromator
+
 from ..devices.Axis import Axis
 from ..devices.MightexBufCmos import Camera, Frame
 from ..functions.image import find_centroid, find_full_width_half_max, threshold_copy
@@ -17,9 +19,11 @@ class DataWriter:
         self,
         camera: Camera | None,
         axes: dict[str, Axis],
+        monochromator: DkMonochromator
     ) -> None:
         self.camera = camera
         self.axes = axes
+        self.monochromator = monochromator
 
     def write_fits_file(self, filename: str, config: Configuration):
         """Write a FITS file using most recent image and telemetry
@@ -124,13 +128,12 @@ class DataWriter:
         headers: dict[str, tuple[float | int | str, str]] = {}
         headers["obstype"] = (self.config.image_obstype, "Type of observation taken")
         headers["object"] = (self.config.image_target, "target of the observation")
-        headers["wavelen"] = (
-            self.config.sequence_wavelength,
+        headers["wavelen"] = (self.monochromator.current_wavelength,
             "[nm] wavelength being measured",
         )
         headers["order"] = (self.config.sequence_order, "diffraction order")
         id = f"{self.config.sequence_order:03}"
-        id += f"-{round(self.config.sequence_wavelength):05}"
+        id += f"-{round(self.monochromator.current_wavelength):05}"
         id += f"-{self.config.sequence_number:03}"
         id += f"-{random.randrange(16**4):4x}"  # random hash for uniqueness
         headers["obs_id"] = (id, "unique observation ID")

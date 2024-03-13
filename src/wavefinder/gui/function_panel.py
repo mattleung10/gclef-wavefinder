@@ -273,6 +273,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
                     # if this one exists, try the next letter
                     continue
         if os.path.exists(directory):
+            self.config.image_math_in_function = True
             t, _ = make_task(
                 self.sequencer.run_sequence(directory, self.sequence_status), self.tasks
             )
@@ -282,17 +283,20 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
 
     def after_sequence(self, future: asyncio.Future):
         """Callback for after sequence completes"""
+        self.config.image_math_in_function = False
         self.run_sequence_button.configure(state=tk.NORMAL)
         self.select_sequence_button.configure(state=tk.NORMAL)
 
     def focus(self):
         """Start focus routine"""
+        self.config.image_math_in_function = True
         t, _ = make_task(self.sequencer.focus(), self.tasks)
         t.add_done_callback(self.after_focus)
         self.focus_button.configure(state=tk.DISABLED)
 
     def after_focus(self, future: asyncio.Future):
         """Callback for after focus completes"""
+        self.config.image_math_in_function = False
         self.focus_position.set(f"Best Focus: {self.config.focus_position:.3f}")
         self.focus_button.configure(state=tk.NORMAL)
 

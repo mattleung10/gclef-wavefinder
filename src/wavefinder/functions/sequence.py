@@ -6,6 +6,7 @@ import numpy as np
 from astropy.time import Time
 
 from ..devices.Axis import Axis
+from ..devices.DkMonochromator import DkMonochromator
 from ..devices.MightexBufCmos import Camera, Frame
 from ..functions.writer import DataWriter
 from ..gui.config import Configuration
@@ -18,6 +19,7 @@ class Sequencer:
         config: Configuration,
         camera: Camera | None,
         axes: dict[str, Axis],
+        monochromator: DkMonochromator,
         data_writer: DataWriter,
     ) -> None:
         """Multi-function sequencer class has methods to:
@@ -40,6 +42,7 @@ class Sequencer:
         self.config = config
         self.camera = camera
         self.axes = axes
+        self.monochromator = monochromator
         self.data_writer = data_writer
         self.sequence: list[dict[str, list[float]]] = list()
 
@@ -103,10 +106,9 @@ class Sequencer:
         focus_pos = z_axis.position if z_axis else np.nan
 
         if self.camera and z_axis:
-            # set camera to trigger mode and take over image math
+            # set camera to trigger mode
             old_mode = self.camera.run_mode
             await self.camera.set_mode(run_mode=Camera.TRIGGER, write_now=True)
-            self.config.image_math_in_function = True
 
             # set up for first pass
             limit_min, limit_max = await z_axis.get_limits()
@@ -143,36 +145,8 @@ class Sequencer:
                                 # sleep is necessary to give other tasks time to process
                                 await asyncio.sleep(0.1)
                                 continue
-                        # use ROI if selected
-                        if self.config.image_use_roi_stats:
-                            image_array = roi_copy(
-                                frame.img_array, self.config.roi_size
-                            )
-                            threshold = self.config.image_roi_threshold
-                        else:
-                            image_array = frame.img_array
-                            threshold = self.config.image_full_threshold
-
-                        # compute image stats
-                        centroid, fwhm, max_value, n_saturated = image_math(
-                            image_array,
-                            frame.bits,
-                            threshold,
-                            self.config.image_fwhm_method,
-                        )
-                        # translate to full-frame pixel coordinates
-                        if self.config.image_use_roi_stats:
-                            box = get_roi_box(
-                                (frame.rows, frame.cols), self.config.roi_size
-                            )
-                            centroid = (centroid[0] + box[0], centroid[1] + box[1])
-                        # store values for GUI to see
-                        self.config.image_centroid = centroid
-                        self.config.image_fwhm = fwhm
-                        self.config.image_max_value = max_value
-                        self.config.image_n_saturated = n_saturated
-
-                        # use fwhm of thresholded image as metric for focus quality
+                        # compute image stats and use fwhm of thresholded image as metric for focus quality
+                        _, fwhm, _, _ = self.compute_image_stats(frame)
                         # if fwhm is NaN, sum will be NaN and thrown out
                         sum += fwhm
 
@@ -192,9 +166,8 @@ class Sequencer:
 
             # move to focus position
             await z_axis.move_absolute(focus_pos)
-            # restore previous camera mode and reliquish image math
+            # restore previous camera mode
             await self.camera.set_mode(run_mode=old_mode, write_now=True)
-            self.config.image_math_in_function = False
 
         # return best position
         self.config.focus_position = focus_pos
@@ -235,54 +208,66 @@ class Sequencer:
         if not self.camera or len(self.sequence) == 0:
             return
 
-        # set camera to trigger mode and take over image math
+        # set camera to trigger mode
         old_mode = self.camera.run_mode
         await self.camera.set_mode(run_mode=Camera.TRIGGER, write_now=True)
-        self.config.image_math_in_function = True
 
         j = 1  # image sequence number
         for i, row in enumerate(self.sequence):
             ## 0) update parameters and status text
+            self.config.sequence_substep = "Start Step"
             order = int(row["order"][0])
             wavel = row["wavelength"][0]
             self.config.sequence_number = j
             self.config.sequence_order = order
-            self.config.sequence_wavelength = wavel
             status_text.set(
-                f"processing {i+1} of {len(self.sequence)}\norder = {order} wavelength = {wavel}"
+                f"processing {i+1} of {len(self.sequence)}"
+                + f": {self.config.sequence_substep}"
+                + f"\norder = {order} wavelength = {wavel}"
             )
 
-            ## 1) move to position
+            ## 1) set monochromator wavelength
+            self.config.sequence_substep = "Set Wavelength"
+            self.monochromator.target_wavelength = wavel
+            self.monochromator.q.put(self.monochromator.go_to_target_wavelength)
+
+            ## 2) move to position
+            self.config.sequence_substep = "Move to Position"
             for col in row:
                 # match header with motion axis, then move to position
                 a = self.axes.get(col)
                 if a:
                     await a.move_absolute(row[col][0])
 
-            ## 2) take image
+            ## 3) take image for centroid, compute centroid, center image
+            self.config.sequence_substep = "Center Image"
             frame = await self.take_image(self.camera)
-
-            ## 3) compute image statistics
             centroid, _, _, _ = self.compute_image_stats(frame)
-
-            ## 4) center image
             image_size = (frame.img_array.shape[1], frame.img_array.shape[0])
             await self.center(image_size, centroid)
 
-            ## 5) focus image and save and increment sequence
+            ## 4) find best focus
+            self.config.sequence_substep = "Find Focus"
             await self.focus()
+
+            ## 5) take at-focus image, save, and increment sequence
+            self.config.sequence_substep = "In-Focus Image"
+            self.config.camera_frame = await self.take_image(self.camera)
             t = Time.now()
             datestr = f"{t.ymdhms[0]:04}{t.ymdhms[1]:02}{t.ymdhms[2]:02}"
             # example name "gclef_20240131_ait_007_08500_0005_f.fits"
             # means date is 2024-01-31, order = 7, wavelen = 8500nm
             #       5th observation in sequence, "f" for in-focus
             letter = "f"
-            basename = f"gclef_ait_{datestr}_{order:03}_{round(wavel):05}_{j:03}_{letter}.fits"
+            basename = (
+                f"gclef_ait_{datestr}_{order:03}_{round(wavel):05}_{j:03}_{letter}.fits"
+            )
             filename = os.path.join(output_dir, basename)
             self.data_writer.write_fits_file(filename, self.config)
             j += 1
 
             ## 6) intra- and extra- focus positions
+            self.config.sequence_substep = "Delta Focus Images"
             z_axis = self.axes.get(self.config.sequencer_z_axis)
             if z_axis:
                 # for each z position in the delta focus list
@@ -291,6 +276,7 @@ class Sequencer:
                     await z_axis.move_absolute(p + self.config.focus_position)
                     ### 6.2) take image
                     frame = await self.take_image(self.camera)
+                    self.config.camera_frame = frame
                     ### 6.3) compute image statistics
                     centroid, _, _, _ = self.compute_image_stats(frame)
                     ### 6.4) save and increment sequence
@@ -301,10 +287,8 @@ class Sequencer:
                     self.data_writer.write_fits_file(filename, self.config)
                     j += 1
 
-        # restore previous camera mode and reliquish image math
+        # restore previous camera mode
         await self.camera.set_mode(run_mode=old_mode, write_now=True)
-        self.config.image_math_in_function = False
-
         status_text.set(f"Sequence complete!")
 
     async def take_image(self, camera: Camera):
