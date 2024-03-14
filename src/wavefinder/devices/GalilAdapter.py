@@ -31,7 +31,6 @@ class GalilAdapter(Cyclic):
             encoder_counts_per_degree: encoder counts per degree
             encoder_counts_per_degree: drive counts per degree
         """
-        # TODO: we're not using any of the input parameters
         self.address = address
         self.axis_names = axis_names
         self.axes: dict[str, GalilAxis] = {}
@@ -52,7 +51,18 @@ class GalilAdapter(Cyclic):
             kw = self.axis_names[name]["keyword"]
             print(f"Finding {name} on channel {ch}... ", end="", flush=True)
             try:
-                self.axes[name] = GalilAxis(name, kw, ch, self.connection)
+                self.axes[name] = GalilAxis(
+                    name,
+                    kw,
+                    ch,
+                    self.connection,
+                    accel,
+                    decel,
+                    speed,
+                    homing_speed,
+                    encoder_counts_per_degree,
+                    drive_counts_per_degree,
+                )
             except GclibError:
                 print("not found.")  # device not found
             except Exception as e:

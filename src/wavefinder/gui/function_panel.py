@@ -7,7 +7,7 @@ from tkinter import filedialog, ttk
 from astropy.time import Time
 
 from ..devices.MightexBufCmos import Camera
-from ..functions.sequence import Sequencer
+from ..functions.sequencer import SequenceState, Sequencer
 from ..functions.writer import DataWriter
 from ..gui.config import Configuration
 from ..gui.utils import Cyclic
@@ -77,25 +77,19 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
     def make_sequence_slice(self):
         sequence_frame = ttk.Frame(self)
         ttk.Label(sequence_frame, text="Automated Sequence").grid(
-            column=0, row=0, padx=10, sticky=tk.E
+            column=0, row=0, padx=10
         )
-        self.select_sequence_button = ttk.Button(
-            sequence_frame,
-            text="Select Input File",
-            command=self.select_sequence_file,
-            width=13,
+        self.sequence_button_txt = tk.StringVar()
+        self.sequence_button = ttk.Button(
+            sequence_frame, textvariable=self.sequence_button_txt, command=self.handle_sequence_button, width=13
         )
-        self.select_sequence_button.grid(
-            column=1, row=0, padx=10, pady=(10, 0), sticky=tk.W
+        self.sequence_button.grid(column=2, row=0, padx=10, pady=(10, 0), sticky=tk.E)
+        self.abort_button = ttk.Button(
+            sequence_frame, text="Abort", command=self.handle_abort_button, width=13
         )
-        self.run_sequence_button = ttk.Button(
-            sequence_frame, text="Run", command=self.run_sequence, width=13
-        )
-        self.run_sequence_button.grid(
-            column=2, row=0, padx=10, pady=(10, 0), sticky=tk.E
-        )
-        self.sequence_status = tk.StringVar(value="Need Input File")
-        ttk.Label(sequence_frame, textvariable=self.sequence_status).grid(
+        self.abort_button.grid(column=2, row=1, padx=10, pady=(10, 0), sticky=tk.E)        
+        self.sequence_txt = tk.StringVar(value="Need Input File")
+        ttk.Label(sequence_frame, textvariable=self.sequence_txt).grid(
             column=0, row=1, columnspan=2, padx=10, sticky=tk.E
         )
         sequence_frame.grid(column=0, row=1, columnspan=2, pady=10, sticky=tk.E)
@@ -233,6 +227,41 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         if filename:
             self.data_writer.write_fits_file(filename, self.config)
 
+    def handle_sequence_button(self):
+        """Handle the sequence button"""
+        match self.sequencer.sequence_state:
+            case SequenceState.INPUT:
+                self.select_sequence_file()
+            case SequenceState.READY:
+                self.run_sequence()
+            case SequenceState.RUN:
+                self.sequencer.abort_sequence()
+            case SequenceState.FINISHED:
+                self.select_sequence_file()
+            case SequenceState.ABORT:
+                self.select_sequence_file()
+
+    def handle_abort_button(self):
+        """Handle the abort button"""
+        match self.sequencer.sequence_state:
+            case SequenceState.INPUT:
+                self.sequencer.sequence_state = SequenceState.INPUT
+                self.sequencer.sequence.clear()
+            case SequenceState.READY:
+                self.sequencer.sequence_state = SequenceState.INPUT
+                self.sequencer.sequence.clear()
+            case SequenceState.RUN:
+                self.sequencer.abort_sequence()
+                self.sequencer.sequence.clear()
+            case SequenceState.FINISHED:
+                # TODO: something
+                self.sequencer.sequence_state = SequenceState.INPUT
+                self.sequencer.sequence.clear()
+            case SequenceState.ABORT:
+                # TODO: something
+                self.sequencer.sequence_state = SequenceState.INPUT
+                self.sequencer.sequence.clear()
+
     def select_sequence_file(self):
         """Select input file for automated sequence"""
         filename = filedialog.askopenfilename(
@@ -241,9 +270,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         )
         if filename:
             self.sequencer.read_input_file(filename)
-            self.sequence_status.set(
-                f"Loaded {os.path.basename(filename)}\nReady to Run"
-            )
+            self.sequence_txt.set(f"Loaded {os.path.basename(filename)}\nReady to Run")
 
     def run_sequence(self):
         """Run automated sequence
@@ -251,8 +278,6 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         First select the output directory and make a subdirectory for the data,
         then run the sequence.
         """
-        # TODO: do nothing or disable if sequence is empty, not loaded
-        # TODO: abort sequence button
         directory = ""
         parent_dir = filedialog.askdirectory(
             title="Select Parent Directory to Save Data", mustexist=False
@@ -274,18 +299,12 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
                     continue
         if os.path.exists(directory):
             self.config.image_math_in_function = True
-            t, _ = make_task(
-                self.sequencer.run_sequence(directory, self.sequence_status), self.tasks
-            )
+            t, _ = make_task(self.sequencer.run_sequence(directory), self.tasks)
             t.add_done_callback(self.after_sequence)
-            self.run_sequence_button.configure(state=tk.DISABLED)
-            self.select_sequence_button.configure(state=tk.DISABLED)
 
     def after_sequence(self, future: asyncio.Future):
         """Callback for after sequence completes"""
         self.config.image_math_in_function = False
-        self.run_sequence_button.configure(state=tk.NORMAL)
-        self.select_sequence_button.configure(state=tk.NORMAL)
 
     def focus(self):
         """Start focus routine"""
@@ -338,9 +357,40 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         stats_txt += f"Saturated Pixels: {self.config.image_n_saturated}"
         self.image_stats_txt.set(stats_txt)
 
+    def update_sequence_status(self):
+        """Update sequence status text and button labels"""
+        match self.sequencer.sequence_state:
+            case SequenceState.INPUT:
+                self.sequence_button_txt.set("Select Input File")
+                self.sequence_button.configure(state=tk.NORMAL)
+                self.sequence_txt.set(f"{self.sequencer.sequence_state}")
+            case SequenceState.READY:
+                self.sequence_button_txt.set("Run Sequence")
+                self.sequence_button.configure(state=tk.NORMAL)
+                # self.sequence_txt.set(f"{self.sequencer.sequence_state}")
+            case SequenceState.RUN:
+                self.sequence_button_txt.set("Running...")
+                self.sequence_button.configure(state=tk.DISABLED)
+                self.sequence_txt.set(f"{self.sequencer.sequence_state}")
+            case SequenceState.FINISHED:
+                self.sequence_button_txt.set("Select Input File")
+                self.sequence_button.configure(state=tk.NORMAL)
+                self.sequence_txt.set(f"{self.sequencer.sequence_state}")
+            case SequenceState.ABORT:
+                self.sequence_button_txt.set("Select Input File")
+                self.sequence_button.configure(state=tk.NORMAL)
+                self.sequence_txt.set(f"{self.sequencer.sequence_state}")
+
+        # self.sequence_txt.set(
+        #     f"processing {self.sequencer.sequence_iteration+1} of {len(self.sequencer.sequence)}"
+        #     + f": {self.sequencer.sequence_substate}"
+        #     # + f"\norder = {self.sequencer.seqorder} wavelength = {wavel}" # TODO: something
+        # )
+
     async def update(self):
         """Update UI"""
         self.update_image_stats_txt()
+        self.update_sequence_status()
 
     def close(self):
         """Close out all tasks"""

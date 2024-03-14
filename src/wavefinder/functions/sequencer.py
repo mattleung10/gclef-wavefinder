@@ -1,6 +1,6 @@
 import asyncio
 import os
-import tkinter as tk
+from enum import StrEnum
 
 import numpy as np
 from astropy.time import Time
@@ -8,9 +8,27 @@ from astropy.time import Time
 from ..devices.Axis import Axis
 from ..devices.DkMonochromator import DkMonochromator
 from ..devices.MightexBufCmos import Camera, Frame
-from ..functions.writer import DataWriter
 from ..gui.config import Configuration
 from .image import get_roi_box, image_math, roi_copy
+from .writer import DataWriter
+
+
+class SequenceState(StrEnum):
+    INPUT = "Select Input File"
+    READY = "Ready to Run"
+    RUN = "Running"
+    FINISHED = "Finished"
+    ABORT = "Aborted"
+
+
+class SequenceSubstate(StrEnum):
+    START = "Start Step"
+    WAVELENGTH = "Set Monochromator Wavelength"
+    MOVE = "Move to Position"
+    CENTER = "Center Image"
+    FOCUS = "Focus Image"
+    CAPTURE_F = "Take In-Focus Image"
+    CAPTURE_D = "Take Delta Focus Images"
 
 
 class Sequencer:
@@ -45,6 +63,10 @@ class Sequencer:
         self.monochromator = monochromator
         self.data_writer = data_writer
         self.sequence: list[dict[str, list[float]]] = list()
+        self.sequence_iteration = 0
+        self.sequence_state: SequenceState = SequenceState.INPUT
+        self.sequence_substate: SequenceSubstate = SequenceSubstate.START
+        self.abort = False
 
         # check for axes
         if not self.config.sequencer_x_axis in self.axes:
@@ -195,44 +217,43 @@ class Sequencer:
                 for i, col in enumerate(line.split(",")):
                     d[headers[i]] = [float(x) for x in col.split()]
                 self.sequence.append(d)
+            if len(self.sequence) > 0:
+                self.sequence_state = SequenceState.READY
 
-    async def run_sequence(self, output_dir: str, status_text: tk.StringVar):
+    async def run_sequence(self, output_dir: str):
         """Run sequence and store data in output directory
 
         Args:
             output_dir: path to output directory
-            status_text: Tk StringVar to update with status
         """
 
         # check for necessary devices and sequence
         if not self.camera or len(self.sequence) == 0:
             return
 
+        self.sequence_state = SequenceState.RUN
         # set camera to trigger mode
         old_mode = self.camera.run_mode
         await self.camera.set_mode(run_mode=Camera.TRIGGER, write_now=True)
 
         j = 1  # image sequence number
-        for i, row in enumerate(self.sequence):
+        for self.sequence_iteration, row in enumerate(self.sequence):
             ## 0) update parameters and status text
-            self.config.sequence_substep = "Start Step"
+            if not self.sequence_housekeeping(SequenceSubstate.START):
+                return
             order = int(row["order"][0])
             wavel = row["wavelength"][0]
             self.config.sequence_number = j
             self.config.sequence_order = order
-            status_text.set(
-                f"processing {i+1} of {len(self.sequence)}"
-                + f": {self.config.sequence_substep}"
-                + f"\norder = {order} wavelength = {wavel}"
-            )
 
             ## 1) set monochromator wavelength
-            self.config.sequence_substep = "Set Wavelength"
+            if not self.sequence_housekeeping(SequenceSubstate.WAVELENGTH):
+                return
             self.monochromator.target_wavelength = wavel
             self.monochromator.q.put(self.monochromator.go_to_target_wavelength)
 
             ## 2) move to position
-            self.config.sequence_substep = "Move to Position"
+            # self.sequence_substate = SequenceSubstate.MOVE
             for col in row:
                 # match header with motion axis, then move to position
                 a = self.axes.get(col)
@@ -240,18 +261,21 @@ class Sequencer:
                     await a.move_absolute(row[col][0])
 
             ## 3) take image for centroid, compute centroid, center image
-            self.config.sequence_substep = "Center Image"
+            if not self.sequence_housekeeping(SequenceSubstate.CENTER):
+                return
             frame = await self.take_image(self.camera)
             centroid, _, _, _ = self.compute_image_stats(frame)
             image_size = (frame.img_array.shape[1], frame.img_array.shape[0])
             await self.center(image_size, centroid)
 
             ## 4) find best focus
-            self.config.sequence_substep = "Find Focus"
+            if not self.sequence_housekeeping(SequenceSubstate.FOCUS):
+                return
             await self.focus()
 
             ## 5) take at-focus image, save, and increment sequence
-            self.config.sequence_substep = "In-Focus Image"
+            if not self.sequence_housekeeping(SequenceSubstate.CAPTURE_F):
+                return
             self.config.camera_frame = await self.take_image(self.camera)
             t = Time.now()
             datestr = f"{t.ymdhms[0]:04}{t.ymdhms[1]:02}{t.ymdhms[2]:02}"
@@ -267,7 +291,8 @@ class Sequencer:
             j += 1
 
             ## 6) intra- and extra- focus positions
-            self.config.sequence_substep = "Delta Focus Images"
+            if not self.sequence_housekeeping(SequenceSubstate.CAPTURE_D):
+                return
             z_axis = self.axes.get(self.config.sequencer_z_axis)
             if z_axis:
                 # for each z position in the delta focus list
@@ -289,7 +314,27 @@ class Sequencer:
 
         # restore previous camera mode
         await self.camera.set_mode(run_mode=old_mode, write_now=True)
-        status_text.set(f"Sequence complete!")
+        self.sequence_state = SequenceState.FINISHED
+    
+    def abort_sequence(self):
+        """Abort running sequence"""
+        self.abort = True
+
+    def sequence_housekeeping(self, substate: SequenceSubstate):
+        """Housekeeping to update the GUI
+
+        Args:
+            substate: sequence substate
+        
+        Returns True unless abort
+        """
+        self.sequence_substate = substate
+        if self.abort:
+            self.sequence_state = SequenceState.ABORT
+            self.abort = False # reset abort signal
+            return False
+        else:
+            return True
 
     async def take_image(self, camera: Camera):
         """Take image for use in sequencer.

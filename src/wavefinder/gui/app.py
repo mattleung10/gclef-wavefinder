@@ -11,7 +11,7 @@ from ..devices.DkMonochromator import DkMonochromator
 from ..devices.GalilAdapter import GalilAdapter
 from ..devices.MightexBufCmos import Camera
 from ..devices.ZaberAdapter import ZaberAdapter
-from ..functions.sequence import Sequencer
+from ..functions.sequencer import Sequencer
 from ..functions.writer import DataWriter
 from .camera_panel import CameraPanel
 from .config import Configuration
