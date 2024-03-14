@@ -81,13 +81,16 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         )
         self.sequence_button_txt = tk.StringVar()
         self.sequence_button = ttk.Button(
-            sequence_frame, textvariable=self.sequence_button_txt, command=self.handle_sequence_button, width=13
+            sequence_frame,
+            textvariable=self.sequence_button_txt,
+            command=self.handle_sequence_button,
+            width=13,
         )
         self.sequence_button.grid(column=2, row=0, padx=10, pady=(10, 0), sticky=tk.E)
         self.abort_button = ttk.Button(
             sequence_frame, text="Abort", command=self.handle_abort_button, width=13
         )
-        self.abort_button.grid(column=2, row=1, padx=10, pady=(10, 0), sticky=tk.E)        
+        self.abort_button.grid(column=2, row=1, padx=10, pady=(10, 0), sticky=tk.E)
         self.sequence_txt = tk.StringVar(value="Need Input File")
         ttk.Label(sequence_frame, textvariable=self.sequence_txt).grid(
             column=0, row=1, columnspan=2, padx=10, sticky=tk.E
@@ -270,7 +273,13 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         )
         if filename:
             self.sequencer.read_input_file(filename)
-            self.sequence_txt.set(f"Loaded {os.path.basename(filename)}\nReady to Run")
+            if self.sequencer.is_sequence_runnable():
+                self.sequence_txt.set(f"Loaded {os.path.basename(filename)}")
+            else:
+                self.sequence_txt.set(
+                    f"Loaded {os.path.basename(filename)},"
+                    + "\nbut it is not runnable."
+                )
 
     def run_sequence(self):
         """Run automated sequence
@@ -321,7 +330,6 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
 
     def center(self):
         """Center the image"""
-
         # if the camera is present, use its frame;
         # otherwise, use "full_img" which is likely a simulated image
         if self.config.camera_frame:
@@ -363,7 +371,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
             case SequenceState.INPUT:
                 self.sequence_button_txt.set("Select Input File")
                 self.sequence_button.configure(state=tk.NORMAL)
-                self.sequence_txt.set(f"{self.sequencer.sequence_state}")
+                # self.sequence_txt.set(f"{self.sequencer.sequence_state}")
             case SequenceState.READY:
                 self.sequence_button_txt.set("Run Sequence")
                 self.sequence_button.configure(state=tk.NORMAL)

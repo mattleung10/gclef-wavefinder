@@ -161,6 +161,11 @@ class DkMonochromator(Cyclic):
             raise SerialException("bad ack")
         await self.read_status_end()
 
+    async def wait_for_wavelength(self):
+        """Wait until current wavelength is the target wavelength"""
+        while self.current_wavelength != self.target_wavelength:
+            await asyncio.sleep(0.1)
+
     async def update(self):
         if self.port.is_open:
             if self.comm_up:

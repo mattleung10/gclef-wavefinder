@@ -1,4 +1,5 @@
 import asyncio
+from msilib import sequence
 import os
 from enum import StrEnum
 
@@ -217,8 +218,25 @@ class Sequencer:
                 for i, col in enumerate(line.split(",")):
                     d[headers[i]] = [float(x) for x in col.split()]
                 self.sequence.append(d)
-            if len(self.sequence) > 0:
+            if self.is_sequence_runnable() is True:
                 self.sequence_state = SequenceState.READY
+
+    def is_sequence_runnable(self):
+        """Check if the sequence can be run"""
+        if len(self.sequence) == 0:
+            return False
+        elif self.camera is None:
+            return False
+        elif self.monochromator.comm_up is False:
+            return False
+        if not self.config.sequencer_x_axis in self.axes:
+            return False
+        if not self.config.sequencer_y_axis in self.axes:
+            return False
+        if not self.config.sequencer_z_axis in self.axes:
+            return False
+        else:
+            return True
 
     async def run_sequence(self, output_dir: str):
         """Run sequence and store data in output directory
@@ -228,7 +246,9 @@ class Sequencer:
         """
 
         # check for necessary devices and sequence
-        if not self.camera or len(self.sequence) == 0:
+        # already checked by read_input_file, so shouldn't happen
+        if not self.is_sequence_runnable() or self.camera is None:
+            self.sequence_state = SequenceState.ABORT
             return
 
         self.sequence_state = SequenceState.RUN
@@ -251,6 +271,7 @@ class Sequencer:
                 return
             self.monochromator.target_wavelength = wavel
             self.monochromator.q.put(self.monochromator.go_to_target_wavelength)
+            await self.monochromator.wait_for_wavelength()
 
             ## 2) move to position
             # self.sequence_substate = SequenceSubstate.MOVE
