@@ -33,6 +33,8 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
 
         self.tasks: set[asyncio.Task] = set()
 
+        self.sequence_filename = ""
+
         self.make_capture_buttons_slice()
         self.make_sequence_slice()
         self.make_mode_switch_slice()
@@ -75,27 +77,33 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         capture_frame.grid(column=0, row=0, columnspan=2, pady=10, sticky=tk.E)
 
     def make_sequence_slice(self):
-        sequence_frame = ttk.Frame(self)
-        ttk.Label(sequence_frame, text="Automated Sequence").grid(
-            column=0, row=0, padx=10
-        )
+        sequence_frame = ttk.LabelFrame(self, text="Automated Sequence")
+        self.sequence_state_txt = tk.StringVar()
+        self.sequence_msg_txt = tk.StringVar()
         self.sequence_button_txt = tk.StringVar()
+        self.abort_button_txt = tk.StringVar(value="Abort")
+
+        sst = ttk.Label(sequence_frame, textvariable=self.sequence_state_txt)
+        sst.grid(column=0, row=0, padx=10, sticky=tk.EW)
+        smt = ttk.Label(sequence_frame, textvariable=self.sequence_msg_txt)
+        smt.grid(column=0, row=1, columnspan=3, padx=10)
+
         self.sequence_button = ttk.Button(
             sequence_frame,
             textvariable=self.sequence_button_txt,
             command=self.handle_sequence_button,
             width=13,
         )
-        self.sequence_button.grid(column=2, row=0, padx=10, pady=(10, 0), sticky=tk.E)
-        self.abort_button = ttk.Button(
-            sequence_frame, text="Abort", command=self.handle_abort_button, width=13
+        self.sequence_button.grid(column=1, row=0, padx=10, pady=5, sticky=tk.E)
+        abort_button = ttk.Button(
+            sequence_frame,
+            textvariable=self.abort_button_txt,
+            command=self.handle_abort_button,
+            width=13,
         )
-        self.abort_button.grid(column=2, row=1, padx=10, pady=(10, 0), sticky=tk.E)
-        self.sequence_txt = tk.StringVar(value="Need Input File")
-        ttk.Label(sequence_frame, textvariable=self.sequence_txt).grid(
-            column=0, row=1, columnspan=2, padx=10, sticky=tk.E
-        )
-        sequence_frame.grid(column=0, row=1, columnspan=2, pady=10, sticky=tk.E)
+        abort_button.grid(column=2, row=0, padx=10, pady=5, sticky=tk.E)
+
+        sequence_frame.grid(column=0, row=1, columnspan=2, pady=10, sticky=tk.EW)
 
     def make_mode_switch_slice(self):
         self.use_roi_stats = tk.BooleanVar(value=self.config.image_use_roi_stats)
@@ -235,10 +243,13 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         match self.sequencer.sequence_state:
             case SequenceState.INPUT:
                 self.select_sequence_file()
+            case SequenceState.NOT_READY:
+                self.select_sequence_file()
             case SequenceState.READY:
                 self.run_sequence()
             case SequenceState.RUN:
-                self.sequencer.abort_sequence()
+                # disabled in RUN mode
+                pass
             case SequenceState.FINISHED:
                 self.select_sequence_file()
             case SequenceState.ABORT:
@@ -248,22 +259,19 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         """Handle the abort button"""
         match self.sequencer.sequence_state:
             case SequenceState.INPUT:
+                # TODO: demo button replaces Abort in this state
+                pass
+            case SequenceState.NOT_READY:
                 self.sequencer.sequence_state = SequenceState.INPUT
-                self.sequencer.sequence.clear()
             case SequenceState.READY:
                 self.sequencer.sequence_state = SequenceState.INPUT
-                self.sequencer.sequence.clear()
             case SequenceState.RUN:
+                # abort_sequence() will set state to ABORT
                 self.sequencer.abort_sequence()
-                self.sequencer.sequence.clear()
             case SequenceState.FINISHED:
-                # TODO: something
                 self.sequencer.sequence_state = SequenceState.INPUT
-                self.sequencer.sequence.clear()
             case SequenceState.ABORT:
-                # TODO: something
                 self.sequencer.sequence_state = SequenceState.INPUT
-                self.sequencer.sequence.clear()
 
     def select_sequence_file(self):
         """Select input file for automated sequence"""
@@ -272,14 +280,8 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
             filetypes=(("CSV files", "*.csv"), ("all files", "*.*")),
         )
         if filename:
+            self.sequence_filename = filename
             self.sequencer.read_input_file(filename)
-            if self.sequencer.is_sequence_runnable():
-                self.sequence_txt.set(f"Loaded {os.path.basename(filename)}")
-            else:
-                self.sequence_txt.set(
-                    f"Loaded {os.path.basename(filename)},"
-                    + "\nbut it is not runnable."
-                )
 
     def run_sequence(self):
         """Run automated sequence
@@ -369,31 +371,62 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         """Update sequence status text and button labels"""
         match self.sequencer.sequence_state:
             case SequenceState.INPUT:
-                self.sequence_button_txt.set("Select Input File")
+                self.sequence_button_txt.set("Select Sequence")
                 self.sequence_button.configure(state=tk.NORMAL)
-                # self.sequence_txt.set(f"{self.sequencer.sequence_state}")
+                self.abort_button_txt.set("Demo")
+                self.sequence_state_txt.set(f"{self.sequencer.sequence_state}")
+                self.sequence_msg_txt.set("")
+            case SequenceState.NOT_READY:
+                self.sequence_button_txt.set("Select Sequence")
+                self.sequence_button.configure(state=tk.NORMAL)
+                self.abort_button_txt.set("Cancel")
+                self.sequence_state_txt.set(f"{self.sequencer.sequence_state}")
+                basename = os.path.basename(self.sequence_filename)
+                self.sequence_msg_txt.set(f"{basename} is not runnable.")
             case SequenceState.READY:
                 self.sequence_button_txt.set("Run Sequence")
                 self.sequence_button.configure(state=tk.NORMAL)
-                # self.sequence_txt.set(f"{self.sequencer.sequence_state}")
+                self.abort_button_txt.set("Cancel")
+                self.sequence_state_txt.set(f"{self.sequencer.sequence_state}")
+                basename = os.path.basename(self.sequence_filename)
+                self.sequence_msg_txt.set(
+                    f"{basename} has {len(self.sequencer.sequence)} entries."
+                    + "\nReady to Run!"
+                )
             case SequenceState.RUN:
                 self.sequence_button_txt.set("Running...")
                 self.sequence_button.configure(state=tk.DISABLED)
-                self.sequence_txt.set(f"{self.sequencer.sequence_state}")
+                self.abort_button_txt.set("Abort")
+                self.sequence_state_txt.set(
+                    f"{self.sequencer.sequence_state}:"
+                    + f"{self.sequencer.sequence_substate}"
+                )
+                self.sequence_msg_txt.set(
+                    f"processing {self.sequencer.sequence_iteration+1}"
+                    + f"of {len(self.sequencer.sequence)}"
+                )
             case SequenceState.FINISHED:
-                self.sequence_button_txt.set("Select Input File")
+                self.sequence_button_txt.set("Select Sequence")
                 self.sequence_button.configure(state=tk.NORMAL)
-                self.sequence_txt.set(f"{self.sequencer.sequence_state}")
+                self.abort_button_txt.set("Reset")
+                self.sequence_state_txt.set(f"{self.sequencer.sequence_state}")
+                self.sequence_msg_txt.set(
+                    f"Finished {self.sequencer.sequence_iteration+1}"
+                    + f"of {len(self.sequencer.sequence)}"
+                )
             case SequenceState.ABORT:
-                self.sequence_button_txt.set("Select Input File")
+                self.sequence_button_txt.set("Select Sequence")
                 self.sequence_button.configure(state=tk.NORMAL)
-                self.sequence_txt.set(f"{self.sequencer.sequence_state}")
-
-        # self.sequence_txt.set(
-        #     f"processing {self.sequencer.sequence_iteration+1} of {len(self.sequencer.sequence)}"
-        #     + f": {self.sequencer.sequence_substate}"
-        #     # + f"\norder = {self.sequencer.seqorder} wavelength = {wavel}" # TODO: something
-        # )
+                self.abort_button_txt.set("Reset")
+                self.sequence_state_txt.set(f"{self.sequencer.sequence_state}")
+                self.sequence_state_txt.set(
+                    f"{self.sequencer.sequence_state}:"
+                    + f"{self.sequencer.sequence_substate}"
+                )
+                self.sequence_msg_txt.set(
+                    f"Aborted at {self.sequencer.sequence_iteration+1}"
+                    + f"of {len(self.sequencer.sequence)}"
+                )
 
     async def update(self):
         """Update UI"""

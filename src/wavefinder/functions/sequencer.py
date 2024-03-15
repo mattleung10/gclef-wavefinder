@@ -1,5 +1,4 @@
 import asyncio
-from msilib import sequence
 import os
 from enum import StrEnum
 
@@ -16,6 +15,7 @@ from .writer import DataWriter
 
 class SequenceState(StrEnum):
     INPUT = "Select Input File"
+    NOT_READY = "Can't Run Sequence"
     READY = "Ready to Run"
     RUN = "Running"
     FINISHED = "Finished"
@@ -30,6 +30,7 @@ class SequenceSubstate(StrEnum):
     FOCUS = "Focus Image"
     CAPTURE_F = "Take In-Focus Image"
     CAPTURE_D = "Take Delta Focus Images"
+    FINISHED = "Finished"
 
 
 class Sequencer:
@@ -60,6 +61,7 @@ class Sequencer:
         """
         self.config = config
         self.camera = camera
+        self.old_camera_mode = Camera.NORMAL
         self.axes = axes
         self.monochromator = monochromator
         self.data_writer = data_writer
@@ -202,6 +204,7 @@ class Sequencer:
         Args:
             filename: path to filename
         """
+        self.sequence_state = SequenceState.NOT_READY
         with open(filename) as f:
             # reset the sequence
             self.sequence = list()
@@ -253,13 +256,13 @@ class Sequencer:
 
         self.sequence_state = SequenceState.RUN
         # set camera to trigger mode
-        old_mode = self.camera.run_mode
+        self.old_camera_mode = self.camera.run_mode
         await self.camera.set_mode(run_mode=Camera.TRIGGER, write_now=True)
 
         j = 1  # image sequence number
         for self.sequence_iteration, row in enumerate(self.sequence):
             ## 0) update parameters and status text
-            if not self.sequence_housekeeping(SequenceSubstate.START):
+            if not await self.sequence_housekeeping(SequenceSubstate.START):
                 return
             order = int(row["order"][0])
             wavel = row["wavelength"][0]
@@ -267,22 +270,23 @@ class Sequencer:
             self.config.sequence_order = order
 
             ## 1) set monochromator wavelength
-            if not self.sequence_housekeeping(SequenceSubstate.WAVELENGTH):
+            if not await self.sequence_housekeeping(SequenceSubstate.WAVELENGTH):
                 return
             self.monochromator.target_wavelength = wavel
             self.monochromator.q.put(self.monochromator.go_to_target_wavelength)
             await self.monochromator.wait_for_wavelength()
 
             ## 2) move to position
-            # self.sequence_substate = SequenceSubstate.MOVE
             for col in row:
+                if not await self.sequence_housekeeping(SequenceSubstate.MOVE):
+                    return
                 # match header with motion axis, then move to position
                 a = self.axes.get(col)
                 if a:
                     await a.move_absolute(row[col][0])
 
             ## 3) take image for centroid, compute centroid, center image
-            if not self.sequence_housekeeping(SequenceSubstate.CENTER):
+            if not await self.sequence_housekeeping(SequenceSubstate.CENTER):
                 return
             frame = await self.take_image(self.camera)
             centroid, _, _, _ = self.compute_image_stats(frame)
@@ -290,12 +294,12 @@ class Sequencer:
             await self.center(image_size, centroid)
 
             ## 4) find best focus
-            if not self.sequence_housekeeping(SequenceSubstate.FOCUS):
+            if not await self.sequence_housekeeping(SequenceSubstate.FOCUS):
                 return
             await self.focus()
 
             ## 5) take at-focus image, save, and increment sequence
-            if not self.sequence_housekeeping(SequenceSubstate.CAPTURE_F):
+            if not await self.sequence_housekeeping(SequenceSubstate.CAPTURE_F):
                 return
             self.config.camera_frame = await self.take_image(self.camera)
             t = Time.now()
@@ -312,12 +316,12 @@ class Sequencer:
             j += 1
 
             ## 6) intra- and extra- focus positions
-            if not self.sequence_housekeeping(SequenceSubstate.CAPTURE_D):
-                return
             z_axis = self.axes.get(self.config.sequencer_z_axis)
             if z_axis:
                 # for each z position in the delta focus list
                 for p in row["dfocusz"]:
+                    if not await self.sequence_housekeeping(SequenceSubstate.CAPTURE_D):
+                        return
                     ### 6.1) move to position
                     await z_axis.move_absolute(p + self.config.focus_position)
                     ### 6.2) take image
@@ -333,26 +337,34 @@ class Sequencer:
                     self.data_writer.write_fits_file(filename, self.config)
                     j += 1
 
+        if not await self.sequence_housekeeping(SequenceSubstate.FINISHED):
+            return
+
         # restore previous camera mode
-        await self.camera.set_mode(run_mode=old_mode, write_now=True)
+        await self.camera.set_mode(run_mode=self.old_camera_mode, write_now=True)
         self.sequence_state = SequenceState.FINISHED
-    
+
     def abort_sequence(self):
         """Abort running sequence"""
         self.abort = True
 
-    def sequence_housekeeping(self, substate: SequenceSubstate):
+    async def sequence_housekeeping(self, substate: SequenceSubstate):
         """Housekeeping to update the GUI
 
         Args:
             substate: sequence substate
-        
+
         Returns True unless abort
         """
         self.sequence_substate = substate
         if self.abort:
             self.sequence_state = SequenceState.ABORT
-            self.abort = False # reset abort signal
+            self.sequence.clear()
+            if self.camera:
+                await self.camera.set_mode(
+                    run_mode=self.old_camera_mode, write_now=True
+                )
+            self.abort = False  # reset abort signal
             return False
         else:
             return True
