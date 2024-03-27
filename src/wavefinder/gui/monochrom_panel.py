@@ -28,9 +28,14 @@ class MonochromPanel(Cyclic, ttk.LabelFrame):
         self.status_light = ttk.Label(self, text="Status", width=6)
         self.wavelength_txt = tk.StringVar(self, str(self.dk.current_wavelength))
         self.wavelength_entry = tk.StringVar(self, str(self.dk.target_wavelength))
+        self.slit1_txt = tk.StringVar(self, str(self.dk.current_slit1))
+        self.slit1_entry = tk.StringVar(self, str(self.dk.target_slit1))
+        self.slit2_txt = tk.StringVar(self, str(self.dk.current_slit2))
+        self.slit2_entry = tk.StringVar(self, str(self.dk.target_slit2))
 
         self.make_info_slice()
         self.make_wavelength_slice()
+        self.make_slit_slice()
         self.make_buttons_slice()
 
     def make_info_slice(self):
@@ -52,22 +57,52 @@ class MonochromPanel(Cyclic, ttk.LabelFrame):
             width=8,
             textvariable=self.wavelength_entry,
             validatecommand=(self.register(valid_float), "%P"),
-            invalidcommand=self.register(self.restore_wavelength_entry),
+            invalidcommand=self.register(self.restore_wave_slit_entry),
             validate="focus",
         ).grid(column=3, row=1)
 
+    def make_slit_slice(self):
+        ttk.Label(self, text="Slit 1").grid(column=0, row=2, padx=10, sticky=tk.E)
+        ttk.Label(self, textvariable=self.slit1_txt).grid(
+            column=1, columnspan=2, row=2, padx=10
+        )
+        ttk.Entry(
+            self,
+            width=8,
+            textvariable=self.slit1_entry,
+            validatecommand=(self.register(valid_float), "%P"),
+            invalidcommand=self.register(self.restore_wave_slit_entry),
+            validate="focus",
+        ).grid(column=3, row=2)
+        ttk.Label(self, text="Slit 2").grid(column=0, row=3, padx=10, sticky=tk.E)
+        ttk.Label(self, textvariable=self.slit2_txt).grid(
+            column=1, columnspan=2, row=3, padx=10
+        )
+        ttk.Entry(
+            self,
+            width=8,
+            textvariable=self.slit2_entry,
+            validatecommand=(self.register(valid_float), "%P"),
+            invalidcommand=self.register(self.restore_wave_slit_entry),
+            validate="focus",
+        ).grid(column=3, row=3)
+
     def make_buttons_slice(self):
         self.jog_less = ttk.Button(self, text="◄", command=self.step_down, width=3)
-        self.jog_less.grid(column=1, row=2, pady=(10, 0), padx=2)
+        self.jog_less.grid(column=1, row=4, pady=(10, 0), padx=2)
         self.jog_more = ttk.Button(self, text="►", command=self.step_up, width=3)
-        self.jog_more.grid(column=2, row=2, pady=(10, 0), padx=2)
-        g = ttk.Button(self, text="Go", command=self.set_wavelength)
-        g.grid(column=3, row=2, pady=(10, 0), padx=10)
+        self.jog_more.grid(column=2, row=4, pady=(10, 0), padx=2)
+        g = ttk.Button(self, text="Go", command=self.set_entries)
+        g.grid(column=3, row=4, pady=(10, 0), padx=10)
 
-    def set_wavelength(self):
+    def set_entries(self):
         if self.dk.comm_up:
             self.dk.target_wavelength = float(self.wavelength_entry.get())
             self.dk.q.put(self.dk.go_to_target_wavelength)
+            self.dk.target_slit1 = float(self.slit1_entry.get())
+            self.dk.q.put(self.dk.go_to_slit1)
+            self.dk.target_slit2 = float(self.slit2_entry.get())
+            self.dk.q.put(self.dk.go_to_slit2)
 
     def step_up(self):
         """Move grating one step towards IR"""
@@ -79,8 +114,10 @@ class MonochromPanel(Cyclic, ttk.LabelFrame):
         if self.dk.comm_up:
             self.dk.q.put(self.dk.step_down)
 
-    def restore_wavelength_entry(self):
+    def restore_wave_slit_entry(self):
         self.wavelength_entry.set(str(self.dk.target_wavelength))
+        self.slit1_entry.set(str(self.dk.target_slit1))
+        self.slit2_entry.set(str(self.dk.target_slit2))
 
     async def update(self):
         """Update UI"""
@@ -93,10 +130,16 @@ class MonochromPanel(Cyclic, ttk.LabelFrame):
             self.dk_serial.set(str(self.dk.serial_number))
             self.dk.target_wavelength = self.dk.current_wavelength
             self.wavelength_entry.set(str(self.dk.target_wavelength))
+            self.dk.target_slit1 = self.dk.current_slit1
+            self.slit1_entry.set(str(self.dk.target_slit1))
+            self.dk.target_slit2 = self.dk.current_slit2
+            self.slit2_entry.set(str(self.dk.target_slit2))
             self.extra_init = False
         self.status_txt.set(MonochromPanel.STATUS[self.dk.status])
         self.status_light.configure(background=MonochromPanel.COLORS[self.dk.status])
         self.wavelength_txt.set(str(self.dk.current_wavelength))
+        self.slit1_txt.set(str(self.dk.current_slit1))
+        self.slit2_txt.set(str(self.dk.current_slit2))
 
     def close(self):
         """Close out all tasks"""

@@ -34,6 +34,10 @@ class DkMonochromator(Cyclic):
         self.serial_number = 0
         self.target_wavelength = 0.0
         self.current_wavelength = 0.0
+        self.target_slit1 = 0.0
+        self.current_slit1 = 0.0
+        self.target_slit2 = 0.0
+        self.current_slit2 = 0.0
 
         try:
             print(f"Connecting to monochromator on {port}... ", flush=True)
@@ -100,7 +104,7 @@ class DkMonochromator(Cyclic):
                     print("monochromator communication established")
                     return True
             except SerialException:
-                continue # try again
+                continue  # try again
         raise SerialException("serial port is closed")
 
     async def get_sn(self) -> int:
@@ -166,6 +170,50 @@ class DkMonochromator(Cyclic):
         while self.current_wavelength != self.target_wavelength:
             await asyncio.sleep(0.1)
 
+    async def get_current_slits(self):
+        """Get current slit widths in microns"""
+        self.port.write(int(30).to_bytes())
+        ack = await self.read_bytes()
+        if ack != int(30).to_bytes():
+            raise SerialException("bad ack")
+        # read 3 bytes and form the wavelength
+        s1 = float.fromhex((await self.read_bytes(2)).hex())
+        s2 = float.fromhex((await self.read_bytes(2)).hex())
+        # status & end bytes
+        await self.read_status_end()
+        return (s1, s2)
+
+    async def go_to_slit1(self):
+        """Command monochromater to go to slit1 position"""
+        # must be between 10 and 3000 microns
+        if self.target_slit1 > 3000 or self.target_slit1 < 10:
+            self.target_slit1 = self.current_slit1
+            raise ValueError("slit1 out of range")
+        print(self.target_slit1)
+        self.port.write(int(31).to_bytes())
+        ack = await self.read_bytes()
+        if ack != int(31).to_bytes():
+            raise SerialException("bad ack")
+        # convert wavelength to 3 bytes and send
+        b = int(round(self.target_slit1)).to_bytes(2)
+        self.port.write(b)
+        await self.read_status_end(timeout=30)
+
+    async def go_to_slit2(self):
+        """Command monochromater to go to slit2 position"""
+        # must be between 10 and 3000 microns
+        if self.target_slit2 > 3000 or self.target_slit2 < 10:
+            self.target_slit2 = self.current_slit2
+            raise ValueError("slit2 out of range")
+        self.port.write(int(32).to_bytes())
+        ack = await self.read_bytes()
+        if ack != int(32).to_bytes():
+            raise SerialException("bad ack")
+        # convert wavelength to 3 bytes and send
+        b = int(round(self.target_slit2)).to_bytes(2)
+        self.port.write(b)
+        await self.read_status_end(timeout=30)
+
     async def update(self):
         if self.port.is_open:
             if self.comm_up:
@@ -174,8 +222,11 @@ class DkMonochromator(Cyclic):
                     try:
                         cmd = self.q.get_nowait()
                     except Empty:
-                        # nothing in queue, get current wavelength
+                        # nothing in queue, get current wavelength and slits
                         self.current_wavelength = await self.get_current_wavelength()
+                        self.current_slit1, self.current_slit2 = (
+                            await self.get_current_slits()
+                        )
                     else:
                         self.status = DkMonochromator.BUSY
                         await cmd()
@@ -189,6 +240,9 @@ class DkMonochromator(Cyclic):
                     self.comm_up = await self.establish_connection()
                     self.serial_number = await self.get_sn()
                     self.current_wavelength = await self.get_current_wavelength()
+                    self.current_slit1, self.current_slit2 = (
+                        await self.get_current_slits()
+                    )
                     self.status = DkMonochromator.READY
                 except SerialException:
                     self.status = DkMonochromator.ERROR
