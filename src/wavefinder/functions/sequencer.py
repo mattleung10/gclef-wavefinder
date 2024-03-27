@@ -143,7 +143,7 @@ class Sequencer:
             step_dist = travel_dist / (ppp - 1)
             pass_i = 0
 
-            while step_dist >= min_move:
+            while step_dist >= min_move and self.abort == False:
                 # keep focusing until each move is min_move distance
                 focus_curve: dict[float, float] = {}
 

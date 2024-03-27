@@ -151,6 +151,10 @@ class App(ScrollableWindow):
         for f in self.frame.winfo_children():
             f.grid_configure(padx=3, pady=5, ipady=5, ipadx=3)
 
+        # give middle rows more weight
+        for r in range(1,3):
+            self.frame.grid_rowconfigure(r, weight=1)
+
         # add panels to cyclic tasks
         self.cyclics.update(
             [

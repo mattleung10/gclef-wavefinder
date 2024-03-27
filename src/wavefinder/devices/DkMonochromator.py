@@ -79,7 +79,7 @@ class DkMonochromator(Cyclic):
         # NOTE: Python yields an int when taking a slice of a bytes object...
         #       so work in ints for bitwise ops.
         not_acceptable = bool(s[0] & int.from_bytes(b"\x80"))
-        equal_to_present = bool(s[0] & int.from_bytes(b"\40"))
+        equal_to_present = bool(s[0] & int.from_bytes(b"\x40"))
         if not_acceptable and not equal_to_present:
             # not_acceptable and equal_to_present is ok, just does nothing
             raise SerialException("input not acceptable")

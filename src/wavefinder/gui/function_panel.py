@@ -92,7 +92,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
             sequence_frame,
             textvariable=self.sequence_button_txt,
             command=self.handle_sequence_button,
-            width=13,
+            width=15,
         )
         self.sequence_button.grid(column=1, row=0, padx=10, pady=5, sticky=tk.E)
         abort_button = ttk.Button(
@@ -425,7 +425,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
                 )
                 self.sequence_msg_txt.set(
                     f"Aborted at {self.sequencer.sequence_iteration+1}"
-                    + f"of {len(self.sequencer.sequence)}"
+                    + f" of {len(self.sequencer.sequence)}"
                 )
 
     async def update(self):
