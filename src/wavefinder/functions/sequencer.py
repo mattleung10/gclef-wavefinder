@@ -132,8 +132,9 @@ class Sequencer:
         focus_pos = z_axis.position if z_axis else np.nan
 
         if self.camera and z_axis:
-            # set camera to trigger mode
-            self.old_camera_mode = self.camera.run_mode
+            # set camera to trigger mode, save old mode if not part of sequence
+            if self.sequence_state != SequenceState.RUN:
+                self.old_camera_mode = self.camera.run_mode
             await self.camera.set_mode(run_mode=Camera.TRIGGER, write_now=True)
 
             # set up for first pass
@@ -196,8 +197,9 @@ class Sequencer:
 
             # move to focus position
             await z_axis.move_absolute(focus_pos)
-            # restore previous camera mode
-            await self.camera.set_mode(run_mode=self.old_camera_mode, write_now=True)
+            # restore previous camera mode if not part of sequence
+            if self.sequence_state != SequenceState.RUN:
+                await self.camera.set_mode(run_mode=self.old_camera_mode, write_now=True)
 
         # return best position
         self.config.focus_position = focus_pos
@@ -372,15 +374,17 @@ class Sequencer:
                 if a:
                     await a.move_absolute(row[col][0])
 
-            ## 3) take image for centroid, compute centroid, center image
+            ## 3) take full-frame image for centroid, compute centroid, center image
             if not await self.sequence_housekeeping(SequenceSubstate.CENTER):
                 return
             frame = await self.take_image(self.camera)
+            self.config.image_use_roi_stats = False
             centroid, _, _, _ = self.compute_image_stats(frame)
             image_size = (frame.img_array.shape[1], frame.img_array.shape[0])
             await self.center(image_size, centroid)
 
-            ## 4) find best focus
+            ## 4) find best focus, using ROI
+            self.config.image_use_roi_stats = True
             if not await self.sequence_housekeeping(SequenceSubstate.FOCUS):
                 return
             await self.focus()
