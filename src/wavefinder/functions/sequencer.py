@@ -123,6 +123,7 @@ class Sequencer:
 
         returns the best focus position
         """
+        self.abort = False
         z_axis = self.axes.get(self.config.sequencer_z_axis)
         fpp = self.config.focus_frames_per_point
         ppp = self.config.focus_points_per_pass
@@ -200,7 +201,6 @@ class Sequencer:
 
         # return best position
         self.config.focus_position = focus_pos
-        self.abort = False
         return focus_pos
 
     async def search(self):
@@ -352,12 +352,16 @@ class Sequencer:
             self.config.sequence_number = j
             self.config.sequence_order = order
 
-            ## 1) set monochromator wavelength
+            ## 1) set monochromator wavelength and slit
             if not await self.sequence_housekeeping(SequenceSubstate.WAVELENGTH):
                 return
             self.monochromator.target_wavelength = wavel
+            self.monochromator.target_slit1 = row["slit1"][0]
+            self.monochromator.target_slit2 = row["slit2"][0]
             self.monochromator.q.put(self.monochromator.go_to_target_wavelength)
-            await self.monochromator.wait_for_wavelength()
+            self.monochromator.q.put(self.monochromator.go_to_slit1)
+            self.monochromator.q.put(self.monochromator.go_to_slit2)
+            await self.monochromator.wait_for_wavelength_and_slits()
 
             ## 2) move to position
             for col in row:

@@ -165,9 +165,13 @@ class DkMonochromator(Cyclic):
             raise SerialException("bad ack")
         await self.read_status_end()
 
-    async def wait_for_wavelength(self):
-        """Wait until current wavelength is the target wavelength"""
-        while self.current_wavelength != self.target_wavelength:
+    async def wait_for_wavelength_and_slits(self):
+        """Wait until current wavelength and slits are their targets"""
+        while (
+            self.current_wavelength != self.target_wavelength
+            or self.current_slit1 != self.target_slit1
+            or self.current_slit2 != self.target_slit2
+        ):
             await asyncio.sleep(0.1)
 
     async def get_current_slits(self):
@@ -189,7 +193,6 @@ class DkMonochromator(Cyclic):
         if self.target_slit1 > 3000 or self.target_slit1 < 10:
             self.target_slit1 = self.current_slit1
             raise ValueError("slit1 out of range")
-        print(self.target_slit1)
         self.port.write(int(31).to_bytes())
         ack = await self.read_bytes()
         if ack != int(31).to_bytes():
