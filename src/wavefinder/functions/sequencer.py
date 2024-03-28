@@ -202,6 +202,63 @@ class Sequencer:
         self.config.focus_position = focus_pos
         return focus_pos
 
+    async def search(self):
+        """Find spot by searching in a spiral pattern"""
+        x_axis = self.axes.get(self.config.sequencer_x_axis)
+        y_axis = self.axes.get(self.config.sequencer_y_axis)
+        # check that we have the necessary devices
+        if not self.camera or not x_axis or not y_axis:
+            return
+        
+        # set camera to stream mode
+        old_mode = self.camera.run_mode
+        await self.camera.set_mode(run_mode=Camera.NORMAL, write_now=True)
+
+        # detector size in mm
+        px_size = self.config.camera_pixel_size
+        x_size = 1000 * self.camera.resolution[0] * px_size[0]
+        y_size = 1000 * self.camera.resolution[1] * px_size[1]
+        overlap = 1 - 0.2
+
+        # motion limits
+        x_limits = await x_axis.get_limits()
+        y_limits = await y_axis.get_limits()
+
+        i = 0  # spiral size
+        while (
+            x_axis.position - x_size > x_limits[0]
+            and x_axis.position + x_size < x_limits[1]
+            and y_axis.position - y_size > y_limits[0]
+            and y_axis.position + y_size < y_limits[1]
+        ):
+            # move left
+            i += 1  # spiral bigger
+            await x_axis.move_relative(-x_size * i * overlap)
+            if self.config.image_fwhm > 1:
+                break
+
+            # move up
+            await y_axis.move_relative(y_size * i * overlap)
+            if self.config.image_fwhm > 1:
+                break
+
+            # move right
+            i += 1  # spiral bigger
+            await x_axis.move_relative(x_size * i * overlap)
+            if self.config.image_fwhm > 1:
+                break
+
+            # move down
+            await y_axis.move_relative(-y_size * i * overlap)
+            if self.config.image_fwhm > 1:
+                break
+        
+        # restore previous camera mode
+        await self.camera.set_mode(run_mode=old_mode, write_now=True)
+        # center
+        image_size = (self.config.full_img.size[0], self.config.full_img.size[1])
+        await self.center(image_size)
+
     def read_input_file(self, filename: str):
         """Read input sequence file
 

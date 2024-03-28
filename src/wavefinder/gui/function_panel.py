@@ -187,6 +187,10 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
             self, text="Auto-Focus", width=13, command=self.focus
         )
         self.focus_button.grid(column=1, row=6, pady=(10, 0), padx=10, sticky=tk.E)
+        self.search_button = ttk.Button(
+            self, text="Find Spot", width=13, command=self.search
+        )
+        self.search_button.grid(column=1, row=7, pady=(10, 0), padx=10, sticky=tk.E)
 
     def make_focus_slice(self):
         self.focus_position = tk.StringVar(value="Best Focus: Not Yet Found")
@@ -329,6 +333,16 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         self.config.image_math_in_function = False
         self.focus_position.set(f"Best Focus: {self.config.focus_position:.3f}")
         self.focus_button.configure(state=tk.NORMAL)
+
+    def search(self):
+        """Find the spot with spiral search"""
+        t, _ = make_task(self.sequencer.search(), self.tasks)
+        t.add_done_callback(self.after_search)
+        self.search_button.configure(state=tk.DISABLED)
+
+    def after_search(self, future: asyncio.Future):
+        """Callback for after search completes"""
+        self.search_button.configure(state=tk.NORMAL)
 
     def center(self):
         """Center the image"""
