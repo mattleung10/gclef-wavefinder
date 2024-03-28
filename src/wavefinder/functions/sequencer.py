@@ -132,7 +132,7 @@ class Sequencer:
 
         if self.camera and z_axis:
             # set camera to trigger mode
-            old_mode = self.camera.run_mode
+            self.old_camera_mode = self.camera.run_mode
             await self.camera.set_mode(run_mode=Camera.TRIGGER, write_now=True)
 
             # set up for first pass
@@ -196,10 +196,11 @@ class Sequencer:
             # move to focus position
             await z_axis.move_absolute(focus_pos)
             # restore previous camera mode
-            await self.camera.set_mode(run_mode=old_mode, write_now=True)
+            await self.camera.set_mode(run_mode=self.old_camera_mode, write_now=True)
 
         # return best position
         self.config.focus_position = focus_pos
+        self.abort = False
         return focus_pos
 
     async def search(self):
@@ -209,15 +210,15 @@ class Sequencer:
         # check that we have the necessary devices
         if not self.camera or not x_axis or not y_axis:
             return
-        
+
         # set camera to stream mode
-        old_mode = self.camera.run_mode
+        self.old_camera_mode = self.camera.run_mode
         await self.camera.set_mode(run_mode=Camera.NORMAL, write_now=True)
 
         # detector size in mm
         px_size = self.config.camera_pixel_size
-        x_size = 1000 * self.camera.resolution[0] * px_size[0]
-        y_size = 1000 * self.camera.resolution[1] * px_size[1]
+        x_size = self.camera.resolution[0] * px_size[0] / 1000
+        y_size = self.camera.resolution[1] * px_size[1] / 1000
         overlap = 1 - 0.2
 
         # motion limits
@@ -225,39 +226,60 @@ class Sequencer:
         y_limits = await y_axis.get_limits()
 
         i = 0  # spiral size
-        while (
-            x_axis.position - x_size > x_limits[0]
-            and x_axis.position + x_size < x_limits[1]
-            and y_axis.position - y_size > y_limits[0]
-            and y_axis.position + y_size < y_limits[1]
-        ):
+        while True:
+            # is spot already on detector?
+            if not await self.search_housekeeping():
+                return
             # move left
             i += 1  # spiral bigger
-            await x_axis.move_relative(-x_size * i * overlap)
-            if self.config.image_fwhm > 1:
-                break
-
-            # move up
-            await y_axis.move_relative(y_size * i * overlap)
-            if self.config.image_fwhm > 1:
-                break
-
+            for _ in range(i):
+                if x_axis.position - (x_size * overlap) > x_limits[0]:
+                    await x_axis.move_relative(-x_size * overlap)
+                if not await self.search_housekeeping():
+                    return
+            # move down
+            for _ in range(i):
+                if y_axis.position + (y_size * overlap) < y_limits[1]:
+                    await y_axis.move_relative(y_size * overlap)
+                if not await self.search_housekeeping():
+                    return
             # move right
             i += 1  # spiral bigger
-            await x_axis.move_relative(x_size * i * overlap)
-            if self.config.image_fwhm > 1:
-                break
+            for _ in range(i):
+                if x_axis.position + (x_size * overlap) < x_limits[1]:
+                    await x_axis.move_relative(x_size * overlap)
+                if not await self.search_housekeeping():
+                    return
+            # move up
+            for _ in range(i):
+                if y_axis.position - (y_size * overlap) > y_limits[0]:
+                    await y_axis.move_relative(-y_size * overlap)
+                if not await self.search_housekeeping():
+                    return
 
-            # move down
-            await y_axis.move_relative(-y_size * i * overlap)
-            if self.config.image_fwhm > 1:
-                break
-        
-        # restore previous camera mode
-        await self.camera.set_mode(run_mode=old_mode, write_now=True)
-        # center
-        image_size = (self.config.full_img.size[0], self.config.full_img.size[1])
-        await self.center(image_size)
+    async def search_housekeeping(self):
+        """Housekeeping during search
+
+        Returns True unless abort or spot found
+        """
+        if self.abort:
+            if self.camera:
+                await self.camera.set_mode(
+                    run_mode=self.old_camera_mode, write_now=True
+                )
+            self.abort = False  # reset abort signal
+            return False
+        elif self.config.image_fwhm > 1:
+            if self.camera:
+                await self.camera.set_mode(
+                    run_mode=self.old_camera_mode, write_now=True
+                )
+            # center
+            image_size = (self.config.full_img.size[0], self.config.full_img.size[1])
+            await self.center(image_size)
+            return False
+        else:
+            return True
 
     def read_input_file(self, filename: str):
         """Read input sequence file

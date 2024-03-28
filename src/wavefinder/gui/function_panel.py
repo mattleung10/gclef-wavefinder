@@ -326,23 +326,29 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
         self.config.image_math_in_function = True
         t, _ = make_task(self.sequencer.focus(), self.tasks)
         t.add_done_callback(self.after_focus)
-        self.focus_button.configure(state=tk.DISABLED)
+        self.focus_button.configure(text="Abort Focus", command=self.abort_focus)
+
+    def abort_focus(self):
+        self.sequencer.abort_sequence()
 
     def after_focus(self, future: asyncio.Future):
         """Callback for after focus completes"""
         self.config.image_math_in_function = False
         self.focus_position.set(f"Best Focus: {self.config.focus_position:.3f}")
-        self.focus_button.configure(state=tk.NORMAL)
+        self.focus_button.configure(text="Auto-Focus", command=self.focus)
 
     def search(self):
         """Find the spot with spiral search"""
         t, _ = make_task(self.sequencer.search(), self.tasks)
         t.add_done_callback(self.after_search)
-        self.search_button.configure(state=tk.DISABLED)
+        self.search_button.configure(text="Abort Search", command=self.abort_search)
+
+    def abort_search(self):
+        self.sequencer.abort_sequence()
 
     def after_search(self, future: asyncio.Future):
         """Callback for after search completes"""
-        self.search_button.configure(state=tk.NORMAL)
+        self.search_button.configure(text="Find Spot", command=self.search)
 
     def center(self):
         """Center the image"""

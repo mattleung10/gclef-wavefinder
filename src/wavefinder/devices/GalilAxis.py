@@ -98,7 +98,7 @@ class GalilAxis(Axis):
             # Find the error in drive counts, then if error is larger than
             # drive counts per encoder count, make a big move;
             # else, move one drive count at a time until error is zero.
-            while self.position != position:
+            while round(self.position, 3) != round(position, 3):
                 err_counts = int((position - self.position) * self.drive_scale)
                 if err_counts > self.drive_scale / self.encoder_scale:
                     self.g.GCommand(f"YR{self.ch}={err_counts}")
