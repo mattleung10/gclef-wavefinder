@@ -53,6 +53,7 @@ class GalilAxis(Axis):
         self.g.GCommand(f"AC{self.ch}={self.accel}")
         self.g.GCommand(f"DC{self.ch}={self.decel}")
         self.g.GCommand(f"SP{self.ch}={self.speed}")
+        # NOTE: HV is most likely not doing anything because these are stepper motors
         self.g.GCommand(f"HV{self.ch}={self.hspeed}")
 
     async def home(self):
@@ -92,15 +93,23 @@ class GalilAxis(Axis):
             self.g.GCommand(f"PA{self.ch}={counts};BG{self.ch}")
             await self.wait_for_motion_complete(self.ch)
             await self.update_position()
-            # NOTE: drive is not using encoder as feedback, so friction can cause an small error;
-            # correct that error here. Limit to 10 tries.
-            tries = 0
-            while tries < 10 and self.position != position:
-                counts = int((position - self.position) * self.drive_scale)
-                self.g.GCommand(f"YR{self.ch}={counts}")
-                await self.wait_for_motion_complete(self.ch)
-                await self.update_position()
-                tries += 1
+            # NOTE: drive is not using encoder as feedback, so friction can
+            # cause an small error which we correct here.
+            # Find the error in drive counts, then if error is larger than
+            # drive counts per encoder count, make a big move;
+            # else, move one drive count at a time until error is zero.
+            while self.position != position:
+                err_counts = int((position - self.position) * self.drive_scale)
+                if err_counts > self.drive_scale / self.encoder_scale:
+                    self.g.GCommand(f"YR{self.ch}={err_counts}")
+                    await self.wait_for_motion_complete(self.ch)
+                    await self.update_position()
+                else:
+                    # get the sign of the error, yielding -1 or 1
+                    step = int(err_counts / abs(err_counts))
+                    self.g.GCommand(f"YR{self.ch}={step}")
+                    await self.wait_for_motion_complete(self.ch)
+                    await self.update_position()
             await self.update_status()
         except GclibError:
             self.status = Axis.ERROR
