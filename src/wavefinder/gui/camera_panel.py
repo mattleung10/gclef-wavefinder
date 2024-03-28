@@ -50,6 +50,7 @@ class CameraPanel(Cyclic):
         self.use_roi_stats = tk.BooleanVar(value=config.image_use_roi_stats)
         self.full_threshold_hist = tk.BooleanVar(value=False)
         self.roi_threshold_hist = tk.BooleanVar(value=False)
+        self.hide_histogram = tk.BooleanVar(value=False)
 
         # camera variables
         self.camera = camera
@@ -228,6 +229,9 @@ class CameraPanel(Cyclic):
             text="Limit histogram to threshold",
             variable=self.full_threshold_hist,
         ).grid(column=0, row=13, columnspan=2, sticky=tk.W)
+        ttk.Checkbutton(
+            parent, text="Hide Histogram", variable=self.hide_histogram
+        ).grid(column=2, row=13)
 
     ### ROI Frame Slices ###
     def make_roi_input_slice(self, parent):
@@ -767,6 +771,11 @@ class CameraPanel(Cyclic):
 
     def update_all_histograms(self):
         """Update full frame and ROI histograms"""
+        if self.hide_histogram.get():
+            self.histogram.grid_remove()
+        else:
+            self.histogram.grid()
+
         box = self.get_roi_box()
         if self.config.camera_frame:
             self.update_histogram(

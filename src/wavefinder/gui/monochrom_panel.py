@@ -28,7 +28,9 @@ class MonochromPanel(Cyclic, ttk.LabelFrame):
         self.status_light = ttk.Label(self, text="Status", width=6)
         self.wavelength_txt = tk.StringVar(self, str(self.dk.current_wavelength))
         self.wavelength_entry = tk.StringVar(self, str(self.dk.target_wavelength))
-        self.slit_txt = tk.StringVar(self, str(self.dk.current_slit1) + " / " +  str(self.dk.current_slit2))
+        self.slit_txt = tk.StringVar(
+            self, str(self.dk.current_slit1) + " / " + str(self.dk.current_slit2)
+        )
         self.slit1_entry = tk.StringVar(self, str(self.dk.target_slit1))
         self.slit2_entry = tk.StringVar(self, str(self.dk.target_slit2))
 
@@ -133,7 +135,9 @@ class MonochromPanel(Cyclic, ttk.LabelFrame):
         self.status_txt.set(MonochromPanel.STATUS[self.dk.status])
         self.status_light.configure(background=MonochromPanel.COLORS[self.dk.status])
         self.wavelength_txt.set(str(self.dk.current_wavelength))
-        self.slit_txt.set(str(self.dk.current_slit1) + " / " +  str(self.dk.current_slit2))
+        self.slit_txt.set(
+            str(self.dk.current_slit1) + " / " + str(self.dk.current_slit2)
+        )
 
     def close(self):
         """Close out all tasks"""
