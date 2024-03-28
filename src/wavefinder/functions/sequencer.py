@@ -148,6 +148,10 @@ class Sequencer:
                 focus_curve: dict[float, float] = {}
 
                 for point_i in range(ppp):
+                    # check for abort
+                    if self.abort:
+                        break
+
                     # for each point in this pass
                     pos = travel_min + point_i * step_dist
                     await z_axis.move_absolute(pos)
@@ -304,12 +308,12 @@ class Sequencer:
             self.config.camera_frame = await self.take_image(self.camera)
             t = Time.now()
             datestr = f"{t.ymdhms[0]:04}{t.ymdhms[1]:02}{t.ymdhms[2]:02}"
-            # example name "gclef_20240131_ait_007_08500_0005_f.fits"
+            # example name "gclef_ait_20240131_ait_005_007_08500_f.fits"
             # means date is 2024-01-31, order = 7, wavelen = 8500nm
             #       5th observation in sequence, "f" for in-focus
             letter = "f"
             basename = (
-                f"gclef_ait_{datestr}_{order:03}_{round(wavel):05}_{j:03}_{letter}.fits"
+                f"gclef_ait_{datestr}_{j:03}_{order:03}_{round(wavel):05}_{letter}.fits"
             )
             filename = os.path.join(output_dir, basename)
             self.data_writer.write_fits_file(filename, self.config)
@@ -332,7 +336,7 @@ class Sequencer:
                     ### 6.4) save and increment sequence
                     # "i" for intra-focus (dfocusz > 0); "e" for extra-focus
                     letter = "f" if p == 0 else "i" if p < 0 else "e"
-                    basename = f"gclef_ait_{datestr}_{order:03}_{round(wavel):05}_{j:03}_{letter}.fits"
+                    basename = f"gclef_ait_{datestr}_{j:03}_{order:03}_{round(wavel):05}_{letter}.fits"
                     filename = os.path.join(output_dir, basename)
                     self.data_writer.write_fits_file(filename, self.config)
                     j += 1
