@@ -418,7 +418,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
                 self.sequence_button.configure(state=tk.DISABLED)
                 self.abort_button_txt.set("Abort")
                 self.sequence_state_txt.set(
-                    f"{self.sequencer.sequence_state}:"
+                    f"{self.sequencer.sequence_state}: "
                     + f"{self.sequencer.sequence_substate}"
                 )
                 self.sequence_msg_txt.set(
@@ -431,7 +431,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
                 self.abort_button_txt.set("Reset")
                 self.sequence_state_txt.set(f"{self.sequencer.sequence_state}")
                 self.sequence_msg_txt.set(
-                    f"Finished {self.sequencer.sequence_iteration+1}"
+                    f"Finished {self.sequencer.sequence_iteration+1} "
                     + f"of {len(self.sequencer.sequence)}"
                 )
             case SequenceState.ABORT:
