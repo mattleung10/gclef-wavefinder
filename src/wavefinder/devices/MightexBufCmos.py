@@ -144,7 +144,7 @@ class Camera(Cyclic):
             os.environ["PATH"] += (
                 os.pathsep
                 + site.getsitepackages()[1]
-                + "\libusb\_platform\_windows\\x64"
+                + "\\libusb\\_platform\\_windows\\x64"
             )
 
         # find USB camera and set USB configuration
