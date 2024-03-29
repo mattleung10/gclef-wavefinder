@@ -3,6 +3,7 @@ import os
 import platform
 
 import numpy as np
+import site
 import usb.core
 from astropy.time import Time
 
@@ -137,11 +138,14 @@ class Camera(Cyclic):
 
         print("Connecting to Mightex camera... ", end="", flush=True)
 
-        # For Windows, load in the included libusb-1.0.dll by adding it to the PATH,
+        # For Windows, load libusb-1.0.dll by adding it to the PATH,
         # where pyusb will find it.
         if "Windows".casefold() in platform.platform().casefold():
-            libpath = os.path.abspath(os.path.join(os.path.dirname(__file__), "lib"))
-            os.environ["PATH"] = os.environ["PATH"] + os.pathsep + libpath
+            os.environ["PATH"] += (
+                os.pathsep
+                + site.getsitepackages()[1]
+                + "\libusb\_platform\_windows\\x64"
+            )
 
         # find USB camera and set USB configuration
         self.dev: usb.core.Device = usb.core.find(
