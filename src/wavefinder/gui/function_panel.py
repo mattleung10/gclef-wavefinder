@@ -422,7 +422,7 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
                     + f"{self.sequencer.sequence_substate}"
                 )
                 self.sequence_msg_txt.set(
-                    f"processing {self.sequencer.sequence_iteration+1}"
+                    f"processing {self.sequencer.sequence_iteration+1} "
                     + f"of {len(self.sequencer.sequence)}"
                 )
             case SequenceState.FINISHED:
@@ -444,8 +444,8 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
                     + f"{self.sequencer.sequence_substate}"
                 )
                 self.sequence_msg_txt.set(
-                    f"Aborted at {self.sequencer.sequence_iteration+1}"
-                    + f" of {len(self.sequencer.sequence)}"
+                    f"Aborted at {self.sequencer.sequence_iteration+1} "
+                    + f"of {len(self.sequencer.sequence)}"
                 )
 
     async def update(self):
