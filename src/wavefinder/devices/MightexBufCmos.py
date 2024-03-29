@@ -64,6 +64,7 @@ class Frame:
             self.bits = 0
             raise BufferError("got bad frame from camera")
 
+
 class Camera(Cyclic):
     """Interface for Mightex Buffer USB CMOS Camera
 
@@ -85,16 +86,18 @@ class Camera(Cyclic):
     SKIP   = 0x03
     BIN_MODES = [NO_BIN, BIN1X2, BIN1X3, BIN1X4, SKIP]
 
-    def __init__(self,
-                 run_mode: int = NORMAL,
-                 bits: int = 8,
-                 freq_mode: int = 0,
-                 resolution: tuple[int, int] = (1280, 960),
-                 bin_mode: int = NO_BIN,
-                 nBuffer: int = 24,
-                 exposure_time: float = 50,
-                 fps: float = 10,
-                 gain: int = 15) -> None:
+    def __init__(
+        self,
+        run_mode: int = NORMAL,
+        bits: int = 8,
+        freq_mode: int = 0,
+        resolution: tuple[int, int] = (1280, 960),
+        bin_mode: int = NO_BIN,
+        nBuffer: int = 24,
+        exposure_time: float = 50,
+        fps: float = 10,
+        gain: int = 15,
+    ) -> None:
         """Mightex Buffer USB CMOS Camera
 
         Args:
@@ -129,23 +132,24 @@ class Camera(Cyclic):
 
         # data structures
         self.frame_buffer: list[Frame] = []
-        self.buffer_max = 100 # max 100 frames
+        self.buffer_max = 100  # max 100 frames
         self.last_trigger_time: Time = Time.now()
 
-        print("Connecting to Mightex camera... ", end='', flush=True)
+        print("Connecting to Mightex camera... ", end="", flush=True)
 
         # For Windows, load in the included libusb-1.0.dll by adding it to the PATH,
         # where pyusb will find it.
         if "Windows".casefold() in platform.platform().casefold():
             libpath = os.path.abspath(os.path.join(os.path.dirname(__file__), "lib"))
-            os.environ['PATH'] = os.environ['PATH'] + os.pathsep + libpath
+            os.environ["PATH"] = os.environ["PATH"] + os.pathsep + libpath
 
         # find USB camera and set USB configuration
-        self.dev: usb.core.Device = usb.core.find(idVendor=0x04b4,
-                                                  idProduct=0x0528) # type: ignore
+        self.dev: usb.core.Device = usb.core.find(
+            idVendor=0x04B4, idProduct=0x0528
+        )  # type: ignore
         if self.dev is None:
             raise ValueError("not found.")
-        self.dev.set_configuration() # type: ignore
+        self.dev.set_configuration()  # type: ignore
 
         self.establish_connection()
         print("connected.")
@@ -175,7 +179,7 @@ class Camera(Cyclic):
         but the 0x33 command returns 0x08 for "ok,"
         so we're just checking for non-zero replies.
         """
-        reply = self.dev.read(0x81, 0xff)
+        reply = self.dev.read(0x81, 0xFF)
         if not (reply[0] > 0x00 and len(reply[2:]) == reply[1]):
             raise RuntimeError("Bad Reply from Camera:\n" + str(reply))
         # Strip out first two bytes (status & len)
@@ -210,16 +214,20 @@ class Camera(Cyclic):
             print(item[0] + ": " + item[1])
         print("Firmware: " + '.'.join(map(str, await self.get_firmware_version())))
 
-    async def set_mode(self, run_mode: int = NORMAL,
-                       bits: int = 8, write_now: bool = False) -> None:
+    async def set_mode(
+        self,
+        run_mode: int | None = None,
+        bits: int | None = None,
+        write_now: bool = False,
+    ) -> None:
         """Set camera work mode and bitrate.
 
         run_mode:   NORMAL (default) or TRIGGER
         bits:       8 (default) or 12
         write_now:  write to camera immediately
         """
-        self.run_mode = run_mode if run_mode in Camera.RUN_MODES else Camera.NORMAL
-        self.bits = bits if bits in [8, 12] else 8
+        self.run_mode = run_mode if run_mode in Camera.RUN_MODES else self.run_mode
+        self.bits = bits if bits in [8, 12] else self.bits
         if write_now:
             self.dev.write(0x01, [0x30, 2, self.run_mode, self.bits])
 
@@ -231,13 +239,17 @@ class Camera(Cyclic):
 
         0 = full speed; 1 = 1/2 speed; ... ; 4 = 1/16 speed
         """
-        self.freq_mode = freq_mode if freq_mode in range(0,5) else 0
+        self.freq_mode = freq_mode if freq_mode in range(0, 5) else 0
         if write_now:
             self.dev.write(0x01, [0x32, 1, self.freq_mode])
 
-    async def set_resolution(self, resolution: tuple[int, int] = (1280, 960),
-                             bin_mode: int = NO_BIN, nBuffer: int = 24,
-                             write_now: bool = False) -> None:
+    async def set_resolution(
+        self,
+        resolution: tuple[int, int] = (1280, 960),
+        bin_mode: int = NO_BIN,
+        nBuffer: int = 24,
+        write_now: bool = False,
+    ) -> None:
         """Set camera resolution, bin mode, and buffer size.
 
         resolution: tuple of (rows, columns)
@@ -262,8 +274,9 @@ class Camera(Cyclic):
                                   self.resolution[1] >> 8, self.resolution[1] & 0xff,
                                   self.bin_mode, self.nBuffer, 0])
 
-    async def set_exposure_time(self, exposure_time: float = 50,
-                                write_now: bool = False) -> None:
+    async def set_exposure_time(
+        self, exposure_time: float = 50, write_now: bool = False
+    ) -> None:
         """Set exposure time.
 
         exposure_time:  time in milliseconds, in increments of 0.05ms
@@ -292,9 +305,9 @@ class Camera(Cyclic):
         """
         self.fps = min(max(fps, 0.153), 10000)
         if write_now:
-            frame_time = 1/self.fps
+            frame_time = 1 / self.fps
             set_val = int(frame_time * 10000)
-            self.dev.write(0x01, [0x64, 2, set_val >> 8, set_val & 0xff])
+            self.dev.write(0x01, [0x64, 2, set_val >> 8, set_val & 0xFF])
 
     async def set_gain(self, gain: int = 15, write_now: bool = False) -> None:
         """Set camera gain.
@@ -318,7 +331,9 @@ class Camera(Cyclic):
         """Write all configuration settings to camera."""
         await self.set_mode(self.run_mode, self.bits, write_now=True)
         await self.set_frequency(self.freq_mode, write_now=True)
-        await self.set_resolution(self.resolution, self.bin_mode, self.nBuffer, write_now=True)
+        await self.set_resolution(
+            self.resolution, self.bin_mode, self.nBuffer, write_now=True
+        )
         await self.set_exposure_time(self.exposure_time, write_now=True)
         await self.set_fps(self.fps, write_now=True)
         await self.set_gain(self.gain, write_now=True)
@@ -341,8 +356,10 @@ class Camera(Cyclic):
         reply = await self.read_reply()
         buffer_info: dict[str, int | tuple[int, int]] = {}
         buffer_info["nFrames"] = reply[0]
-        buffer_info["resolution"] = ((reply[1] << 8) + reply[2],
-                                     (reply[3] << 8) + reply[4])
+        buffer_info["resolution"] = (
+            (reply[1] << 8) + reply[2],
+            (reply[3] << 8) + reply[4],
+        )
         buffer_info["bin_mode"] = reply[5]
         return buffer_info
 
@@ -360,8 +377,8 @@ class Camera(Cyclic):
         """
         # get frame buffer information
         buffer_info = await self.query_buffer()
-        nFrames: int = buffer_info["nFrames"] # type: ignore
-        resolution: tuple[int, int] = buffer_info["resolution"] # type: ignore
+        nFrames: int = buffer_info["nFrames"]  # type: ignore
+        resolution: tuple[int, int] = buffer_info["resolution"]  # type: ignore
 
         if nFrames == self.nBuffer:
             print("camera buffer full")
@@ -409,7 +426,7 @@ class Camera(Cyclic):
     async def update(self):
         """Update application with new data from camera"""
         if self.extra_init:
-            print("Writing configuration to camera... ", end='', flush=True)
+            print("Writing configuration to camera... ", end="", flush=True)
             await self.write_configuration()
             print("OK.")
             self.extra_init = False
@@ -417,7 +434,7 @@ class Camera(Cyclic):
 
     def close(self):
         """Close connection to camera
-        
+
         Don't need to do anything.
         """
         pass

@@ -19,7 +19,7 @@ class DataWriter:
         self,
         camera: Camera | None,
         axes: dict[str, Axis],
-        monochromator: DkMonochromator
+        monochromator: DkMonochromator,
     ) -> None:
         self.camera = camera
         self.axes = axes
@@ -128,10 +128,19 @@ class DataWriter:
         headers: dict[str, tuple[float | int | str, str]] = {}
         headers["obstype"] = (self.config.image_obstype, "Type of observation taken")
         headers["object"] = (self.config.image_target, "target of the observation")
-        headers["wavelen"] = (self.monochromator.current_wavelength,
+        headers["wavelen"] = (
+            self.monochromator.current_wavelength,
             "[nm] wavelength being measured",
         )
         headers["order"] = (self.config.sequence_order, "diffraction order")
+        headers["slit1"] = (
+            self.monochromator.current_slit1,
+            "[um] monochromator slit 1 (entry) size",
+        )
+        headers["slit2"] = (
+            self.monochromator.current_slit2,
+            "[um] monochromator slit 2 (exit) size",
+        )
         id = f"{self.config.sequence_order:03}"
         id += f"-{round(self.monochromator.current_wavelength):05}"
         id += f"-{self.config.sequence_number:03}"
