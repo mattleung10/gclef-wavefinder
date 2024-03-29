@@ -141,9 +141,9 @@ class DataWriter:
             self.monochromator.current_slit2,
             "[um] monochromator slit 2 (exit) size",
         )
-        id = f"{self.config.sequence_order:03}"
+        id = f"{self.config.sequence_number:03}"
+        id += f"-{self.config.sequence_order:03}"
         id += f"-{round(self.monochromator.current_wavelength):05}"
-        id += f"-{self.config.sequence_number:03}"
         id += f"-{random.randrange(16**4):4x}"  # random hash for uniqueness
         headers["obs_id"] = (id, "unique observation ID")
         if not np.isnan(self.config.focus_position):

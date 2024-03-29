@@ -405,6 +405,7 @@ class Sequencer:
             filename = os.path.join(output_dir, basename)
             self.data_writer.write_fits_file(filename, self.config)
             j += 1
+            self.config.sequence_number = j
 
             ## 6) intra- and extra- focus positions
             z_axis = self.axes.get(self.config.sequencer_z_axis)
@@ -427,6 +428,7 @@ class Sequencer:
                     filename = os.path.join(output_dir, basename)
                     self.data_writer.write_fits_file(filename, self.config)
                     j += 1
+                    self.config.sequence_number = j
 
         if not await self.sequence_housekeeping(SequenceSubstate.FINISHED):
             return
