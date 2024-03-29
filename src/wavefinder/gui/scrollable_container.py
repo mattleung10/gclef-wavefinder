@@ -12,7 +12,7 @@ class ScrollableWindow(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        self.canvas = tk.Canvas(self)
+        self.canvas = tk.Canvas(self, highlightthickness=0)
         self.scrollbar_v = ttk.Scrollbar(
             self, orient=tk.VERTICAL, command=self.canvas.yview
         )
@@ -74,10 +74,8 @@ class ScrollableWindow(tk.Tk):
 
     def get_min_app_width(self):
         """Get minimum width to display entire app."""
-        # NOTE: add 2 for the border
-        return self.frame.winfo_reqwidth() + self.scrollbar_v.winfo_reqwidth() + 2
+        return self.frame.winfo_reqwidth() + self.scrollbar_v.winfo_reqwidth()
 
     def get_min_app_height(self):
         """Get minimum height to display entire app."""
-        # NOTE: add 2 for the border
-        return self.frame.winfo_reqheight() + self.scrollbar_h.winfo_reqheight() + 2
+        return self.frame.winfo_reqheight() + self.scrollbar_h.winfo_reqheight()

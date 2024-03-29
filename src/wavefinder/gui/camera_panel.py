@@ -50,7 +50,7 @@ class CameraPanel(Cyclic):
         self.use_roi_stats = tk.BooleanVar(value=config.image_use_roi_stats)
         self.full_threshold_hist = tk.BooleanVar(value=False)
         self.roi_threshold_hist = tk.BooleanVar(value=False)
-        self.hide_histogram = tk.BooleanVar(value=False)
+        self.hide_histogram = tk.BooleanVar(value=True)
 
         # camera variables
         self.camera = camera
@@ -224,13 +224,18 @@ class CameraPanel(Cyclic):
     def make_histogram(self, parent):
         self.histogram = tk.Canvas(parent, width=500, height=200)
         self.histogram.grid(column=0, row=12, columnspan=3, sticky=tk.W)
+        if self.hide_histogram.get():
+            self.histogram.grid_remove()
         ttk.Checkbutton(
             parent,
             text="Limit histogram to threshold",
             variable=self.full_threshold_hist,
         ).grid(column=0, row=13, columnspan=2, sticky=tk.W)
         ttk.Checkbutton(
-            parent, text="Hide Histogram", variable=self.hide_histogram
+            parent,
+            text="Hide Histogram",
+            variable=self.hide_histogram,
+            command=self.show_hide_histogram,
         ).grid(column=2, row=13)
 
     ### ROI Frame Slices ###
@@ -377,6 +382,13 @@ class CameraPanel(Cyclic):
     def restore_thresholds(self):
         self.full_threshold_entry.set(str(self.config.image_full_threshold))
         self.roi_threshold_entry.set(str(self.config.image_roi_threshold))
+
+    def show_hide_histogram(self):
+        """Show or hide the full frame histogram, based on the checkbox"""
+        if self.hide_histogram.get():
+            self.histogram.grid_remove()
+        else:
+            self.histogram.grid()
 
     def set_roi(self):
         """Set the region of interest bounds and zoom"""
@@ -771,20 +783,16 @@ class CameraPanel(Cyclic):
 
     def update_all_histograms(self):
         """Update full frame and ROI histograms"""
-        if self.hide_histogram.get():
-            self.histogram.grid_remove()
-        else:
-            self.histogram.grid()
-
         box = self.get_roi_box()
         if self.config.camera_frame:
-            self.update_histogram(
-                self.histogram,
-                self.config.camera_frame.img_array,
-                self.config.camera_frame.bits,
-                self.config.image_full_threshold,
-                self.full_threshold_hist.get(),
-            )
+            if not self.hide_histogram.get():
+                self.update_histogram(
+                    self.histogram,
+                    self.config.camera_frame.img_array,
+                    self.config.camera_frame.bits,
+                    self.config.image_full_threshold,
+                    self.full_threshold_hist.get(),
+                )
             self.update_histogram(
                 self.roi_histogram,
                 self.config.camera_frame.img_array[box[1] : box[3], box[0] : box[2]],
@@ -793,13 +801,14 @@ class CameraPanel(Cyclic):
                 self.roi_threshold_hist.get(),
             )
         else:
-            self.update_histogram(
-                self.histogram,
-                np.array(self.config.full_img),
-                8,
-                self.config.image_full_threshold,
-                self.full_threshold_hist.get(),
-            )
+            if not self.hide_histogram.get():
+                self.update_histogram(
+                    self.histogram,
+                    np.array(self.config.full_img),
+                    8,
+                    self.config.image_full_threshold,
+                    self.full_threshold_hist.get(),
+                )
             self.update_histogram(
                 self.roi_histogram,
                 np.array(self.config.full_img.crop(box)),

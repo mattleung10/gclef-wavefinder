@@ -41,8 +41,8 @@ class Configuration:
         # image processing defaults and state
         self.full_img = Image.new(mode="L", size=self.camera_resolution)
         self.image_frozen = False
-        self.image_full_threshold = 50.0
-        self.image_roi_threshold = 50.0
+        self.image_full_threshold = 15.0
+        self.image_roi_threshold = 15.0
         self.roi_size = (50, 50)
         self.image_use_roi_stats = False
         self.image_math_in_function = False
