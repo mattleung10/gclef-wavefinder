@@ -280,8 +280,8 @@ class FunctionPanel(Cyclic, ttk.LabelFrame):
     def select_sequence_file(self):
         """Select input file for automated sequence"""
         filename = filedialog.askopenfilename(
-            initialfile=f"sequence.csv",
-            filetypes=(("CSV files", "*.csv"), ("all files", "*.*")),
+            initialfile=f"sequence.txt",
+            filetypes=(("TXT files", "*.txt"), ("all files", "*.*")),
         )
         if filename:
             self.sequence_filename = filename

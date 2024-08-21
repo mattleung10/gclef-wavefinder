@@ -324,13 +324,25 @@ class Sequencer:
             if self.is_sequence_runnable() is True:
                 self.sequence_state = SequenceState.READY
 
-    def is_sequence_runnable(self):
+    def is_sequence_runnable_old(self):
         """Check if the sequence can be run"""
         if len(self.sequence) == 0:
             return False
         elif self.camera is None:
             return False
         elif self.monochromator.comm_up is False:
+            return False
+        if not self.config.sequencer_x_axis in self.axes:
+            return False
+        if not self.config.sequencer_y_axis in self.axes:
+            return False
+        if not self.config.sequencer_z_axis in self.axes:
+            return False
+        else:
+            return True
+
+    def is_sequence_runnable(self):
+        if self.camera is None:
             return False
         if not self.config.sequencer_x_axis in self.axes:
             return False
@@ -353,7 +365,7 @@ class Sequencer:
         else:
             return True
 
-    async def read_input_file(self, filename: str):
+    def read_input_file(self, filename: str):
         """Read input sequence file
 
         Args:
@@ -393,9 +405,11 @@ class Sequencer:
 
         if invalid_command == True: #there is an invalid command
             warnings.warn("Invalid command detected")
-        else: #no invalid commands
+
+        if self.is_sequence_runnable() is True:
             self.sequence_state = SequenceState.READY
             self.commands_list = commands_list
+            self.sequence = commands_list #not necessary, but just for display purposes
 
     async def run_sequence(self, output_dir: str):
         """Run sequence and store data in output directory
@@ -415,8 +429,10 @@ class Sequencer:
         self.old_camera_mode = self.camera.run_mode
         await self.camera.set_mode(run_mode=Camera.TRIGGER, write_now=True)
 
-        self.config.sequence_number = 0
+        framenum = 0
         for i, command in enumerate(self.commands_list):
+            print(command)
+            self.sequence_iteration = i
             if not await self.sequence_housekeeping(SequenceSubstate.START):
                 return
             command_name = command.command_name #str; command name
@@ -448,22 +464,20 @@ class Sequencer:
                 exp_time = numerics[0] #exposure time in milliseconds
 
                 #set exposure time and write to configuration
-                await self.camera.set_exposure_time(exposure_time=exp_time)
-                await self.camera.write_configuration()
+                #Note: must do write_now=True
+                await self.camera.set_exposure_time(exposure_time=exp_time, write_now=True)
 
                 self.config.camera_frame = await self.take_image(self.camera)
-                wavl = await self.monochromator.get_current_wavelength() #current wavelength
                 t = Time.now()
                 datestr = f"{t.ymdhms[0]:04}{t.ymdhms[1]:02}{t.ymdhms[2]:02}"
-                # example name "gclef_ait_20240131_ait_08500_005.fits"
-                # means date is 2024-01-31, wavelen = 8500nm, 5th observation in sequence
-                framenum = self.config.sequence_number
+                # example name "gclef_ait_20240131_ait_005.fits"
+                # means date is 2024-01-31, 5th observation in sequence
                 basename = (
-                    f"gclef_ait_{datestr}_{round(wavl):05}_{framenum:03}.fits"
+                    f"gclef_ait_{datestr}_{framenum:03}.fits"
                 )
                 filename = os.path.join(output_dir, basename)
                 self.data_writer.write_fits_file(filename, self.config)
-                self.config.sequence_number += 1
+                framenum += 1
 
             else: #invalid command
                 warnings.warn('Invalid command')

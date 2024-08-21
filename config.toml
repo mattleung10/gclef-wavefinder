@@ -48,7 +48,7 @@ ports = [
 "cfm2 y"        = {sn = 113059, keyword = "cfm2ypos"}
 
 [motion.galil]
-address         = "192.168.1.19"
+address         = "192.168.1.1900000000000"
 acceleration    = 2000000
 deceleration    = 2000000
 move_speed      =  100000

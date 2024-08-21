@@ -122,9 +122,9 @@ class MotionPanel(Cyclic, ttk.LabelFrame):
             return
 
         if self.jog_less.instate(["active"]):
-            make_task(a.move_relative(-0.1), self.tasks)
+            make_task(a.move_relative(-0.001), self.tasks)
         elif self.jog_more.instate(["active"]):
-            make_task(a.move_relative(+0.1), self.tasks)
+            make_task(a.move_relative(+0.001), self.tasks)
 
     def copy_position(self):
         """Copy position to input"""
