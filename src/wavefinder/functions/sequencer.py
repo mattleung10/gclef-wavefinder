@@ -2,6 +2,7 @@ import asyncio
 import os
 from enum import StrEnum
 
+import warnings
 import numpy as np
 from astropy.time import Time
 
@@ -32,6 +33,18 @@ class SequenceSubstate(StrEnum):
     CAPTURE_D = "Take Delta Focus Images"
     FINISHED = "Finished"
 
+###############################################################################
+
+class command_class():
+    def __init__(self, command_name: str, numerics: list):
+        self.command_name = command_name
+        self.numerics = numerics
+        return None
+    
+    def __str__(self):
+        return str(self.command_name)+' '+str(self.numerics)
+
+###############################################################################
 
 class Sequencer:
     def __init__(
@@ -70,6 +83,7 @@ class Sequencer:
         self.sequence_state: SequenceState = SequenceState.INPUT
         self.sequence_substate: SequenceSubstate = SequenceSubstate.START
         self.abort = False
+        self.commands_list = None #list to store commands
 
         # check for axes
         if not self.config.sequencer_x_axis in self.axes:
@@ -283,7 +297,8 @@ class Sequencer:
         else:
             return True
 
-    def read_input_file(self, filename: str):
+    #old code
+    def read_input_file_old(self, filename: str):
         """Read input sequence file
 
         Args:
@@ -326,7 +341,148 @@ class Sequencer:
         else:
             return True
 
+###############################################################################
+
+    def __check_valid_text_command(self, text: str):
+        """
+        Helper function. Check if text command is valid
+        """
+        valid_text_commands = ['MOVEXY', 'WAIT', 'EXPOSE'] #valid commands
+        if text not in valid_text_commands:
+            return False
+        else:
+            return True
+
+    async def read_input_file(self, filename: str):
+        """Read input sequence file
+
+        Args:
+            filename: path to filename
+        """
+        self.sequence_state = SequenceState.NOT_READY
+
+        with open(filename, 'r') as f: #read lines in TXT file
+            lines = f.readlines()
+        
+        commands_list = [] #list to store command_class instances
+        invalid_command = False
+        for line in lines:
+            #strip trailing characters, then split by ' '
+            textnum = line.rstrip().split(' ')  #textnum is an array of str
+
+            command_name = textnum[0]
+            
+            #Check if command_name is valid
+            if self.__check_valid_text_command(command_name) == False:
+                invalid_command = True
+                break
+            
+            #Build numeric list
+            numerics_str = textnum[1].split(',')
+            numerics = []
+            for num in numerics_str:
+                try:
+                    num_float = float(num)
+                except ValueError:
+                    invalid_command = True
+                    break
+                numerics += [num_float]
+            if invalid_command == True:
+                break
+            commands_list += [command_class(command_name, numerics)]
+
+        if invalid_command == True: #there is an invalid command
+            warnings.warn("Invalid command detected")
+        else: #no invalid commands
+            self.sequence_state = SequenceState.READY
+            self.commands_list = commands_list
+
     async def run_sequence(self, output_dir: str):
+        """Run sequence and store data in output directory
+
+        Args:
+            output_dir: path to output directory
+        """
+
+        # check for necessary devices and sequence
+        # already checked by read_input_file, so shouldn't happen
+        if not self.is_sequence_runnable() or self.camera is None:
+            self.sequence_state = SequenceState.ABORT
+            return
+
+        self.sequence_state = SequenceState.RUN
+        # set camera to trigger mode
+        self.old_camera_mode = self.camera.run_mode
+        await self.camera.set_mode(run_mode=Camera.TRIGGER, write_now=True)
+
+        self.config.sequence_number = 0
+        for i, command in enumerate(self.commands_list):
+            if not await self.sequence_housekeeping(SequenceSubstate.START):
+                return
+            command_name = command.command_name #str; command name
+            numerics = command.numerics #list of numbers
+
+            if command_name == 'MOVEXY': #move to position
+                xpos = numerics[0] #x position
+                ypos = numerics[1] #y position
+
+                #move x position
+                if not await self.sequence_housekeeping(SequenceSubstate.MOVE):
+                    return
+                a_x = self.axes.get('detector x')
+                if a_x:
+                    await a_x.move_absolute(xpos)
+                
+                #move y position
+                if not await self.sequence_housekeeping(SequenceSubstate.MOVE):
+                    return
+                a_y = self.axes.get('detector y')
+                if a_y:
+                    await a_y.move_absolute(ypos)
+
+            elif command_name == 'WAIT': #wait (sleep)
+                sleep_time = numerics[0] #this is in seconds
+                await asyncio.sleep(sleep_time)
+            
+            elif command_name == 'EXPOSE': #take an exposure
+                exp_time = numerics[0] #exposure time in milliseconds
+
+                #set exposure time and write to configuration
+                await self.camera.set_exposure_time(exposure_time=exp_time)
+                await self.camera.write_configuration()
+
+                self.config.camera_frame = await self.take_image(self.camera)
+                wavl = await self.monochromator.get_current_wavelength() #current wavelength
+                t = Time.now()
+                datestr = f"{t.ymdhms[0]:04}{t.ymdhms[1]:02}{t.ymdhms[2]:02}"
+                # example name "gclef_ait_20240131_ait_08500_005.fits"
+                # means date is 2024-01-31, wavelen = 8500nm, 5th observation in sequence
+                framenum = self.config.sequence_number
+                basename = (
+                    f"gclef_ait_{datestr}_{round(wavl):05}_{framenum:03}.fits"
+                )
+                filename = os.path.join(output_dir, basename)
+                self.data_writer.write_fits_file(filename, self.config)
+                self.config.sequence_number += 1
+
+            else: #invalid command
+                warnings.warn('Invalid command')
+                return
+        
+        if not await self.sequence_housekeeping(SequenceSubstate.FINISHED):
+            return
+
+        # restore previous camera mode
+        await self.camera.set_mode(run_mode=self.old_camera_mode, write_now=True)
+        self.sequence_state = SequenceState.FINISHED
+
+        # CONTINUE CODING HERE <<<<<------------------------------------------------------------------------------------ 
+
+
+###############################################################################
+
+    #old code
+    async def run_sequence_old(self, output_dir: str):
         """Run sequence and store data in output directory
 
         Args:
