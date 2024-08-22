@@ -63,7 +63,7 @@ drive_cnts_deg  =   10000
 "cfm2 elevation"    = {ch = "D", keyword = "cfm2el"}
 
 [motion.limits]
-"detector z"        = {min =   0.0, max = 18.0}
+"detector z"        = {min =   0.0, max = 17.5}
 "cfm1 azimuth"      = {min = -30.0, max = 30.0}
 "cfm1 elevation"    = {min = -30.0, max = 30.0}
 "cfm2 azimuth"      = {min = -30.0, max = 30.0}

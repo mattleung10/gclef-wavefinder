@@ -490,6 +490,15 @@ class Sequencer:
         await self.camera.set_mode(run_mode=self.old_camera_mode, write_now=True)
         self.sequence_state = SequenceState.FINISHED
 
+        try: #this is to let you know that the sequence is finished
+            import winsound
+            for idx in range(4):
+                winsound.MessageBeep(winsound.MB_ICONHAND)
+                await asyncio.sleep(1.5)
+            winsound.Beep(1700,5000)
+        except:
+            pass
+
         # CONTINUE CODING HERE <<<<<------------------------------------------------------------------------------------ 
 
 
