@@ -53,22 +53,40 @@ class GalilAxis(Axis):
         self.g.GCommand(f"AC{self.ch}={self.accel}")
         self.g.GCommand(f"DC{self.ch}={self.decel}")
         self.g.GCommand(f"SP{self.ch}={self.speed}")
-        # NOTE: HV is most likely not doing anything because these are stepper motors
+        # NOTE: HV is most likely not doing anything because these are stepper
+        #       motors, but we still use hspeed in our homing routine.
         self.g.GCommand(f"HV{self.ch}={self.hspeed}")
 
     async def home(self):
         try:
             self.status = Axis.BUSY
-            # jog negative until limit, if not at limit already
-            not_limit_reverse = bool(float(self.g.GCommand(f"MG _LR{self.ch}")))
-            if not_limit_reverse:
-                self.g.GCommand(f"JG{self.ch}=-{self.speed};BG{self.ch}")
+            # if at negative limit, move off limit
+            negative_limited = not bool(float(self.g.GCommand(f"MG _LR{self.ch}")))
+            if negative_limited:
+                counts = 30000  # NOTE: from provided #HOME function
+                self.g.GCommand(f"PR{self.ch}={counts};BG{self.ch}")
                 await self.wait_for_motion_complete(self.ch)
-            # home function
+            # jog negative until limit
+            self.g.GCommand(f"JG{self.ch}=-{self.speed};BG{self.ch}")
+            await self.wait_for_motion_complete(self.ch)
+            # home
             self.g.GCommand(f"HM{self.ch};BG{self.ch}")
             await self.wait_for_motion_complete(self.ch)
+            # slow down to hspeed
+            self.g.GCommand(f"SP{self.ch}={self.hspeed}")
+            # move 1 count
+            self.g.GCommand(f"PR{self.ch}=1;BG{self.ch}")
+            await self.wait_for_motion_complete(self.ch)
+            # find motor index
+            self.g.GCommand(f"FI{self.ch};BG{self.ch}")
+            await self.wait_for_motion_complete(self.ch)
+            # wait half a second
+            await asyncio.sleep(0.5)
             # zero position
+            self.g.GCommand(f"DP{self.ch}=0")
             self.g.GCommand(f"DE{self.ch}=0")
+            # resume normal speed
+            self.g.GCommand(f"SP{self.ch}={self.speed}")
             # update
             await self.update_position()
             await self.update_status()
