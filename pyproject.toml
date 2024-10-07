@@ -4,10 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wavefinder"
-version = "1.0.4"
+version = "1.0.5"
 authors = [
   { name="Cem Onyuksel", email="cem.onyuksel@cfa.harvard.edu" },
-  { name="Colby Jergenson", email="colby.jurgenson@cfa.harvard.edu" }
+  { name="Colby Jergenson", email="colby.jurgenson@cfa.harvard.edu" },
+  { name="Matthew Leung", email="matthew.leung@cfa.harvard.edu"}
 ]
 description = "Measure optical performance at various wavelengths"
 readme = "README.md"

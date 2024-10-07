@@ -59,7 +59,7 @@ class GalilAxis(Axis):
 
     async def home(self):
         try:
-            self.status = Axis.BUSY
+            self.status = Axis.MOVING
             # if at negative limit, move off limit
             negative_limited = not bool(float(self.g.GCommand(f"MG _LR{self.ch}")))
             if negative_limited:
@@ -79,9 +79,7 @@ class GalilAxis(Axis):
             await self.wait_for_motion_complete(self.ch)
             # find motor index
             self.g.GCommand(f"FI{self.ch};BG{self.ch}")
-            await self.wait_for_motion_complete(self.ch)
-            # wait half a second
-            await asyncio.sleep(0.5)
+            await self.wait_for_motion_complete(self.ch, 0.5)
             # zero position
             self.g.GCommand(f"DP{self.ch}=0")
             self.g.GCommand(f"DE{self.ch}=0")
@@ -89,6 +87,7 @@ class GalilAxis(Axis):
             self.g.GCommand(f"SP{self.ch}={self.speed}")
             # update
             await self.update_position()
+            self.status = Axis.BUSY
             await self.update_status()
         except GclibError:
             self.status = Axis.ERROR
@@ -98,8 +97,9 @@ class GalilAxis(Axis):
             self.status = Axis.MOVING
             counts = round(distance * self.drive_scale)
             self.g.GCommand(f"PR{self.ch}={counts};BG{self.ch}")
-            await self.wait_for_motion_complete(self.ch)
+            await self.wait_for_motion_complete(self.ch, 0.5)
             await self.update_position()
+            self.status = Axis.BUSY
             await self.update_status()
         except GclibError:
             self.status = Axis.ERROR
@@ -109,30 +109,27 @@ class GalilAxis(Axis):
             self.status = Axis.MOVING
             counts = round(position * self.drive_scale)
             self.g.GCommand(f"PA{self.ch}={counts};BG{self.ch}")
-            await self.wait_for_motion_complete(self.ch)
+            await self.wait_for_motion_complete(self.ch, 0.5)
             await self.update_position()
             # NOTE: drive is not using encoder as feedback, so friction can
             # cause an small error which we correct here.
-            # Find the error in drive counts, then if error is larger than
-            # drive counts per encoder count, make a big move;
-            # else, move one drive count at a time until error is zero.
             while round(self.position, 3) != round(position, 3):
                 err_counts = int((position - self.position) * self.drive_scale)
-                if err_counts > self.drive_scale / self.encoder_scale:
-                    self.g.GCommand(f"YR{self.ch}={err_counts}")
-                    await self.wait_for_motion_complete(self.ch)
-                    await self.update_position()
-                else:
-                    # get the sign of the error, yielding -1 or 1
-                    step = int(err_counts / abs(err_counts))
-                    self.g.GCommand(f"YR{self.ch}={step}")
-                    await self.wait_for_motion_complete(self.ch)
-                    await self.update_position()
+                # slow down to hspeed for error correction
+                self.g.GCommand(f"SP{self.ch}={self.hspeed}")
+                # make the correction
+                self.g.GCommand(f"YR{self.ch}={err_counts}")
+                await self.wait_for_motion_complete(self.ch, 0.5)
+                await self.update_position()
+            else:
+                # resume normal speed
+                self.g.GCommand(f"SP{self.ch}={self.speed}")
+            self.status = Axis.BUSY
             await self.update_status()
         except GclibError:
             self.status = Axis.ERROR
 
-    async def wait_for_motion_complete(self, ch: str):
+    async def wait_for_motion_complete(self, ch: str, settle_time: float = 0.1):
         """Async wait for motion to be complete
 
         Args:
@@ -144,6 +141,8 @@ class GalilAxis(Axis):
             if in_motion > 0:
                 await asyncio.sleep(0.1)
             else:
+                # stabilize
+                await asyncio.sleep(settle_time)
                 return
 
     async def stop(self):
@@ -160,6 +159,7 @@ class GalilAxis(Axis):
         return self.position
 
     async def update_status(self) -> int:
+        # check for errors, set ERROR or READY
         try:
             if self.status == Axis.ERROR:
                 # latch errors until cleared by a good move
@@ -171,13 +171,10 @@ class GalilAxis(Axis):
                     self.status = Axis.ERROR
                     # print error
                     print(f"Error on axis {self.name}: {tc1}")
-                else:
-                    # MG _BG comes back as "0.0000"
-                    in_motion = bool(float(self.g.GCommand(f"MG _BG{self.ch}")))
-                    if in_motion > 0:
-                        self.status = Axis.BUSY
-                    else:
-                        self.status = Axis.READY
+                elif self.status == Axis.BUSY:
+                    # clear BUSY but leave MOVING
+                    self.status = Axis.READY
+
         except GclibError:
             self.status = Axis.ERROR
         return self.status

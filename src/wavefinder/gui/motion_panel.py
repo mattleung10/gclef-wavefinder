@@ -47,11 +47,11 @@ class MotionPanel(Cyclic, ttk.LabelFrame):
             # name
             ttk.Label(self, text=a.name).grid(column=0, row=row, padx=10, sticky=tk.E)
             # position
-            self.pos[a.name] = tk.StringVar(value=str(a.position))
+            self.pos[a.name] = tk.StringVar(value=f"{round(a.position, 3): .3f}")
             l = ttk.Label(self, textvariable=self.pos[a.name], width=7)
             l.grid(column=1, row=row, padx=10, sticky=tk.E)
             # position input
-            self.pos_in[a.name] = tk.StringVar(value=str(0.0))
+            self.pos_in[a.name] = tk.StringVar(value=f"{0.0:.3f}")
             e = ttk.Entry(
                 self,
                 textvariable=self.pos_in[a.name],
@@ -149,8 +149,8 @@ class MotionPanel(Cyclic, ttk.LabelFrame):
             if self.extra_init:
                 await a.update_position()
                 await a.update_status()
-                self.pos_in[a.name].set(str(round(a.position, 3)))
-            self.pos[a.name].set(str(round(a.position, 3)))
+                self.pos_in[a.name].set(f"{round(a.position, 3):.3f}")
+            self.pos[a.name].set(f"{round(a.position, 3): .3f}")
             self.lights[a.name].configure(background=MotionPanel.COLORS[a.status])
         self.extra_init = False
 

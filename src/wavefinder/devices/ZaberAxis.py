@@ -33,7 +33,7 @@ class ZaberAxis(Axis):
 
     async def home(self):
         try:
-            self.status = Axis.BUSY
+            self.status = Axis.MOVING
             await self.axis.home_async()
             await self.update_position()
             await self.update_status()
